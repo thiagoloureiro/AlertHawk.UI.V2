@@ -294,7 +294,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                                 Response: {monitor.monitorStatusDashboard.responseTime.toFixed(0)}ms
                               </div>
                               <div className="dark:text-gray-400 text-gray-600">
-                                Uptime (24h): {monitor.monitorStatusDashboard.uptime24Hrs.toFixed(2)}%
+                                Uptime 24h: {monitor.monitorStatusDashboard.uptime24Hrs.toFixed(2)}%
                               </div>
                             </div>
                           </div>

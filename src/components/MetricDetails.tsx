@@ -363,7 +363,6 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
 
       {/* Response Time Chart */}
       <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Response Time History</h2>
         
         <StatusTimeline historyData={metric.monitorStatusDashboard.historyData} />
         
