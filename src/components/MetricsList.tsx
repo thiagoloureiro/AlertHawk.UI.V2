@@ -3,6 +3,7 @@ import axios from 'axios';
 import { MonitorGroup, Monitor } from '../types';
 import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { getEnvironmentName } from '../types';
 
 interface MetricsListProps {
   selectedMetric: Monitor | null;
@@ -10,8 +11,12 @@ interface MetricsListProps {
 }
 
 // Helper function to get monitor type icon and label
-const getMonitorTypeInfo = (typeId: number, isOnline: boolean) => {
-  const statusColor = isOnline ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400';
+const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean) => {
+  const statusColor = isPaused 
+    ? 'text-gray-400 dark:text-gray-500'
+    : isOnline 
+      ? 'text-green-500 dark:text-green-400' 
+      : 'text-red-500 dark:text-red-400';
   
   switch (typeId) {
     case 1:
@@ -32,18 +37,20 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean) => {
   }
 };
 
-// Add a helper function to get monitor counts
+// Update the monitor counts function to include paused
 const getMonitorCounts = (monitors: Monitor[]) => {
   return monitors.reduce(
     (acc, monitor) => {
-      if (monitor.status) {
+      if (monitor.paused) {
+        acc.paused += 1;
+      } else if (monitor.status) {
         acc.online += 1;
       } else {
         acc.offline += 1;
       }
       return acc;
     },
-    { online: 0, offline: 0 }
+    { online: 0, offline: 0, paused: 0 }
   );
 };
 
@@ -55,13 +62,15 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
+  const [selectedEnvironment, setSelectedEnvironment] = useState<number>(6); // Default to Production (6)
 
   useEffect(() => {
     const fetchMonitors = async () => {
       try {
+        setIsLoading(true);
         const token = localStorage.getItem('authToken');
         const response = await axios.get<MonitorGroup[]>(
-          `${import.meta.env.VITE_MONITORING_API_URL}/api/MonitorGroup/monitorDashboardGroupListByUser/6`,
+          `${import.meta.env.VITE_MONITORING_API_URL}/api/MonitorGroup/monitorDashboardGroupListByUser/${selectedEnvironment}`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -79,7 +88,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     };
 
     fetchMonitors();
-  }, []);
+  }, [selectedEnvironment]);
 
   // Filter monitors based on search term and status
   useEffect(() => {
@@ -104,6 +113,16 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
       [groupId]: !prev[groupId]
     }));
   };
+
+  // Add environment options
+  const environments = [
+    { id: 1, name: 'Development' },
+    { id: 2, name: 'Staging' },
+    { id: 3, name: 'QA' },
+    { id: 4, name: 'Testing' },
+    { id: 5, name: 'PreProd' },
+    { id: 6, name: 'Production' }
+  ];
 
   if (isLoading) {
     return (
@@ -147,38 +166,57 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1 rounded-lg text-sm ${
-                statusFilter === 'all'
-                  ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                  : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+          {/* Filters */}
+          <div className="flex gap-2 items-center">
+            {/* Environment Dropdown */}
+            <select
+              value={selectedEnvironment}
+              onChange={(e) => setSelectedEnvironment(Number(e.target.value))}
+              className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
+                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                       transition-colors duration-200"
             >
-              All
-            </button>
-            <button
-              onClick={() => setStatusFilter('online')}
-              className={`px-3 py-1 rounded-lg text-sm ${
-                statusFilter === 'online'
-                  ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                  : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              Online
-            </button>
-            <button
-              onClick={() => setStatusFilter('offline')}
-              className={`px-3 py-1 rounded-lg text-sm ${
-                statusFilter === 'offline'
-                  ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                  : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              Offline
-            </button>
+              {environments.map(env => (
+                <option key={env.id} value={env.id}>
+                  {env.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  statusFilter === 'all'
+                    ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatusFilter('online')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  statusFilter === 'online'
+                    ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                    : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                Online
+              </button>
+              <button
+                onClick={() => setStatusFilter('offline')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  statusFilter === 'offline'
+                    ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                    : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                Offline
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -186,7 +224,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
       {/* Monitor List */}
       <div className="flex-1 overflow-y-auto">
         {filteredGroups.map(group => {
-          const { online, offline } = getMonitorCounts(group.monitors);
+          const { online, offline, paused } = getMonitorCounts(group.monitors);
           
           return (
             <div key={group.id} className="p-4">
@@ -207,22 +245,29 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                     </div>
                   </div>
                 </div>
-                <div className="text-sm flex items-center gap-4">
-                  <div className="flex items-center gap-2">
+                
+                <div className="text-sm flex flex-col gap-1">
+                  <div className="flex items-center gap-2 justify-start">
                     <span className="h-2 w-2 rounded-full bg-green-500"></span>
                     <span className="dark:text-gray-400 text-gray-600">{online} online</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 justify-start">
                     <span className="h-2 w-2 rounded-full bg-red-500"></span>
                     <span className="dark:text-gray-400 text-gray-600">{offline} offline</span>
                   </div>
+                  {paused > 0 && (
+                    <div className="flex items-center gap-2 justify-start">
+                      <span className="h-2 w-2 rounded-full bg-gray-500 dark:bg-gray-400"></span>
+                      <span className="dark:text-gray-400 text-gray-600">{paused} paused</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
               {!collapsedGroups[group.id] && (
                 <div className="space-y-2 ml-7">
                   {group.monitors.map(monitor => {
-                    const typeInfo = getMonitorTypeInfo(monitor.monitorTypeId, monitor.status);
+                    const typeInfo = getMonitorTypeInfo(monitor.monitorTypeId, monitor.status, monitor.paused);
                     
                     return (
                       <div
