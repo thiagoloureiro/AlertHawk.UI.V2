@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from '../auth/msalConfig';
 import axios from 'axios';
 
 interface LoginProps {
@@ -16,11 +18,57 @@ interface LoginResponse {
 }
 
 export function Login({ onLogin }: LoginProps) {
+  const { instance } = useMsal();
+  const [isMsalInitialized, setIsMsalInitialized] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<LoginError | null>(null);
+
+  // Initialize MSAL
+  useEffect(() => {
+    const initializeMsal = async () => {
+      try {
+        await instance.initialize();
+        setIsMsalInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize MSAL:', error);
+        setError({
+          field: 'general',
+          message: 'Failed to initialize Microsoft authentication'
+        });
+      }
+    };
+
+    initializeMsal();
+  }, [instance]);
+
+  // Handle redirect after initialization
+  useEffect(() => {
+    const handleRedirect = async () => {
+      if (!isMsalInitialized) {
+        return;
+      }
+
+      try {
+        const response = await instance.handleRedirectPromise();
+        if (response) {
+          // Store token in localStorage
+          localStorage.setItem('authToken', response.accessToken);
+          onLogin();
+        }
+      } catch (err) {
+        console.error('Error handling redirect:', err);
+        setError({
+          field: 'general',
+          message: 'Failed to complete Microsoft authentication'
+        });
+      }
+    };
+
+    handleRedirect();
+  }, [instance, isMsalInitialized, onLogin]);
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -76,16 +124,26 @@ export function Login({ onLogin }: LoginProps) {
   };
 
   const handleMicrosoftLogin = async () => {
+    if (!isMsalInitialized) {
+      setError({
+        field: 'general',
+        message: 'Microsoft authentication is not ready yet'
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
-      // Here you would implement Microsoft MSAL authentication
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      setError(null);
       
-      // Handle successful Microsoft login
-      onLogin();
+      // Initiate login redirect
+      await instance.loginRedirect(loginRequest);
     } catch (err) {
-      setError({ field: 'general', message: 'Microsoft authentication failed' });
-    } finally {
+      console.error('Microsoft login error:', err);
+      setError({
+        field: 'general',
+        message: 'Failed to start Microsoft authentication'
+      });
       setIsLoading(false);
     }
   };
@@ -216,13 +274,19 @@ export function Login({ onLogin }: LoginProps) {
                    focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50 
                    disabled:cursor-not-allowed transition-all duration-200"
         >
-          <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
-            <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
-            <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
-            <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
-          </svg>
-          Log in with Microsoft Account
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
+                <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
+                <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
+                <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
+              </svg>
+              Log in with Microsoft Account
+            </>
+          )}
         </button>
 
         {/* Footer */}
