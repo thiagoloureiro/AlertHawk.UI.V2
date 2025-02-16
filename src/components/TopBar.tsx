@@ -42,7 +42,7 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
           alt="AlertHawk Logo" 
           className="w-8 h-8 object-contain"
         />
-        <span className="text-xl font-semibold dark:text-white text-gray-900">
+        <span className="text-2xl font-semibold dark:text-white text-gray-900">
           AlertHawk
         </span>
       </div>
