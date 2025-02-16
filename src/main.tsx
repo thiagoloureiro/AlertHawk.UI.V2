@@ -8,10 +8,22 @@ import './index.css';
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <MsalProvider instance={msalInstance}>
-      <App />
-    </MsalProvider>
-  </StrictMode>
-);
+// Initialize MSAL before rendering
+const initializeMsal = async () => {
+  try {
+    await msalInstance.initialize();
+    
+    // Only render after initialization
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <MsalProvider instance={msalInstance}>
+          <App />
+        </MsalProvider>
+      </StrictMode>
+    );
+  } catch (error) {
+    console.error('Failed to initialize MSAL:', error);
+  }
+};
+
+initializeMsal();

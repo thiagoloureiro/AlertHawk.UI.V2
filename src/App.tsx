@@ -45,10 +45,6 @@ export default function App() {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  const toggleTheme = () => {
-    setIsDarkTheme(!isDarkTheme);
-  };
-
   const handleLogin = () => {
     setIsAuthenticated(true);
     setCurrentPage('dashboard');
@@ -71,7 +67,7 @@ export default function App() {
         <TopBar 
           toggleSidebar={toggleSidebar} 
           isDarkTheme={isDarkTheme}
-          toggleTheme={toggleTheme}
+          onThemeToggle={() => setIsDarkTheme(!isDarkTheme)}
         />
         
         {currentPage === 'dashboard' ? (

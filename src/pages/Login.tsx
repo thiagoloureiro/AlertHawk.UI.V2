@@ -17,6 +17,13 @@ interface LoginResponse {
   token: string;
 }
 
+interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  isAdmin: boolean;
+}
+
 export function Login({ onLogin }: LoginProps) {
   const { instance } = useMsal();
   const [isMsalInitialized, setIsMsalInitialized] = useState(false);
@@ -54,9 +61,42 @@ export function Login({ onLogin }: LoginProps) {
       try {
         const response = await instance.handleRedirectPromise();
         if (response) {
-          // Store token in localStorage
+          // Store MSAL token
           localStorage.setItem('authToken', response.accessToken);
-          onLogin();
+
+          // Get user email from MSAL account
+          const userEmail = response.account?.username;
+          
+          if (userEmail) {
+            try {
+              // Fetch user info from your API
+              const userResponse = await axios.get<UserInfo>(
+                `${import.meta.env.VITE_AUTH_API_URL}/api/user/${userEmail}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${response.accessToken}`
+                  }
+                }
+              );
+
+              // Store user info in localStorage
+              localStorage.setItem('userInfo', JSON.stringify(userResponse.data));
+              
+              // Complete login
+              onLogin();
+            } catch (error) {
+              console.error('Error fetching user info:', error);
+              setError({
+                field: 'general',
+                message: 'Failed to fetch user information'
+              });
+            }
+          } else {
+            setError({
+              field: 'general',
+              message: 'No email found in Microsoft account'
+            });
+          }
         }
       } catch (err) {
         console.error('Error handling redirect:', err);
