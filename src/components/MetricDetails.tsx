@@ -90,7 +90,6 @@ const getMonitorTypeInfo = (typeId: number) => {
 };
 
 const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
-  // Function to determine color based on uptime value
   const getColorClass = (uptime: number) => {
     if (uptime >= 99) return "bg-green-500 dark:bg-green-400";
     if (uptime >= 95) return "bg-yellow-500 dark:bg-yellow-400";
@@ -99,18 +98,18 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-full h-24 dark:bg-gray-700 bg-gray-100 rounded-lg p-3 flex flex-col items-center justify-center">
-        <div className={`text-2xl font-bold mb-1 ${value >= 95 ? 'dark:text-white text-gray-900' : 'text-red-600 dark:text-red-400'}`}>
+      <div className="w-full h-[76px] dark:bg-gray-700 bg-gray-100 rounded-lg p-2 flex flex-col items-center justify-center">
+        <div className={`text-lg font-bold mb-1 ${value >= 95 ? 'dark:text-white text-gray-900' : 'text-red-600 dark:text-red-400'}`}>
           {value.toFixed(2)}%
         </div>
-        <div className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
           <div 
             className={`h-full rounded-full transition-all duration-300 ${getColorClass(value)}`}
             style={{ width: `${value}%` }}
           />
         </div>
       </div>
-      <span className="mt-2 text-sm dark:text-gray-400 text-gray-600">{label}</span>
+      <span className="mt-1.5 text-xs dark:text-gray-400 text-gray-600">{label}</span>
     </div>
   );
 };
@@ -262,58 +261,60 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              <Activity className={`w-6 h-6 ${metric.status ? 'dark:text-green-400 text-green-500' : 'dark:text-red-400 text-red-500'}`} />
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
+              <Activity className={`w-5 h-5 ${metric.status ? 'dark:text-green-400 text-green-500' : 'dark:text-red-400 text-red-500'}`} />
             </div>
             <div>
-              <p className="text-sm dark:text-gray-400 text-gray-600">Current Status</p>
-              <p className="text-2xl font-bold dark:text-white text-gray-900">
+              <p className="text-xs dark:text-gray-400 text-gray-600">Current Status</p>
+              <p className="text-xl font-bold dark:text-white text-gray-900">
                 {metric.status ? 'Online' : 'Offline'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* New Type Card */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              {typeInfo.icon}
+        {/* Type Card */}
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
+              {React.cloneElement(typeInfo.icon, { className: 'w-5 h-5' })}
             </div>
             <div>
-              <p className="text-sm dark:text-gray-400 text-gray-600">Monitor Type</p>
-              <p className="text-2xl font-bold dark:text-white text-gray-900">
+              <p className="text-xs dark:text-gray-400 text-gray-600">Monitor Type</p>
+              <p className="text-xl font-bold dark:text-white text-gray-900">
                 {typeInfo.label}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              <Clock className="w-6 h-6 dark:text-yellow-400 text-yellow-500" />
+        {/* Response Time Card */}
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
+              <Clock className="w-5 h-5 dark:text-yellow-400 text-yellow-500" />
             </div>
             <div>
-              <p className="text-sm dark:text-gray-400 text-gray-600">Response Time</p>
-              <p className="text-2xl font-bold dark:text-white text-gray-900">
+              <p className="text-xs dark:text-gray-400 text-gray-600">Response Time</p>
+              <p className="text-xl font-bold dark:text-white text-gray-900">
                 {metric.monitorStatusDashboard.responseTime.toFixed(0)}ms
               </p>
             </div>
           </div>
         </div>
 
+        {/* SSL Certificate Card */}
         {metric.checkCertExpiry && (
-          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 dark:text-purple-400 text-purple-500" />
+          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
+                <CheckCircle className="w-5 h-5 dark:text-purple-400 text-purple-500" />
               </div>
               <div>
-                <p className="text-sm dark:text-gray-400 text-gray-600">SSL Certificate</p>
-                <p className="text-2xl font-bold dark:text-white text-gray-900">
+                <p className="text-xs dark:text-gray-400 text-gray-600">SSL Certificate</p>
+                <p className="text-xl font-bold dark:text-white text-gray-900">
                   {metric.daysToExpireCert} days
                 </p>
               </div>
@@ -323,9 +324,8 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
       </div>
 
       {/* Uptime Metrics */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Uptime</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {uptimeMetrics.map(({ label, value }) => (
             <UptimeBlock key={label} label={label} value={value} />
           ))}

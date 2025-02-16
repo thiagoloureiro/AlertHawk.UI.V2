@@ -28,7 +28,7 @@ const menuItems: MenuItem[] = [
   { id: '5', name: 'Notification Management', icon: 'MessageSquare', path: 'notifications' },
   { id: '6', name: 'Monitor Groups', icon: 'Users', path: 'groups' },
   { id: '7', name: 'User Management', icon: 'UserCircle', path: 'users' },
-  { id: '8', name: 'Administration', icon: 'Settings', path: 'admin' },
+  { id: '8', name: 'Administration', icon: 'Bell', path: 'admin' },
   { id: 'settings', name: 'Settings', icon: 'Settings', path: 'settings' },
 ];
 
