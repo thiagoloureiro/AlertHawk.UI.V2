@@ -4,6 +4,7 @@ import { MonitorGroup, Monitor } from '../types';
 import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getEnvironmentName } from '../types';
+import monitorService from '../services/monitorService';
 
 interface MetricsListProps {
   selectedMetric: Monitor | null;
@@ -65,29 +66,21 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [selectedEnvironment, setSelectedEnvironment] = useState<number>(6); // Default to Production (6)
 
   useEffect(() => {
-    const fetchMonitors = async () => {
+    const fetchGroups = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('authToken');
-        const response = await axios.get<MonitorGroup[]>(
-          `${import.meta.env.VITE_MONITORING_API_URL}/api/MonitorGroup/monitorDashboardGroupListByUser/${selectedEnvironment}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-        setGroups(response.data);
-        setFilteredGroups(response.data);
+        const groups = await monitorService.getDashboardGroups(selectedEnvironment);
+        setGroups(groups);
+        setFilteredGroups(groups);
       } catch (err) {
-        console.error('Failed to fetch monitors:', err);
-        setError('Failed to load monitors');
+        console.error('Failed to fetch monitor groups:', err);
+        setError('Failed to load monitor groups');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMonitors();
+    fetchGroups();
   }, [selectedEnvironment]);
 
   // Filter monitors based on search term and status

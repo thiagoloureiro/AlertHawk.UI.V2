@@ -3,6 +3,7 @@ import { Download, ChevronDown, ChevronUp, Search, Loader2, AlertCircle } from '
 import axios from 'axios';
 import { AlertIncident, getEnvironmentName } from '../types';
 import { convertUTCToLocal } from '../utils/dateUtils';
+import alertService from '../services/alertService';
 
 const timePeriods = [
   { value: '7', label: 'Last 7 Days' },
@@ -40,17 +41,9 @@ export function MonitorAlerts() {
     const fetchAlerts = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('authToken');
-        const response = await axios.get<AlertIncident[]>(
-          `${import.meta.env.VITE_MONITORING_API_URL}/api/MonitorAlert/monitorAlerts/0/${selectedPeriod}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-        setAlerts(response.data);
-        setFilteredAlerts(response.data);
+        const alerts = await alertService.getAlerts(0, selectedPeriod);
+        setAlerts(alerts);
+        setFilteredAlerts(alerts);
       } catch (err) {
         console.error('Failed to fetch alerts:', err);
         setError('Failed to load alerts');
