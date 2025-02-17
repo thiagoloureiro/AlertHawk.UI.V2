@@ -5,6 +5,7 @@ import { msalConfig, loginRequest } from '../auth/msalConfig';
 class HttpClient {
   private static monitoringInstance: HttpClient;
   private static authInstance: HttpClient;
+  private static notificationInstance: HttpClient;
   private axiosInstance: AxiosInstance;
   private msalInstance: PublicClientApplication;
   private initialized: boolean = false;
@@ -81,7 +82,15 @@ class HttpClient {
     }
     return HttpClient.authInstance.axiosInstance;
   }
+
+  public static getNotificationInstance(): AxiosInstance {
+    if (!HttpClient.notificationInstance) {
+      HttpClient.notificationInstance = new HttpClient(import.meta.env.VITE_NOTIFICATION_API_URL);
+    }
+    return HttpClient.notificationInstance.axiosInstance;
+  }
 }
 
 export const monitoringHttp = HttpClient.getMonitoringInstance();
-export const authHttp = HttpClient.getAuthInstance(); 
+export const authHttp = HttpClient.getAuthInstance();
+export const notificationHttp = HttpClient.getNotificationInstance(); 

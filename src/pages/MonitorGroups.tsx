@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, Plus, MoreVertical, AlertCircle, Loader2, 
   Check, X, ChevronDown, ChevronUp, Users
 } from 'lucide-react';
 import type { MonitorGroup } from '../types';
+import monitorService from '../services/monitorService';
 
 // Demo data
 const demoGroups: MonitorGroup[] = [
@@ -224,10 +225,30 @@ export function MonitorGroups() {
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [groups, setGroups] = useState<MonitorGroupListItem[]>([]);
 
-  const filteredGroups = demoGroups.filter(group =>
-    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.description.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        setIsLoading(true);
+        const groupList = await monitorService.getMonitorGroupList();
+        setGroups(groupList);
+      } catch (err) {
+        console.error('Failed to fetch monitor groups:', err);
+        setNotification({
+          type: 'error',
+          message: 'Failed to load monitor groups'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, []);
+
+  const filteredGroups = groups.filter(group =>
+    group.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedGroups = [...filteredGroups].sort((a, b) => {
