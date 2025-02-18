@@ -21,6 +21,12 @@ interface NotificationItem {
   notificationPush: Record<string, unknown> | null;
 }
 
+export interface NotificationType {
+  id: number;
+  name: string;
+  description: string;
+}
+
 export class NotificationService {
   private static instance: NotificationService;
   private baseUrl: string;
@@ -41,6 +47,30 @@ export class NotificationService {
       `${this.baseUrl}/SelectNotificationItemList`
     );
     return response.data;
+  }
+
+  async getNotificationTypes(): Promise<NotificationType[]> {
+    const response = await notificationHttp.get('/api/NotificationType/GetNotificationType');
+    return response.data;
+  }
+
+  async createNotification(data: Partial<NotificationItem>) {
+    const response = await notificationHttp.post(`${this.baseUrl}/CreateNotification`, data);
+    return response.data;
+  }
+
+  async updateNotification(data: NotificationItem) {
+    const response = await notificationHttp.put(`${this.baseUrl}/UpdateNotification`, data);
+    return response.data;
+  }
+
+  async deleteNotification(id: number) {
+    try {
+      await notificationHttp.delete(`${this.baseUrl}/DeleteNotificationItem?id=${id}`);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
   }
 }
 

@@ -477,24 +477,22 @@ export function MonitorGroups() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleEditClick(group)}
-                            className="p-1.5 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                     transition-colors duration-200 dark:text-gray-400 text-gray-500
-                                     hover:text-blue-500 dark:hover:text-blue-400"
+                            className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                     transition-colors duration-200 text-blue-500 dark:text-blue-400"
                             title="Edit Group"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedGroup(group);
                               setShowDeleteConfirmation(true);
                             }}
-                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10
-                                     transition-colors duration-200 text-red-500 dark:text-red-400
-                                     hover:text-red-600 dark:hover:text-red-300"
+                            className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                     transition-colors duration-200 text-red-500 dark:text-red-400"
                             title="Delete Group"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       </td>
