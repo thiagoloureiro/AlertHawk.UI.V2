@@ -3,10 +3,11 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceA
 import { Monitor } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
-  Pause, Play, Edit, Bell, MessageSquare, Trash2 
+  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, ChevronDown, ChevronUp, BarChart 
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
+import { Link } from 'react-router-dom';
 
 interface MetricDetailsProps {
   metric: Monitor;
@@ -230,8 +231,8 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
             Edit
           </button>
 
-          <button
-            onClick={() => {/* TODO: Implement alerts */}}
+          <Link 
+            to={`/monitor/${metric.id}/alerts`}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
                      dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
@@ -239,7 +240,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           >
             <Bell className="w-4 h-4" />
             Alerts
-          </button>
+          </Link>
 
           <button
             onClick={() => {/* TODO: Implement notifications */}}
@@ -253,14 +254,25 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           </button>
 
           <button
-            onClick={() => {/* TODO: Implement charts */}}
+            onClick={() => {/* TODO: Implement chart functionality */}}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
                      dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
                      transition-colors duration-200"
           >
-            <LineChart className="w-4 h-4" />
-            Charts
+            <BarChart className="w-4 h-4" />
+            Chart
+          </button>
+
+          <button
+            onClick={() => {/* TODO: Implement clone functionality */}}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
+                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                     transition-colors duration-200"
+          >
+            <Copy className="w-4 h-4" />
+            Clone
           </button>
 
           <button

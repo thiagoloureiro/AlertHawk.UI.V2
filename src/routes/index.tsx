@@ -22,6 +22,7 @@ export function AppRoutes() {
       <Route path="/users" element={<UserManagement />} />
       <Route path="/admin" element={<Administration />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/monitor/:monitorId/alerts" element={<MonitorAlerts />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

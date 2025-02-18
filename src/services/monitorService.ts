@@ -88,6 +88,11 @@ export class MonitorService {
     return response.data;
   }
 
+  async getMonitorAlerts(monitorId: number) {
+    const response = await monitoringHttp.get(`/api/MonitorAlert/monitorAlerts/${monitorId}/7`);
+    return response.data;
+  }
+
   // ... other existing methods ...
 }
 

@@ -4,6 +4,8 @@ import axios from 'axios';
 import { AlertIncident, getEnvironmentName } from '../types';
 import { convertUTCToLocal } from '../utils/dateUtils';
 import alertService from '../services/alertService';
+import { useParams } from 'react-router-dom';
+import monitorService from '../services/monitorService';
 
 const timePeriods = [
   { value: '7', label: 'Last 7 Days' },
@@ -24,6 +26,7 @@ const tableHeaders = [
 ] as const;
 
 export function MonitorAlerts() {
+  const { monitorId } = useParams<{ monitorId: string }>();
   const [alerts, setAlerts] = useState<AlertIncident[]>([]);
   const [filteredAlerts, setFilteredAlerts] = useState<AlertIncident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,19 +44,21 @@ export function MonitorAlerts() {
     const fetchAlerts = async () => {
       try {
         setIsLoading(true);
-        const alerts = await alertService.getAlerts(0, selectedPeriod);
-        setAlerts(alerts);
-        setFilteredAlerts(alerts);
-      } catch (err) {
-        console.error('Failed to fetch alerts:', err);
+        const data = await monitorService.getMonitorAlerts(parseInt(monitorId!, 10));
+        setAlerts(data);
+        setFilteredAlerts(data);
+      } catch (error) {
+        console.error('Failed to fetch alerts:', error);
         setError('Failed to load alerts');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchAlerts();
-  }, [selectedPeriod]);
+    if (monitorId) {
+      fetchAlerts();
+    }
+  }, [monitorId]);
 
   // Filter alerts based on search term
   useEffect(() => {
@@ -113,6 +118,10 @@ export function MonitorAlerts() {
     link.download = `monitor-alerts-${new Date().toISOString()}.csv`;
     link.click();
   };
+
+  if (isLoading) {
+    return <div>Loading alerts...</div>;
+  }
 
   return (
     <div className="h-full flex flex-col dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
