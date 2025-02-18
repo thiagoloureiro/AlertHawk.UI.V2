@@ -6,6 +6,7 @@ import { convertUTCToLocal } from '../utils/dateUtils';
 import alertService from '../services/alertService';
 import { useParams } from 'react-router-dom';
 import monitorService from '../services/monitorService';
+import { toast } from 'react-hot-toast';
 
 const timePeriods = [
   { value: '7', label: 'Last 7 Days' },
@@ -26,7 +27,7 @@ const tableHeaders = [
 ] as const;
 
 export function MonitorAlerts() {
-  const { monitorId } = useParams<{ monitorId: string }>();
+  const { monitorId } = useParams<{ monitorId?: string }>();
   const [alerts, setAlerts] = useState<AlertIncident[]>([]);
   const [filteredAlerts, setFilteredAlerts] = useState<AlertIncident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,21 +44,19 @@ export function MonitorAlerts() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        setIsLoading(true);
-        const data = await monitorService.getMonitorAlerts(parseInt(monitorId!, 10));
+        const id = monitorId ? parseInt(monitorId, 10) : 0;
+        const data = await monitorService.getMonitorAlerts(id);
         setAlerts(data);
         setFilteredAlerts(data);
       } catch (error) {
         console.error('Failed to fetch alerts:', error);
-        setError('Failed to load alerts');
+        toast.error('Failed to fetch alerts', { position: 'bottom-right' });
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (monitorId) {
-      fetchAlerts();
-    }
+    fetchAlerts();
   }, [monitorId]);
 
   // Filter alerts based on search term
