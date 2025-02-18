@@ -93,6 +93,26 @@ export class MonitorService {
     return response.data;
   }
 
+  async addMonitorGroup(name: string) {
+    const response = await monitoringHttp.post('/api/monitorGroup/addMonitorGroup', {
+      name: name
+    });
+    return response.data;
+  }
+
+  async deleteMonitorGroup(groupId: number) {
+    const response = await monitoringHttp.delete(`/api/monitorGroup/deleteMonitorGroup/${groupId}`);
+    return response.data;
+  }
+
+  async updateMonitorGroup(data: { id: number; name: string }) {
+    const response = await monitoringHttp.post('/api/monitorGroup/updateMonitorGroup', {
+      id: data.id,
+      name: data.name
+    });
+    return response.data;
+  }
+
   // ... other existing methods ...
 }
 

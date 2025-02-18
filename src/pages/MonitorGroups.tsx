@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Plus, MoreVertical, AlertCircle, Loader2, 
+  Search, Plus, Edit, Trash2, AlertCircle, Loader2, 
   Check, X, ChevronDown, ChevronUp, Users
 } from 'lucide-react';
 import type { MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';
+import { toast } from 'react-hot-toast';
 
 // Demo data
 const demoGroups: MonitorGroup[] = [
@@ -38,9 +39,10 @@ interface DeleteConfirmationProps {
   group: MonitorGroup;
   onConfirm: () => void;
   onCancel: () => void;
+  isDeleting?: boolean;
 }
 
-function DeleteConfirmation({ group, onConfirm, onCancel }: DeleteConfirmationProps) {
+function DeleteConfirmation({ group, onConfirm, onCancel, isDeleting }: DeleteConfirmationProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
@@ -79,10 +81,16 @@ function DeleteConfirmation({ group, onConfirm, onCancel }: DeleteConfirmationPr
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white
-                     transition-colors duration-200"
+            disabled={isDeleting}
+            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
+                     disabled:opacity-50 flex items-center gap-2"
           >
-            Delete Group
+            {isDeleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            {isDeleting ? 'Deleting...' : 'Delete Group'}
           </button>
         </div>
       </div>
@@ -226,24 +234,29 @@ export function MonitorGroups() {
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [groups, setGroups] = useState<MonitorGroupListItem[]>([]);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
+  // Move fetchGroups outside useEffect so it can be reused
+  const fetchGroups = async () => {
+    try {
+      setIsLoading(true);
+      const groupList = await monitorService.getMonitorGroupList();
+      setGroups(groupList);
+    } catch (err) {
+      console.error('Failed to fetch monitor groups:', err);
+      setNotification({
+        type: 'error',
+        message: 'Failed to load monitor groups'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update useEffect to use the function
   useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        setIsLoading(true);
-        const groupList = await monitorService.getMonitorGroupList();
-        setGroups(groupList);
-      } catch (err) {
-        console.error('Failed to fetch monitor groups:', err);
-        setNotification({
-          type: 'error',
-          message: 'Failed to load monitor groups'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchGroups();
   }, []);
 
@@ -272,49 +285,84 @@ export function MonitorGroups() {
 
     try {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setNotification({
-        type: 'success',
-        message: 'Monitor group deleted successfully'
-      });
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete monitor group'
-      });
-    } finally {
-      setIsLoading(false);
+      await monitorService.deleteMonitorGroup(selectedGroup.id);
+      toast.success('Monitor group deleted successfully', { position: 'bottom-right' });
       setShowDeleteConfirmation(false);
       setSelectedGroup(null);
+      await fetchGroups(); // Refresh the list after deletion
+    } catch (error) {
+      console.error('Failed to delete monitor group:', error);
+      toast.error('Failed to delete monitor group', { position: 'bottom-right' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSave = async (groupData: Partial<MonitorGroup>) => {
+  const handleEditClick = (group: MonitorGroupListItem) => {
+    const fullGroup: MonitorGroup = {
+      id: group.id,
+      name: group.name,
+      description: '',
+      monitorCount: 0,
+      createdAt: new Date().toISOString(),
+      isActive: true
+    };
+    
+    setFormMode('edit');
+    setSelectedGroup(fullGroup);
+    setNewGroupName(group.name);
+    setShowGroupForm(true);
+  };
+
+  const handleFormSubmit = async () => {
+    if (!newGroupName.trim()) {
+      toast.error('Group name cannot be empty', { position: 'bottom-right' });
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (formMode === 'edit' && selectedGroup) {
+        await monitorService.updateMonitorGroup({
+          id: Number(selectedGroup.id),
+          name: newGroupName
+        });
+        toast.success('Monitor group updated successfully', { position: 'bottom-right' });
+      } else if (formMode === 'create') {
+        await monitorService.addMonitorGroup(newGroupName);
+        toast.success('Group added successfully', { position: 'bottom-right' });
+      }
       
-      setNotification({
-        type: 'success',
-        message: selectedGroup 
-          ? 'Monitor group updated successfully'
-          : 'Monitor group created successfully'
-      });
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: selectedGroup
-          ? 'Failed to update monitor group'
-          : 'Failed to create monitor group'
-      });
-    } finally {
-      setIsLoading(false);
+      await fetchGroups();
       setShowGroupForm(false);
       setSelectedGroup(null);
+      setNewGroupName('');
+      setFormMode('create');
+    } catch (error) {
+      console.error('Failed to handle monitor group:', error);
+      toast.error(
+        formMode === 'edit' 
+          ? 'Failed to update monitor group' 
+          : 'Failed to add group', 
+        { position: 'bottom-right' }
+      );
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleAddNewClick = () => {
+    setFormMode('create');
+    setSelectedGroup(null);
+    setNewGroupName('');
+    setShowGroupForm(true);
+  };
+
+  const handleFormClose = () => {
+    setShowGroupForm(false);
+    setSelectedGroup(null);
+    setNewGroupName('');
+    setFormMode('create');
   };
 
   return (
@@ -326,10 +374,7 @@ export function MonitorGroups() {
             <p className="dark:text-gray-400 text-gray-600">Manage and organize your monitoring setup</p>
           </div>
           <button
-            onClick={() => {
-              setSelectedGroup(null);
-              setShowGroupForm(true);
-            }}
+            onClick={handleAddNewClick}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
                      text-white transition-colors duration-200"
           >
@@ -378,61 +423,25 @@ export function MonitorGroups() {
         <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="dark:bg-gray-700 bg-gray-50">
-                  <th 
-                    onClick={() => handleSort('name')}
-                    className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 
-                             cursor-pointer hover:dark:bg-gray-600 hover:bg-gray-100 
-                             transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      Group Name
+              <thead className="dark:bg-gray-800 bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left">
+                    <button
+                      onClick={() => handleSort('name')}
+                      className="flex items-center gap-1 dark:text-gray-300 text-gray-700"
+                    >
+                      Name
                       {sortConfig.key === 'name' && (
                         sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                       )}
-                    </div>
+                    </button>
                   </th>
-                  <th 
-                    onClick={() => handleSort('monitorCount')}
-                    className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 
-                             cursor-pointer hover:dark:bg-gray-600 hover:bg-gray-100 
-                             transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      Monitors
-                      {sortConfig.key === 'monitorCount' && (
-                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </div>
+                  <th className="px-4 py-3 text-left dark:text-gray-300 text-gray-700">
+                    Monitors
                   </th>
-                  <th 
-                    onClick={() => handleSort('createdAt')}
-                    className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 
-                             cursor-pointer hover:dark:bg-gray-600 hover:bg-gray-100 
-                             transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      Created
-                      {sortConfig.key === 'createdAt' && (
-                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </div>
+                  <th className="px-4 py-3 text-left dark:text-gray-300 text-gray-700">
+                    Actions
                   </th>
-                  <th 
-                    onClick={() => handleSort('isActive')}
-                    className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 
-                             cursor-pointer hover:dark:bg-gray-600 hover:bg-gray-100 
-                             transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      Status
-                      {sortConfig.key === 'isActive' && (
-                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th className="w-10 px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -446,8 +455,7 @@ export function MonitorGroups() {
                   sortedGroups.map(group => (
                     <tr 
                       key={group.id}
-                      className="dark:hover:bg-gray-700 hover:bg-gray-50 border-t 
-                               dark:border-gray-700 border-gray-200 transition-colors duration-200"
+                      className="border-t dark:border-gray-700 border-gray-200 transition-colors duration-200"
                     >
                       <td className="px-4 py-3">
                         <div>
@@ -465,48 +473,29 @@ export function MonitorGroups() {
                           {group.monitorCount}
                         </div>
                       </td>
-                      <td className="px-4 py-3 dark:text-gray-300 text-gray-700">
-                        {new Date(group.createdAt).toLocaleDateString()}
-                      </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                     ${group.isActive 
-                                       ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
-                                       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
-                          {group.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="relative group">
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setSelectedGroup(group)}
-                            className="p-1 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                     transition-colors duration-200"
+                            onClick={() => handleEditClick(group)}
+                            className="p-1.5 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                     transition-colors duration-200 dark:text-gray-400 text-gray-500
+                                     hover:text-blue-500 dark:hover:text-blue-400"
+                            title="Edit Group"
                           >
-                            <MoreVertical className="w-5 h-5 dark:text-gray-400 text-gray-500" />
+                            <Edit className="w-4 h-4" />
                           </button>
-                          
-                          {selectedGroup?.id === group.id && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-lg dark:bg-gray-800 bg-white 
-                                          shadow-lg border dark:border-gray-700 border-gray-200 py-1 z-20">
-                              <button
-                                onClick={() => setShowGroupForm(true)}
-                                className="w-full px-4 py-2 text-left dark:text-gray-300 text-gray-700
-                                         dark:hover:bg-gray-700 hover:bg-gray-100
-                                         transition-colors duration-200"
-                              >
-                                Edit Group
-                              </button>
-                              <button
-                                onClick={() => setShowDeleteConfirmation(true)}
-                                className="w-full px-4 py-2 text-left text-red-600 dark:text-red-400
-                                         dark:hover:bg-gray-700 hover:bg-gray-100
-                                         transition-colors duration-200"
-                              >
-                                Delete Group
-                              </button>
-                            </div>
-                          )}
+                          <button
+                            onClick={() => {
+                              setSelectedGroup(group);
+                              setShowDeleteConfirmation(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10
+                                     transition-colors duration-200 text-red-500 dark:text-red-400
+                                     hover:text-red-600 dark:hover:text-red-300"
+                            title="Delete Group"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -527,19 +516,60 @@ export function MonitorGroups() {
             setShowDeleteConfirmation(false);
             setSelectedGroup(null);
           }}
+          isDeleting={isLoading}
         />
       )}
 
       {/* Group Form Dialog */}
       {showGroupForm && (
-        <GroupForm
-          group={selectedGroup || undefined}
-          onSave={handleSave}
-          onCancel={() => {
-            setShowGroupForm(false);
-            setSelectedGroup(null);
-          }}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              {formMode === 'edit' ? 'Edit Group' : 'Create New Group'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  Group Name
+                </label>
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                           dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter group name"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleFormClose}
+                  className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                           dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleFormSubmit}
+                  disabled={isLoading || isAdding}
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                           disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isLoading || isAdding ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  {isLoading || isAdding ? 
+                    (formMode === 'edit' ? 'Updating...' : 'Creating...') : 
+                    (formMode === 'edit' ? 'Update Group' : 'Create Group')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
