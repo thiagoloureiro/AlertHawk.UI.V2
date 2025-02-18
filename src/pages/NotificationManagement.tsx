@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Bell, Trash2, AlertCircle, Check, Loader2, Mail, MessageSquare, Slack, Smartphone, Webhook, Edit } from 'lucide-react';
+import { Plus, Bell, Trash2, AlertCircle, Check, Loader2, Mail, MessageSquare, Slack, Smartphone, Webhook, Edit, X } from 'lucide-react';
 import notificationService from '../services/notificationService';
 import { NotificationItem, NotificationType } from '../services/notificationService';
 import { toast } from 'react-hot-toast';
@@ -15,6 +15,40 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
   const [description, setDescription] = useState(notification?.description || '');
   const [type, setType] = useState(notification?.notificationTypeId || 1);
   const [notificationTypes, setNotificationTypes] = useState<NotificationType[]>([]);
+  const [formData, setFormData] = useState({
+    teams: {
+      webHookUrl: notification?.notificationTeams?.webHookUrl || ''
+    },
+    slack: {
+      webHookUrl: notification?.notificationSlack?.webHookUrl || '',
+      channel: notification?.notificationSlack?.channel || ''
+    },
+    telegram: {
+      chatId: notification?.notificationTelegram?.chatId || '',
+      telegramBotToken: notification?.notificationTelegram?.telegramBotToken || ''
+    },
+    webhook: {
+      message: notification?.notificationWebHook?.message || '',
+      webHookUrl: notification?.notificationWebHook?.webHookUrl || '',
+      body: notification?.notificationWebHook?.body || '',
+      headers: notification?.notificationWebHook?.headersJson || ''
+    },
+    email: {
+      fromEmail: notification?.notificationEmail?.fromEmail || '',
+      hostname: notification?.notificationEmail?.hostname || '',
+      port: notification?.notificationEmail?.port || '',
+      username: notification?.notificationEmail?.username || '',
+      password: notification?.notificationEmail?.password || '',
+      toEmail: notification?.notificationEmail?.toEmail || '',
+      toCCEmail: notification?.notificationEmail?.toCCEmail || '',
+      toBCCEmail: notification?.notificationEmail?.toBCCEmail || '',
+      enableSsl: notification?.notificationEmail?.enableSsl || false,
+      subject: notification?.notificationEmail?.subject || '',
+      isHtmlBody: notification?.notificationEmail?.isHtmlBody || false,
+      body: notification?.notificationEmail?.body || ''
+    }
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchNotificationTypes = async () => {
@@ -30,19 +64,442 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
     fetchNotificationTypes();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFormDataChange = (section: string, field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section as keyof typeof prev],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, description, notificationTypeId: type });
+    setIsSaving(true);
+    
+    try {
+      const basePayload = {
+        id: 0,
+        monitorGroupId: 1,
+        name,
+        notificationTypeId: type,
+        description,
+        notificationSlack: {
+          notificationId: 0,
+          channel: "",
+          webHookUrl: ""
+        },
+        notificationEmail: {
+          notificationId: 0,
+          fromEmail: "",
+          toEmail: "",
+          hostname: "",
+          port: 0,
+          username: "",
+          password: "",
+          toCCEmail: "",
+          toBCCEmail: "",
+          enableSsl: true,
+          subject: "",
+          body: "",
+          isHtmlBody: true
+        },
+        notificationTeams: {
+          notificationId: 0,
+          webHookUrl: ""
+        },
+        notificationTelegram: {
+          notificationId: 0,
+          chatId: 0,
+          telegramBotToken: ""
+        },
+        notificationWebHook: {
+          notificationId: 0,
+          message: "",
+          webHookUrl: "",
+          body: "",
+          headersJson: "",
+          headers: [{
+            item1: "",
+            item2: ""
+          }]
+        }
+      };
+
+      // Update the specific notification type data based on form input
+      switch (type) {
+        case 6: // Push notification - no extra fields needed
+          break;
+        // Other cases will be added when you provide the payloads
+      }
+
+      const response = await onSave(basePayload);
+      if (response.success) {
+        toast.success(
+          notification 
+            ? 'Notification updated successfully' 
+            : 'Notification created successfully',
+          { position: 'bottom-right' }
+        );
+        onClose();
+      } else {
+        toast.error(
+          notification
+            ? 'Failed to update notification'
+            : 'Failed to create notification',
+          { position: 'bottom-right' }
+        );
+      }
+    } catch (error) {
+      toast.error(
+        notification
+          ? 'Failed to update notification'
+          : 'Failed to create notification',
+        { position: 'bottom-right' }
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Render type-specific fields
+  const renderTypeSpecificFields = () => {
+    switch (type) {
+      case 2: // MS Teams
+        return (
+          <div>
+            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              Webhook URL
+            </label>
+            <input
+              type="text"
+              value={formData.teams.webHookUrl}
+              onChange={(e) => handleFormDataChange('teams', 'webHookUrl', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter Teams webhook URL"
+            />
+          </div>
+        );
+
+      case 4: // Slack
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Webhook URL
+              </label>
+              <input
+                type="text"
+                value={formData.slack.webHookUrl}
+                onChange={(e) => handleFormDataChange('slack', 'webHookUrl', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter Slack webhook URL"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Channel Name
+              </label>
+              <input
+                type="text"
+                value={formData.slack.channel}
+                onChange={(e) => handleFormDataChange('slack', 'channel', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter channel name"
+              />
+            </div>
+          </>
+        );
+
+      case 3: // Telegram
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Chat ID
+              </label>
+              <input
+                type="text"
+                value={formData.telegram.chatId}
+                onChange={(e) => handleFormDataChange('telegram', 'chatId', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter chat ID"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Telegram Bot Token
+              </label>
+              <input
+                type="text"
+                value={formData.telegram.telegramBotToken}
+                onChange={(e) => handleFormDataChange('telegram', 'telegramBotToken', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter bot token"
+              />
+            </div>
+          </>
+        );
+
+      case 5: // Webhook
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Message
+              </label>
+              <input
+                type="text"
+                value={formData.webhook.message}
+                onChange={(e) => handleFormDataChange('webhook', 'message', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter message"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Webhook URL
+              </label>
+              <input
+                type="text"
+                value={formData.webhook.webHookUrl}
+                onChange={(e) => handleFormDataChange('webhook', 'webHookUrl', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter webhook URL"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Body
+              </label>
+              <textarea
+                value={formData.webhook.body}
+                onChange={(e) => handleFormDataChange('webhook', 'body', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter body"
+                rows={4}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Headers (JSON)
+              </label>
+              <textarea
+                value={formData.webhook.headers}
+                onChange={(e) => handleFormDataChange('webhook', 'headers', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter headers in JSON format"
+                rows={4}
+              />
+            </div>
+          </>
+        );
+
+      case 1: // Email
+        return (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  From Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email.fromEmail}
+                  onChange={(e) => handleFormDataChange('email', 'fromEmail', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter from email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  SMTP Server (Hostname)
+                </label>
+                <input
+                  type="text"
+                  value={formData.email.hostname}
+                  onChange={(e) => handleFormDataChange('email', 'hostname', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter SMTP server hostname"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  Port
+                </label>
+                <input
+                  type="number"
+                  value={formData.email.port}
+                  onChange={(e) => handleFormDataChange('email', 'port', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter port"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={formData.email.username}
+                  onChange={(e) => handleFormDataChange('email', 'username', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter username"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={formData.email.password}
+                onChange={(e) => handleFormDataChange('email', 'password', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter password"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  To Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email.toEmail}
+                  onChange={(e) => handleFormDataChange('email', 'toEmail', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="To email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  CC Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email.toCCEmail}
+                  onChange={(e) => handleFormDataChange('email', 'toCCEmail', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="CC email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                  BCC Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email.toBCCEmail}
+                  onChange={(e) => handleFormDataChange('email', 'toBCCEmail', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="BCC email"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.email.enableSsl}
+                  onChange={(e) => handleFormDataChange('email', 'enableSsl', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label className="ml-2 text-sm font-medium dark:text-gray-300">
+                  Enable SSL
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.email.isHtmlBody}
+                  onChange={(e) => handleFormDataChange('email', 'isHtmlBody', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label className="ml-2 text-sm font-medium dark:text-gray-300">
+                  HTML Body
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Subject
+              </label>
+              <input
+                type="text"
+                value={formData.email.subject}
+                onChange={(e) => handleFormDataChange('email', 'subject', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter subject"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                Body
+              </label>
+              <textarea
+                value={formData.email.body}
+                onChange={(e) => handleFormDataChange('email', 'body', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter email body"
+                rows={4}
+              />
+            </div>
+          </>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+      <div className="w-full max-w-[70%] dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                   transition-colors duration-200 text-gray-500 dark:text-gray-400"
+          title="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
           {notification ? 'Edit Notification' : 'Create Notification'}
         </h3>
         
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto px-4">
+          {/* Common fields */}
           <div>
             <label className="block text-sm font-medium dark:text-gray-300 mb-1">
               Name
@@ -89,6 +546,9 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
             </select>
           </div>
 
+          {/* Type-specific fields */}
+          {renderTypeSpecificFields()}
+
           <div className="flex justify-end gap-3 mt-6">
             <button
               onClick={onClose}
@@ -99,9 +559,21 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
             </button>
             <button
               onClick={handleSubmit}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+              disabled={isSaving}
+              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                       disabled:opacity-50 flex items-center gap-2"
             >
-              {notification ? 'Update' : 'Create'}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {notification ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  {notification ? 'Update' : 'Create'}
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -142,7 +614,16 @@ interface DeleteConfirmationProps {
 function DeleteConfirmation({ notification, onConfirm, onCancel, isDeleting }: DeleteConfirmationProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+      <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative">
+        <button
+          onClick={onCancel}
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                   transition-colors duration-200 text-gray-500 dark:text-gray-400"
+          title="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
           Delete Notification
         </h3>
@@ -225,34 +706,29 @@ export function NotificationManagement() {
 
   const handleSave = async (notificationData: Partial<NotificationItem>) => {
     try {
-      setIsLoading(true);
       if (selectedNotification) {
         // Handle edit
-        await notificationService.updateNotification({
+        const response = await notificationService.updateNotification({
           ...selectedNotification,
           ...notificationData
         });
-        toast.success('Notification updated successfully', { position: 'bottom-right' });
+        if (response.success) {
+          const data = await notificationService.getNotifications();
+          setNotifications(data);
+          return { success: true };
+        }
       } else {
         // Handle create
-        await notificationService.createNotification(notificationData);
-        toast.success('Notification created successfully', { position: 'bottom-right' });
+        const response = await notificationService.createNotification(notificationData);
+        // If we get here, it means the request was successful
+        const data = await notificationService.getNotifications();
+        setNotifications(data);
+        return { success: true };
       }
-      
-      // Refresh the list and reset form
-      await fetchNotifications();
-      setShowForm(false);
-      setSelectedNotification(null);
+      return { success: false };
     } catch (error) {
       console.error('Failed to save notification:', error);
-      toast.error(
-        selectedNotification 
-          ? 'Failed to update notification' 
-          : 'Failed to create notification',
-        { position: 'bottom-right' }
-      );
-    } finally {
-      setIsLoading(false);
+      return { success: false, error };
     }
   };
 

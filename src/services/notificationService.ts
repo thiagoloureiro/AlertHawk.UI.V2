@@ -55,8 +55,12 @@ export class NotificationService {
   }
 
   async createNotification(data: Partial<NotificationItem>) {
-    const response = await notificationHttp.post(`${this.baseUrl}/CreateNotification`, data);
-    return response.data;
+    try {
+      const response = await notificationHttp.post(`${this.baseUrl}/createNotificationItem`, data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error };
+    }
   }
 
   async updateNotification(data: NotificationItem) {
