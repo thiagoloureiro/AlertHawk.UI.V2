@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AppRoutes } from './routes';
 import { Login } from './pages/Login';
+import { Toaster } from 'react-hot-toast';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -52,6 +53,12 @@ export default function App() {
           <AppRoutes />
         </Layout>
       </div>
+      <Toaster 
+        position="bottom-right" 
+        toastOptions={{
+          className: 'dark:bg-gray-800 dark:text-white'
+        }}
+      />
     </BrowserRouter>
   );
 }

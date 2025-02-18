@@ -20,7 +20,10 @@ export function MonitorDetails() {
   }
 
   return (
-    <div className="h-full">
+    <div className="p-4">
+      <h1 className="text-2xl font-semibold dark:text-white">
+        Monitor Details: {monitorId}
+      </h1>
       <MetricDetails metric={monitor} />
     </div>
   );

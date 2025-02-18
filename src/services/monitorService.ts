@@ -6,6 +6,25 @@ interface MonitorGroupListItem {
   name: string;
 }
 
+interface MonitorAgent {
+  id: number;
+  hostname: string;
+  timeStamp: string;
+  isMaster: boolean;
+  listTasks: number;
+  version: string;
+  monitorRegion: number;
+}
+
+export enum MonitorRegion {
+  USEast = 1,
+  USWest = 2,
+  Europe = 3,
+  Asia = 4,
+  SouthAmerica = 5,
+  Oceania = 6
+}
+
 export class MonitorService {
   private static instance: MonitorService;
   private baseUrl: string;
@@ -32,6 +51,40 @@ export class MonitorService {
     const response = await monitoringHttp.get<MonitorGroup[]>(
       `/api/MonitorGroup/monitorDashboardGroupListByUser/${environmentId}`
     );
+    return response.data;
+  }
+
+  async getMonitorAgents(): Promise<MonitorAgent[]> {
+    const response = await monitoringHttp.get<MonitorAgent[]>(`/api/Monitor/allMonitorAgents`);
+    return response.data;
+  }
+
+  async getMonitorJsonBackup() {
+    const response = await monitoringHttp.get('/api/monitor/getMonitorJsonBackup');
+    return response.data;
+  }
+
+  async setMonitorHistoryRetention(days: number) {
+    const response = await monitoringHttp.post('/api/MonitorHistory/SetMonitorHistoryRetention', {
+      historyDaysRetention: days
+    });
+    return response.data;
+  }
+
+  async clearAllStatistics() {
+    const response = await monitoringHttp.delete('/api/MonitorHistory');
+    return response.data;
+  }
+
+  async uploadMonitorBackup(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await monitoringHttp.post('/api/monitor/uploadMonitorJsonBackup', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return response.data;
   }
 

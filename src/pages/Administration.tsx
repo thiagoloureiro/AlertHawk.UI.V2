@@ -1,60 +1,88 @@
 import React, { useState } from 'react';
-import { Upload, Download, Save, AlertTriangle } from 'lucide-react';
+import { Upload, Download, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import monitorService from '../services/monitorService';
+import { toast } from 'react-hot-toast';
 
 export function Administration() {
   const [retentionDays, setRetentionDays] = useState<string>('30');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showClearStatsModal, setShowClearStatsModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleExportBackup = () => {
-    // In a real application, this would trigger a backup download
-    const dummyData = {
-      monitors: [],
-      settings: {},
-      timestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(dummyData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `alerthawk-backup-${new Date().toISOString()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+    try {
+      const response = await monitorService.getMonitorJsonBackup();
+      
+      // Create blob and download
+      const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `monitor-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Backup exported successfully', { position: 'bottom-right' });
+    } catch (error) {
+      console.error('Failed to export backup:', error);
+      toast.error('Failed to export backup', { position: 'bottom-right' });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // In a real application, this would handle the backup import
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const content = e.target?.result as string;
-          JSON.parse(content); // Validate JSON format
-          setShowConfirmation(true);
-        } catch (error) {
-          alert('Invalid backup file format');
+      try {
+        if (!file.type.includes('json')) {
+          toast.error('Please select a JSON file', { position: 'bottom-right' });
+          return;
         }
-      };
-      reader.readAsText(file);
+        setSelectedFile(file);
+        setShowConfirmation(true);
+      } catch (error) {
+        toast.error('Invalid backup file', { position: 'bottom-right' });
+      }
     }
   };
 
-  const handleSaveRetention = () => {
-    // In a real application, this would save the retention period
+  const handleSaveRetention = async () => {
     const days = parseInt(retentionDays);
     if (isNaN(days) || days < 0) {
-      alert('Please enter a valid number of days');
+      toast.error('Please enter a valid number of days', { position: 'bottom-right' });
       return;
     }
-    // Save retention period logic would go here
+    
+    setIsSaving(true);
+    try {
+      await monitorService.setMonitorHistoryRetention(days);
+      toast.success('Monitor history retention period saved successfully', { position: 'bottom-right' });
+    } catch (error) {
+      console.error('Failed to save retention period:', error);
+      toast.error('Failed to save retention period', { position: 'bottom-right' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleClearStatistics = () => {
-    if (window.confirm('Are you sure you want to clear all statistics? This action cannot be undone!')) {
-      // Clear statistics logic would go here
+  const handleClearStatistics = async () => {
+    setIsClearing(true);
+    try {
+      await monitorService.clearAllStatistics();
+      setShowClearStatsModal(false);
+      toast.success('All statistics cleared successfully', { position: 'bottom-right' });
+    } catch (error) {
+      console.error('Failed to clear statistics:', error);
+      toast.error('Failed to clear statistics', { position: 'bottom-right' });
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -76,11 +104,16 @@ export function Administration() {
             </p>
             <button
               onClick={handleExportBackup}
+              disabled={isExporting}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
-                       text-white transition-colors duration-200"
+                       text-white transition-colors duration-200 disabled:opacity-50"
             >
-              <Download className="w-5 h-5" />
-              Export Backup
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isExporting ? 'Exporting...' : 'Export Backup'}
             </button>
           </div>
 
@@ -125,21 +158,26 @@ export function Administration() {
           </div>
           <button
             onClick={handleSaveRetention}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
-                     text-white transition-colors duration-200"
+            disabled={isSaving}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+                      flex items-center gap-2 transition-colors disabled:opacity-50"
           >
-            <Save className="w-5 h-5" />
-            Save
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
 
         <div>
           <button
-            onClick={handleClearStatistics}
+            onClick={() => setShowClearStatsModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 
                      text-white transition-colors duration-200"
           >
-            <AlertTriangle className="w-5 h-5" />
+            <AlertTriangle className="w-4 h-4" />
             Clear All Statistics
           </button>
         </div>
@@ -177,14 +215,73 @@ export function Administration() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  // Import logic would go here
-                  setShowConfirmation(false);
+                onClick={async () => {
+                  if (!selectedFile) return;
+                  
+                  setIsImporting(true);
+                  try {
+                    await monitorService.uploadMonitorBackup(selectedFile);
+                    setShowConfirmation(false);
+                    setSelectedFile(null);
+                    toast.success('Backup imported successfully', { position: 'bottom-right' });
+                  } catch (error) {
+                    console.error('Failed to import backup:', error);
+                    toast.error('Failed to import backup', { position: 'bottom-right' });
+                  } finally {
+                    setIsImporting(false);
+                  }
                 }}
+                disabled={isImporting}
                 className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white
-                         transition-colors duration-200"
+                         transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed 
+                         flex items-center gap-2"
               >
-                Import and Replace
+                {isImporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4" />
+                )}
+                {isImporting ? 'Importing...' : 'Import and Replace'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Statistics Modal */}
+      {showClearStatsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Clear All Statistics
+            </h3>
+            <p className="dark:text-gray-300 text-gray-600 mb-6">
+              Are you sure you want to delete all statistics?
+              <br />
+              <span className="text-red-500 font-medium">
+                Please be aware that this operation cannot be undone.
+              </span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowClearStatsModal(false)}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearStatistics}
+                disabled={isClearing}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
+                         disabled:opacity-50 flex items-center gap-2"
+              >
+                {isClearing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4" />
+                )}
+                {isClearing ? 'Clearing...' : 'Clear All'}
               </button>
             </div>
           </div>
