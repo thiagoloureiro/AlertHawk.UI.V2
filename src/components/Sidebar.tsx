@@ -12,6 +12,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { MenuItem } from '../types';
+import { NavLink } from 'react-router-dom';
+import { cn } from '../lib/utils';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -21,15 +23,15 @@ interface SidebarProps {
 }
 
 const menuItems: MenuItem[] = [
-  { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: 'dashboard' },
-  { id: '2', name: 'Monitor Agents', icon: 'Monitor', path: 'agents' },
-  { id: '3', name: 'Monitor Alert', icon: 'Bell', path: 'alerts' },
+  { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
+  { id: '2', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
+  { id: '3', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
   { id: '4', name: 'Monitor Chart', icon: 'LineChart', path: 'charts' },
-  { id: '5', name: 'Notification Management', icon: 'MessageSquare', path: 'notifications' },
-  { id: '6', name: 'Monitor Groups', icon: 'Users', path: 'groups' },
-  { id: '7', name: 'User Management', icon: 'UserCircle', path: 'users' },
-  { id: '8', name: 'Administration', icon: 'Bell', path: 'admin' },
-  { id: 'settings', name: 'Settings', icon: 'Settings', path: 'settings' },
+  { id: '5', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
+  { id: '6', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
+  { id: '7', name: 'User Management', icon: 'UserCircle', path: '/users' },
+  { id: '8', name: 'Administration', icon: 'Bell', path: '/admin' },
+  { id: 'settings', name: 'Settings', icon: 'Settings', path: '/settings' },
 ];
 
 const iconMap: Record<string, React.ElementType> = {
@@ -67,14 +69,13 @@ export function Sidebar({ isCollapsed, toggleSidebar, currentPage, onNavigate }:
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
           return (
-            <button
+            <NavLink
               key={item.id}
-              onClick={() => onNavigate(item.path)}
-              className={`
-                flex items-center gap-3 mx-3 px-3 py-3 rounded-lg
-                hover:bg-gray-800 transition-colors
-                ${currentPage === item.path ? 'bg-gray-800' : ''}
-              `}
+              to={item.path}
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 mx-3 px-3 py-3 rounded-lg transition-colors",
+                isActive ? "bg-gray-800" : "hover:bg-gray-800"
+              )}
             >
               <Icon className="w-5 h-5 flex-none" />
               {!isCollapsed && (
@@ -82,7 +83,7 @@ export function Sidebar({ isCollapsed, toggleSidebar, currentPage, onNavigate }:
                   {item.name}
                 </span>
               )}
-            </button>
+            </NavLink>
           );
         })}
       </nav>
