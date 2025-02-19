@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, Sun, Moon, User, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Sun, Moon, LogOut } from 'lucide-react';
 import { useMsal } from "@azure/msal-react";
 
 interface TopBarProps {
