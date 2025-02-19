@@ -67,6 +67,48 @@ export interface UpdateMonitorHttpPayload {
   monitorGroup: number;
 }
 
+export interface UpdateMonitorTcpPayload {
+  monitorId: number;
+  port: number;
+  ip: string;
+  timeout: number;
+  lastStatus: boolean;
+  id: number;
+  monitorTypeId: number;
+  name: string;
+  heartBeatInterval: number;
+  retries: number;
+  status: boolean;
+  daysToExpireCert: number;
+  paused: boolean;
+  monitorRegion: number;
+  monitorEnvironment: number;
+  checkCertExpiry: boolean;
+  monitorGroup: number;
+  ignoreTlsSsl: boolean;
+  part: number;
+}
+
+export interface TcpMonitorDetails {
+  monitorId: number;
+  port: number;
+  ip: string;
+  timeout: number;
+  lastStatus: boolean;
+  id: number;
+  monitorTypeId: number;
+  name: string;
+  heartBeatInterval: number;
+  retries: number;
+  status: boolean;
+  daysToExpireCert: number;
+  paused: boolean;
+  monitorRegion: number;
+  monitorEnvironment: number;
+  checkCertExpiry: boolean;
+  monitorGroup: number;
+}
+
 export class MonitorService {
   private static instance: MonitorService;
 
@@ -192,6 +234,23 @@ export class MonitorService {
       console.error('Failed to update monitor:', error);
       return false;
     }
+  }
+
+  async updateMonitorTcp(monitor: UpdateMonitorTcpPayload): Promise<boolean> {
+    try {
+      await monitoringHttp.post('/api/Monitor/updateMonitorTcp', monitor);
+      return true;
+    } catch (error) {
+      console.error('Failed to update TCP monitor:', error);
+      return false;
+    }
+  }
+
+  async getMonitorTcpDetails(monitorId: number): Promise<TcpMonitorDetails> {
+    const response = await monitoringHttp.get<TcpMonitorDetails>(
+      `/api/Monitor/getMonitorTcpByMonitorId/${monitorId}`
+    );
+    return response.data;
   }
 
   // ... other existing methods ...

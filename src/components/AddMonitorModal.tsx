@@ -4,13 +4,13 @@ import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
 import monitorService from '../services/monitorService';
 import { MonitorRegion } from '../services/monitorService';
-import { UpdateMonitorHttpPayload } from '../services/monitorService';
+import { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
 import { Monitor } from '../services/monitorService';
 
 interface AddMonitorModalProps {
   onClose: () => void;
   onAdd: (monitor: any) => Promise<void>;
-  onUpdate?: (monitor: UpdateMonitorHttpPayload) => Promise<void>;
+  onUpdate?: (monitor: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload) => Promise<void>;
   existingMonitor?: Monitor;
   isEditing?: boolean;
 }
@@ -30,10 +30,20 @@ interface Header {
 }
 
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
-  const [monitorType, setMonitorType] = useState<'http' | 'tcp'>('http');
+  const [monitorType, setMonitorType] = useState<'http' | 'tcp'>(
+    existingMonitor?.monitorTypeId === 3 ? 'tcp' : 'http'
+  );
   const [name, setName] = useState(existingMonitor?.name || '');
-  const [url, setUrl] = useState(existingMonitor?.urlToCheck || '');
-  const [port, setPort] = useState('');
+  const [url, setUrl] = useState(
+    existingMonitor?.monitorTypeId === 3 
+      ? existingMonitor.monitorTcp?.host ?? ''
+      : existingMonitor?.urlToCheck ?? ''
+  );
+  const [port, setPort] = useState(
+    existingMonitor?.monitorTypeId === 3 
+      ? existingMonitor.monitorTcp?.port?.toString() ?? ''
+    : ''
+  );
   const [interval, setInterval] = useState(existingMonitor?.heartBeatInterval.toString() || '5');
   const [retries, setRetries] = useState(existingMonitor?.retries.toString() || '3');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,31 +109,56 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
 
     try {
       if (isEditing && existingMonitor) {
-        const updatePayload: UpdateMonitorHttpPayload = {
-          monitorId: existingMonitor.id,
-          id: existingMonitor.id,
-          ignoreTlsSsl: ignoreTLS,
-          maxRedirects: parseInt(maxRedirects),
-          urlToCheck: url,
-          responseStatusCode: 0,
-          timeout: parseInt(timeout),
-          lastStatus: existingMonitor.status,
-          responseTime: 0,
-          monitorHttpMethod: 1,
-          body: body || '',
-          monitorTypeId: 1,
-          name,
-          heartBeatInterval: parseInt(interval),
-          retries: parseInt(retries),
-          status: true,
-          daysToExpireCert: existingMonitor.daysToExpireCert,
-          paused: existingMonitor.paused,
-          monitorRegion: selectedRegion,
-          monitorEnvironment: environment,
-          checkCertExpiry,
-          monitorGroup: selectedGroupId
-        };
-        await onUpdate?.(updatePayload);
+        if (monitorType === 'tcp') {
+          const updatePayload: UpdateMonitorTcpPayload = {
+            monitorId: existingMonitor.id,
+            id: existingMonitor.id,
+            port: parseInt(port),
+            ip: url,
+            timeout: parseInt(timeout),
+            lastStatus: existingMonitor.status,
+            monitorTypeId: 3,
+            name,
+            heartBeatInterval: parseInt(interval),
+            retries: parseInt(retries),
+            status: true,
+            daysToExpireCert: existingMonitor.daysToExpireCert,
+            paused: existingMonitor.paused,
+            monitorRegion: selectedRegion,
+            monitorEnvironment: environment,
+            checkCertExpiry: false,
+            monitorGroup: selectedGroupId,
+            ignoreTlsSsl: false,
+            part: parseInt(port)
+          };
+          await onUpdate?.(updatePayload);
+        } else {
+          const updatePayload: UpdateMonitorHttpPayload = {
+            monitorId: existingMonitor.id,
+            id: existingMonitor.id,
+            ignoreTlsSsl: ignoreTLS,
+            maxRedirects: parseInt(maxRedirects),
+            urlToCheck: url,
+            responseStatusCode: 0,
+            timeout: parseInt(timeout),
+            lastStatus: existingMonitor.status,
+            responseTime: 0,
+            monitorHttpMethod: 1,
+            body: body || '',
+            monitorTypeId: 1,
+            name,
+            heartBeatInterval: parseInt(interval),
+            retries: parseInt(retries),
+            status: true,
+            daysToExpireCert: existingMonitor.daysToExpireCert,
+            paused: existingMonitor.paused,
+            monitorRegion: selectedRegion,
+            monitorEnvironment: environment,
+            checkCertExpiry,
+            monitorGroup: selectedGroupId
+          };
+          await onUpdate?.(updatePayload);
+        }
       } else {
         const basePayload = {
           name,

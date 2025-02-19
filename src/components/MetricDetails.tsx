@@ -129,6 +129,8 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
 
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
+
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
     { label: '24 Hours', value: metric.monitorStatusDashboard.uptime24Hrs },
@@ -209,8 +211,29 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
   };
 
   // Add handler for edit button
-  const handleEditClick = () => {
-    setShowEditModal(true);
+  const handleEditClick = async () => {
+    if (metric.monitorTypeId === 3) {
+      try {
+        const tcpDetails = await monitorService.getMonitorTcpDetails(metric.id);
+        // Create a monitor object that matches the expected structure
+        const monitorData: Monitor = {
+          ...tcpDetails,
+          monitorTcp: {
+            host: tcpDetails.ip,
+            port: tcpDetails.port
+          },
+          urlToCheck: '',  // Required by Monitor type but not used for TCP
+          monitorStatusDashboard: metric.monitorStatusDashboard  // Keep the dashboard data
+        };
+        setMonitorToEdit(monitorData);
+        setShowEditModal(true);
+      } catch (error) {
+        console.error('Failed to fetch TCP monitor details:', error);
+        toast.error('Failed to load monitor details', { position: 'bottom-right' });
+      }
+    } else {
+      setShowEditModal(true);
+    }
   };
 
   return (
@@ -526,21 +549,24 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
       {showEditModal && (
         <AddMonitorModal
           onClose={() => setShowEditModal(false)}
-          onAdd={async () => {}} // Not used in edit mode
+          onAdd={async () => {}}
           onUpdate={async (updatedMonitor) => {
             try {
-              const success = await monitorService.updateMonitorHttp(updatedMonitor);
+              const success = metric.monitorTypeId === 3
+                ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
+                : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);
+              
               if (success) {
                 toast.success('Monitor updated successfully', { position: 'bottom-right' });
                 setShowEditModal(false);
-                window.location.reload(); // Refresh the page to show updated data
+                window.location.reload();
               }
             } catch (error) {
               console.error('Failed to update monitor:', error);
               toast.error('Failed to update monitor', { position: 'bottom-right' });
             }
           }}
-          existingMonitor={metric}
+          existingMonitor={monitorToEdit || metric}
           isEditing={true}
         />
       )}
