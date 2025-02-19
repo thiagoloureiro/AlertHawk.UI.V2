@@ -93,29 +93,39 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
     setIsCreating(true);
 
     try {
-      const monitorData = {
+      const basePayload = {
         name,
-        monitorTypeId: monitorType === 'http' ? 1 : 3,
-        heartBeatInterval: parseInt(interval),
-        retries: parseInt(retries),
-        urlToCheck: monitorType === 'http' ? url : '',
-        monitorTcp: monitorType === 'tcp' ? {
-          host: url,
-          port: parseInt(port)
-        } : null,
-        monitorEnvironment: environment,
-        checkCertExpiry,
-        ignoreTLS,
-        httpMethod,
-        maxRedirects: parseInt(maxRedirects),
-        timeout: parseInt(timeout),
-        body: httpMethod !== 'GET' ? body : undefined,
-        monitorGroupId: selectedGroupId,
+        monitorGroup: selectedGroupId,
         monitorRegion: selectedRegion,
-        headers: headers.length > 0 ? headers : undefined,
+        monitorEnvironment: environment,
+        heartBeatInterval: parseInt(interval),
+        timeout: parseInt(timeout),
+        retries: parseInt(retries),
+        status: true,
       };
 
-      await onAdd(monitorData);
+      if (monitorType === 'tcp') {
+        const tcpPayload: CreateMonitorTcpPayload = {
+          ...basePayload,
+          monitorTypeId: 3,
+          ip: url,  // URL field contains the IP for TCP
+          port: parseInt(port),
+          part: parseInt(port)  // API requires both port and part
+        };
+        await onAdd(tcpPayload);
+      } else {
+        const httpPayload: CreateMonitorHttpPayload = {
+          ...basePayload,
+          monitorTypeId: 1,
+          monitorHttpMethod: httpMethod === 'GET' ? 1 : httpMethod === 'POST' ? 2 : 3,
+          checkCertExpiry,
+          ignoreTlsSsl: ignoreTLS,
+          urlToCheck: url,
+          maxRedirects: parseInt(maxRedirects),
+          body: body || ''
+        };
+        await onAdd(httpPayload);
+      }
     } finally {
       setIsCreating(false);
     }

@@ -1,5 +1,5 @@
 import { monitoringHttp } from './httpClient';
-import { MonitorGroup, MonitorAgent, Monitor } from '../types';
+import { MonitorGroup, MonitorAgent } from '../types';
 
 export enum MonitorRegion {
   USEast = 1,
@@ -25,6 +25,20 @@ export interface CreateMonitorHttpPayload {
   timeout: number;
   retries: number;
   status: boolean;
+  monitorTypeId: number;
+}
+
+export interface CreateMonitorTcpPayload {
+  name: string;
+  monitorGroup: number;
+  monitorRegion: number;
+  monitorEnvironment: number;
+  heartBeatInterval: number;
+  port: number;
+  ip: string;
+  timeout: number;
+  status: boolean;
+  retries: number;
   monitorTypeId: number;
 }
 
@@ -129,9 +143,15 @@ export class MonitorService {
     }
   }
 
-  async createMonitor(monitor: CreateMonitorHttpPayload): Promise<boolean> {
+  async createMonitor(monitor: CreateMonitorHttpPayload | CreateMonitorTcpPayload): Promise<boolean> {
     try {
-      await monitoringHttp.post('/api/Monitor/CreateMonitorHttp', monitor);
+      const endpoint = 'monitorTypeId' in monitor && monitor.monitorTypeId === 3 
+        ? '/api/Monitor/CreateMonitorTcp'
+        : '/api/Monitor/CreateMonitorHttp';
+
+        console.log('monitor:', monitor);
+        
+      await monitoringHttp.post(endpoint, monitor);
       return true;
     } catch (error) {
       console.error('Failed to create monitor:', error);
