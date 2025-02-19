@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, AlertCircle, Check, Loader2 } from 'lucide-react';
-import userService, { UserListItem } from '../services/userService';
+import { Search, AlertCircle, Check, Loader2, Edit, Trash2, X, Users } from 'lucide-react';
+import userService, { UserListItem, UserGroup } from '../services/userService';
+import monitorService from '../services/monitorService';
+import { toast } from 'react-hot-toast';
+import { Switch } from '../components/ui/switch';
 
 export function UserManagement() {
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -10,6 +13,17 @@ export function UserManagement() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserListItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+  const [allGroups, setAllGroups] = useState<MonitorGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -57,6 +71,33 @@ export function UserManagement() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, adminFilter]);
+
+  const handleEdit = async (user: UserListItem) => {
+    setSelectedUser(user);
+    setShowEditModal(true);
+    setIsLoadingGroups(true);
+    
+    try {
+      const [userGroupsData, allGroupsData] = await Promise.all([
+        userService.getUserGroups(user.id),
+        monitorService.getMonitorGroupList()
+      ]);
+      
+      // Initialize selected groups from user's current groups
+      setSelectedGroups(new Set(userGroupsData.map(ug => ug.groupMonitorId)));
+      setUserGroups(userGroupsData);
+      setAllGroups(allGroupsData);
+    } catch (error) {
+      toast.error('Failed to load user groups', { position: 'bottom-right' });
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  };
+
+  const handleDelete = (user: UserListItem) => {
+    setUserToDelete(user);
+    setShowDeleteConfirmation(true);
+  };
 
   if (isLoading) return (
     <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
@@ -125,6 +166,7 @@ export function UserManagement() {
                   <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">User</th>
                   <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Email</th>
                   <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Role</th>
+                  <th className="w-20 px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -133,12 +175,66 @@ export function UserManagement() {
                     <td className="px-4 py-3 dark:text-white text-gray-900">{user.username}</td>
                     <td className="px-4 py-3 dark:text-gray-300 text-gray-700">{user.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${user.isAdmin 
-                                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200'
-                                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
-                        {user.isAdmin ? 'Admin' : 'User'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={user.isAdmin}
+                          onCheckedChange={async (checked) => {
+                            setIsUpdatingRole(user.id);
+                            try {
+                              const success = await userService.updateUser({
+                                ...user,
+                                isAdmin: checked
+                              });
+                              
+                              if (success) {
+                                toast.success('User role updated successfully', { position: 'bottom-right' });
+                                // Refresh user list
+                                const data = await userService.getAllUsers();
+                                setUsers(data);
+                              } else {
+                                toast.error('Failed to update user role', { position: 'bottom-right' });
+                              }
+                            } catch (error) {
+                              toast.error('Failed to update user role', { position: 'bottom-right' });
+                            } finally {
+                              setIsUpdatingRole(null);
+                            }
+                          }}
+                          disabled={isUpdatingRole === user.id}
+                        />
+                        <span className="flex items-center gap-2">
+                          {isUpdatingRole === user.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                          ) : null}
+                          <span className={`text-sm font-medium ${
+                            user.isAdmin 
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {user.isAdmin ? 'Admin' : 'User'}
+                          </span>
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                   transition-colors duration-200 text-blue-500 dark:text-blue-400"
+                          title="Edit User Groups"
+                        >
+                          <Users className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user)}
+                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                   transition-colors duration-200 text-red-500 dark:text-red-400"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -175,6 +271,204 @@ export function UserManagement() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && userToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative">
+            <button
+              onClick={() => {
+                setShowDeleteConfirmation(false);
+                setUserToDelete(null);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                       transition-colors duration-200 text-gray-500 dark:text-gray-400"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Delete User
+            </h3>
+            <p className="dark:text-gray-300 text-gray-600 mb-6">
+              Are you sure you want to delete the user "{userToDelete.username}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setUserToDelete(null);
+                }}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!userToDelete) return;
+                  
+                  setIsDeleting(true);
+                  try {
+                    const success = await userService.deleteUser(userToDelete.id);
+                    if (success) {
+                      toast.success('User deleted successfully', { position: 'bottom-right' });
+                      // Refresh user list
+                      const data = await userService.getAllUsers();
+                      setUsers(data);
+                    } else {
+                      toast.error('Failed to delete user', { position: 'bottom-right' });
+                    }
+                  } catch (error) {
+                    toast.error('Failed to delete user', { position: 'bottom-right' });
+                  } finally {
+                    setIsDeleting(false);
+                    setShowDeleteConfirmation(false);
+                    setUserToDelete(null);
+                  }
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
+                         disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-2xl dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative max-h-[80vh] flex flex-col">
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setSelectedUser(null);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                       transition-colors duration-200 text-gray-500 dark:text-gray-400"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Edit User Groups - {selectedUser.username}
+            </h3>
+
+            {isLoadingGroups ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto pr-2">
+                  <div className="space-y-2">
+                    {allGroups.map(group => {
+                      const isChecked = selectedGroups.has(Number(group.id));
+                      return (
+                        <div
+                          key={group.id}
+                          className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 bg-gray-50"
+                        >
+                          <div>
+                            <h4 className="font-medium dark:text-white text-gray-900">{group.name}</h4>
+                            <p className="text-sm dark:text-gray-400 text-gray-600">{group.description}</p>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setSelectedGroups(prev => {
+                                  const newSet = new Set(prev);
+                                  if (isChecked) {
+                                    newSet.delete(Number(group.id));
+                                  } else {
+                                    newSet.add(Number(group.id));
+                                  }
+                                  return newSet;
+                                });
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setSelectedUser(null);
+                    }}
+                    className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                             dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!selectedUser) return;
+                      
+                      setIsSaving(true);
+                      try {
+                        const success = await userService.updateUserGroups(
+                          selectedUser.id, 
+                          Array.from(selectedGroups)
+                        );
+                        
+                        if (success) {
+                          toast.success('User groups updated successfully', { position: 'bottom-right' });
+                          setShowEditModal(false);
+                          setSelectedUser(null);
+                        } else {
+                          toast.error('Failed to update user groups', { position: 'bottom-right' });
+                        }
+                      } catch (error) {
+                        toast.error('Failed to update user groups', { position: 'bottom-right' });
+                      } finally {
+                        setIsSaving(false);
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                             disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
