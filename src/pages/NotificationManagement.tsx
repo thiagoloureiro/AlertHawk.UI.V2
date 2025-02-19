@@ -372,7 +372,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
         );
 
       case 1: // Email
-        return (
+  return (
           <>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -401,8 +401,8 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
                   placeholder="Enter SMTP server hostname"
                 />
               </div>
-            </div>
-            
+        </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300 mb-1">
@@ -597,9 +597,9 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
           <div>
             <label className="block text-sm font-medium dark:text-gray-300 mb-1">
               Notification Type
-            </label>
-            <select
-              value={type}
+              </label>
+              <select
+                value={type}
               onChange={(e) => setType(Number(e.target.value))}
               className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
                      dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -609,8 +609,8 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
                   {type.name}
                 </option>
               ))}
-            </select>
-          </div>
+              </select>
+            </div>
 
           <div>
             <label className="block text-sm font-medium dark:text-gray-300 mb-1">
@@ -969,17 +969,17 @@ export function NotificationManagement() {
                         >
                           <Edit className="w-5 h-5" />
                         </button>
-                        <button
+                      <button
                           onClick={() => {
                             setNotificationToDelete(item);
                             setShowDeleteConfirmation(true);
                           }}
-                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                   transition-colors duration-200 text-red-500 dark:text-red-400"
+                        className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                 transition-colors duration-200 text-red-500 dark:text-red-400"
                           title="Delete Notification"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                       </div>
                     </td>
                   </tr>

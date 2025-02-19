@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Globe, Info, Download, AlertCircle } from 'lucide-react';
+import { Server, Globe, Info, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
 interface MonitorAgent {

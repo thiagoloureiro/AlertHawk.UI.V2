@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Plus, Edit, Trash2, AlertCircle, Loader2, 
-  Check, X, ChevronDown, ChevronUp, Users
+  Check, ChevronDown, ChevronUp
 } from 'lucide-react';
 import type { MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';

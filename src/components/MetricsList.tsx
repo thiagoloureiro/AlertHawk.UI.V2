@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { MonitorGroup, Monitor } from '../types';
 import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { getEnvironmentName } from '../types';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
 

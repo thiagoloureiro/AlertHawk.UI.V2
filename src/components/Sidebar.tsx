@@ -44,7 +44,7 @@ const iconMap: Record<string, React.ElementType> = {
   Settings,
 };
 
-export function Sidebar({ isCollapsed, toggleSidebar, currentPage, onNavigate }: SidebarProps) {
+export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
   return (
     <div 
       className={`bg-gray-900 text-white transition-all duration-300 ease-in-out flex flex-col

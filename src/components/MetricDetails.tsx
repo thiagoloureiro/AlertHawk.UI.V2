@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
-  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, ChevronDown, ChevronUp, BarChart 
+  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2 
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import monitorService from '../services/monitorService';
 
 interface MetricDetailsProps {
   metric: Monitor;
@@ -134,6 +136,14 @@ const getStatusInfo = (status: boolean, paused: boolean) => {
 
 export function MetricDetails({ metric }: MetricDetailsProps) {
   const typeInfo = getMonitorTypeInfo(metric.monitorTypeId);
+  const navigate = useNavigate();
+
+  // Add state for delete confirmation and loading
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Add state for pause loading
+  const [isPauseLoading, setIsPauseLoading] = useState(false);
 
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
@@ -173,6 +183,47 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
     return periods;
   }, []);
 
+  // Add delete handler
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const success = await monitorService.deleteMonitor(metric.id);
+      if (success) {
+        toast.success('Monitor deleted successfully', { position: 'bottom-right' });
+        // Refresh dashboard data with current environment
+        await monitorService.getDashboardGroups(metric.monitorEnvironment);
+        // Force a full page refresh to update all data
+        window.location.href = '/dashboard';
+      } else {
+        toast.error('Failed to delete monitor', { position: 'bottom-right' });
+      }
+    } catch (error) {
+      toast.error('Failed to delete monitor', { position: 'bottom-right' });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  // Add pause handler
+  const handlePauseToggle = async () => {
+    setIsPauseLoading(true);
+    try {
+      const success = await monitorService.toggleMonitorPause(metric.id, !metric.paused);
+      if (success) {
+        toast.success(`Monitor ${metric.paused ? 'resumed' : 'paused'} successfully`, { position: 'bottom-right' });
+        // Refresh the page to show updated status
+        window.location.reload();
+      } else {
+        toast.error(`Failed to ${metric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
+      }
+    } catch (error) {
+      toast.error(`Failed to ${metric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
+    } finally {
+      setIsPauseLoading(false);
+    }
+  };
+
   return (
     <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
       {/* Header */}
@@ -201,23 +252,21 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => {/* TODO: Implement pause/resume */}}
+            onClick={handlePauseToggle}
+            disabled={isPauseLoading}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
                      dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
                      transition-colors duration-200"
           >
-            {metric.paused ? (
-              <>
-                <Play className="w-4 h-4" />
-                Resume
-              </>
+            {isPauseLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : metric.paused ? (
+              <Play className="w-4 h-4" />
             ) : (
-              <>
-                <Pause className="w-4 h-4" />
-                Pause
-              </>
+              <Pause className="w-4 h-4" />
             )}
+            {isPauseLoading ? 'Processing...' : (metric.paused ? 'Resume' : 'Pause')}
           </button>
 
           <button
@@ -276,7 +325,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           </button>
 
           <button
-            onClick={() => {/* TODO: Implement delete */}}
+            onClick={() => setShowDeleteConfirm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800
                      text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40
@@ -440,6 +489,49 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Delete Monitor
+            </h3>
+            
+            <p className="dark:text-gray-300 text-gray-700 mb-6">
+              Are you sure you want to delete monitor "{metric.name}"? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
+                         disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Monitor
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

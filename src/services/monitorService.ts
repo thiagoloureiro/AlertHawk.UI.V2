@@ -111,6 +111,26 @@ export class MonitorService {
     return response.data;
   }
 
+  async deleteMonitor(monitorId: number): Promise<boolean> {
+    try {
+      await monitoringHttp.delete(`/api/Monitor/deleteMonitor/${monitorId}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete monitor:', error);
+      return false;
+    }
+  }
+
+  async toggleMonitorPause(monitorId: number, pause: boolean): Promise<boolean> {
+    try {
+      await monitoringHttp.put(`/api/Monitor/pauseMonitor/${monitorId}/${pause}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to toggle monitor pause:', error);
+      return false;
+    }
+  }
+
   // ... other existing methods ...
 }
 
