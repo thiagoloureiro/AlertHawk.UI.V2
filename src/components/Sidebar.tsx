@@ -22,16 +22,24 @@ interface SidebarProps {
   onNavigate: (page: string) => void;
 }
 
-const menuItems: MenuItem[] = [
+// Add base menu items that are always shown
+const baseMenuItems: MenuItem[] = [
   { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
   { id: '2', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '3', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
   { id: '5', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
   { id: '6', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
+];
+
+// Add admin-only menu items
+const adminMenuItems: MenuItem[] = [
   { id: '7', name: 'User Management', icon: 'UserCircle', path: '/users' },
   { id: '8', name: 'Administration', icon: 'Bell', path: '/admin' },
-  { id: 'settings', name: 'Settings', icon: 'Settings', path: '/settings' },
 ];
+
+// Settings is shown to all users
+const settingsMenuItem: MenuItem = 
+  { id: 'settings', name: 'Settings', icon: 'Settings', path: '/settings' };
 
 const iconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
@@ -45,6 +53,22 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
+  // Get user info from localStorage
+  const userInfo = React.useMemo(() => {
+    const stored = localStorage.getItem('userInfo');
+    return stored ? JSON.parse(stored) : null;
+  }, []);
+
+  // Combine menu items based on user role
+  const menuItems = React.useMemo(() => {
+    const items = [...baseMenuItems];
+    if (userInfo?.isAdmin) {
+      items.push(...adminMenuItems);
+    }
+    items.push(settingsMenuItem);
+    return items;
+  }, [userInfo]);
+
   return (
     <div 
       className={`bg-gray-900 text-white transition-all duration-300 ease-in-out flex flex-col

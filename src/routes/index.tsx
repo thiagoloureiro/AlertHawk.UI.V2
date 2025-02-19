@@ -8,6 +8,7 @@ import { NotificationManagement } from '../pages/NotificationManagement';
 import { UserManagement } from '../pages/UserManagement';
 import { Administration } from '../pages/Administration';
 import { Settings } from '../pages/Settings';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export function AppRoutes() {
   return (
@@ -19,8 +20,8 @@ export function AppRoutes() {
       <Route path="/groups" element={<MonitorGroups />} />
       <Route path="/agents" element={<MonitorAgents />} />
       <Route path="/notifications" element={<NotificationManagement />} />
-      <Route path="/users" element={<UserManagement />} />
-      <Route path="/admin" element={<Administration />} />
+      <Route path="/users" element={<ProtectedRoute requireAdmin><UserManagement /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute requireAdmin><Administration /></ProtectedRoute>} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/monitor/:monitorId/alerts" element={<MonitorAlerts />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
