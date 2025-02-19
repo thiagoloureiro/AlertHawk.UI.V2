@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Download, ChevronDown, ChevronUp, Search, Loader2, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Search, Loader2, AlertCircle } from 'lucide-react';
 import { AlertIncident, getEnvironmentName } from '../types';
 import { convertUTCToLocal } from '../utils/dateUtils';
-import alertService from '../services/alertService';
 import { useParams } from 'react-router-dom';
 import monitorService from '../services/monitorService';
 import { toast } from 'react-hot-toast';
@@ -31,7 +29,7 @@ export function MonitorAlerts() {
   const [alerts, setAlerts] = useState<AlertIncident[]>([]);
   const [filteredAlerts, setFilteredAlerts] = useState<AlertIncident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('7');
   const [searchTerm, setSearchTerm] = useState('');
   const [recordsPerPage, setRecordsPerPage] = useState(25);
@@ -95,28 +93,6 @@ export function MonitorAlerts() {
     (currentPage - 1) * recordsPerPage,
     currentPage * recordsPerPage
   );
-
-  // Export data
-  const exportData = () => {
-    const headers = ['Timestamp', 'Monitor Name', 'Environment', 'Message', 'URL', 'Offline Duration (min)'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredAlerts.map(alert => [
-        convertUTCToLocal(alert.timeStamp),
-        `"${alert.monitorName}"`,
-        getEnvironmentName(alert.environment),
-        `"${alert.message}"`,
-        `"${alert.urlToCheck}"`,
-        alert.periodOffline
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `monitor-alerts-${new Date().toISOString()}.csv`;
-    link.click();
-  };
 
   if (isLoading) {
     return <div>Loading alerts...</div>;

@@ -50,7 +50,7 @@ export interface Group {
 }
 
 export interface MonitorGroup {
-  id: string;
+  id: number;
   name: string;
   description: string;
   monitorCount: number;

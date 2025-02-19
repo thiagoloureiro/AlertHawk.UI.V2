@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
 
@@ -117,27 +117,8 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
   );
 };
 
-// Helper function to get status info
-const getStatusInfo = (status: boolean, paused: boolean) => {
-  if (paused) {
-    return {
-      label: 'Paused',
-      color: 'dark:text-gray-400 text-gray-500'
-    };
-  }
-  return status ? {
-    label: 'Online',
-    color: 'dark:text-green-400 text-green-500'
-  } : {
-    label: 'Offline',
-    color: 'dark:text-red-400 text-red-500'
-  };
-};
-
 export function MetricDetails({ metric }: MetricDetailsProps) {
   const typeInfo = getMonitorTypeInfo(metric.monitorTypeId);
-  const navigate = useNavigate();
-
   // Add state for delete confirmation and loading
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -197,7 +178,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
       } else {
         toast.error('Failed to delete monitor', { position: 'bottom-right' });
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete monitor', { position: 'bottom-right' });
     } finally {
       setIsDeleting(false);
@@ -217,7 +198,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
       } else {
         toast.error(`Failed to ${metric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
       }
-    } catch (error) {
+    } catch {
       toast.error(`Failed to ${metric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
     } finally {
       setIsPauseLoading(false);

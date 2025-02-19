@@ -1,21 +1,6 @@
 import { monitoringHttp } from './httpClient';
 import { MonitorGroup, MonitorAgent, Monitor } from '../types';
 
-interface MonitorGroupListItem {
-  id: number;
-  name: string;
-}
-
-interface MonitorAgent {
-  id: number;
-  hostname: string;
-  timeStamp: string;
-  isMaster: boolean;
-  listTasks: number;
-  version: string;
-  monitorRegion: number;
-}
-
 export enum MonitorRegion {
   USEast = 1,
   USWest = 2,
@@ -27,11 +12,6 @@ export enum MonitorRegion {
 
 export class MonitorService {
   private static instance: MonitorService;
-  private baseUrl: string;
-
-  private constructor() {
-    this.baseUrl = '/api/MonitorGroup';
-  }
 
   public static getInstance(): MonitorService {
     if (!MonitorService.instance) {
@@ -127,6 +107,16 @@ export class MonitorService {
       return true;
     } catch (error) {
       console.error('Failed to toggle monitor pause:', error);
+      return false;
+    }
+  }
+
+  async createMonitor(monitor: Partial<Monitor>): Promise<boolean> {
+    try {
+      await monitoringHttp.post('/api/Monitor/createMonitor', monitor);
+      return true;
+    } catch (error) {
+      console.error('Failed to create monitor:', error);
       return false;
     }
   }

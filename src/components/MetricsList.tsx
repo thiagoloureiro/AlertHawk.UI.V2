@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MonitorGroup, Monitor } from '../types';
 import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus } from 'lucide-react';
 import monitorService from '../services/monitorService';
@@ -58,7 +58,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [filteredGroups, setFilteredGroups] = useState<MonitorGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [selectedEnvironment, setSelectedEnvironment] = useState<number>(6); // Default to Production (6)
@@ -99,7 +99,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   }, [groups, searchTerm, statusFilter]);
 
   // Toggle group collapse
-  const toggleGroup = (groupId: number) => {
+  const toggleGroup = (groupId: string) => {
     setCollapsedGroups(prev => ({
       ...prev,
       [groupId]: !prev[groupId]
@@ -236,10 +236,10 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
             <div key={group.id} className="p-4">
               <div 
                 className="flex items-center justify-between mb-4 cursor-pointer"
-                onClick={() => toggleGroup(group.id)}
+                onClick={() => toggleGroup(group.id.toString())}
               >
                 <div className="flex items-center gap-2">
-                  {collapsedGroups[group.id] ? (
+                  {collapsedGroups[group.id.toString()] ? (
                     <ChevronRight className="w-5 h-5 text-gray-400" />
                   ) : (
                     <ChevronDown className="w-5 h-5 text-gray-400" />
@@ -270,7 +270,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                 </div>
               </div>
               
-              {!collapsedGroups[group.id] && (
+              {!collapsedGroups[group.id.toString()] && (
                 <div className="space-y-2 ml-7">
                   {group.monitors.map(monitor => {
                     const typeInfo = getMonitorTypeInfo(monitor.monitorTypeId, monitor.status, monitor.paused);

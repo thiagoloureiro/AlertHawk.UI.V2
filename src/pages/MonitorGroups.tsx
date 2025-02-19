@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { 
   Search, Plus, Edit, Trash2, AlertCircle, Loader2, 
   Check, ChevronDown, ChevronUp
@@ -6,34 +6,6 @@ import {
 import type { MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';
 import { toast } from 'react-hot-toast';
-
-// Demo data
-const demoGroups: MonitorGroup[] = [
-  {
-    id: '1',
-    name: 'Production Services',
-    description: 'Critical production environment services',
-    monitorCount: 15,
-    createdAt: '2024-03-15T10:00:00Z',
-    isActive: true
-  },
-  {
-    id: '2',
-    name: 'Development APIs',
-    description: 'Development environment API endpoints',
-    monitorCount: 8,
-    createdAt: '2024-03-14T15:30:00Z',
-    isActive: true
-  },
-  {
-    id: '3',
-    name: 'Database Cluster',
-    description: 'Database servers and related services',
-    monitorCount: 6,
-    createdAt: '2024-03-13T09:15:00Z',
-    isActive: false
-  }
-];
 
 interface DeleteConfirmationProps {
   group: MonitorGroup;
@@ -98,133 +70,16 @@ function DeleteConfirmation({ group, onConfirm, onCancel, isDeleting }: DeleteCo
   );
 }
 
-interface GroupFormProps {
-  group?: MonitorGroup;
-  onSave: (group: Partial<MonitorGroup>) => void;
-  onCancel: () => void;
-}
-
-function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
-  const [name, setName] = useState(group?.name || '');
-  const [description, setDescription] = useState(group?.description || '');
-  const [isActive, setIsActive] = useState(group?.isActive ?? true);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      setError('Group name is required');
-      return;
-    }
-
-    onSave({
-      name: name.trim(),
-      description: description.trim(),
-      isActive
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-2xl dark:bg-gray-800 bg-white rounded-lg shadow-lg">
-        <div className="p-6 border-b dark:border-gray-700 border-gray-200">
-          <h3 className="text-xl font-semibold dark:text-white text-gray-900">
-            {group ? 'Edit Monitor Group' : 'Create Monitor Group'}
-          </h3>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
-          {error && (
-            <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 
-                          text-red-700 dark:text-red-200 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-1">
-                Group Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg dark:bg-gray-700 bg-white border 
-                         dark:border-gray-600 border-gray-300 dark:text-white text-gray-900 
-                         focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                         transition-colors duration-200"
-                placeholder="Enter group name"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 rounded-lg dark:bg-gray-700 bg-white border 
-                         dark:border-gray-600 border-gray-300 dark:text-white text-gray-900 
-                         focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                         transition-colors duration-200"
-                placeholder="Enter group description"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <label htmlFor="status" className="text-sm font-medium dark:text-gray-300 text-gray-700 mr-3">
-                Status
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsActive(!isActive)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full 
-                         border-2 border-transparent transition-colors duration-200 ease-in-out 
-                         ${isActive ? 'dark:bg-green-600 bg-green-500' : 'dark:bg-gray-600 bg-gray-300'}`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full 
-                           bg-white shadow ring-0 transition duration-200 ease-in-out
-                           ${isActive ? 'translate-x-5' : 'translate-x-0'}`}
-                />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                       dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
-                       transition-colors duration-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white
-                       transition-colors duration-200"
-            >
-              {group ? 'Save Changes' : 'Create Group'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+interface MonitorGroupListItem {
+  id: number;
+  name: string;
+  description: string;
+  monitorCount: number;
 }
 
 export function MonitorGroups() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState<{ key: keyof MonitorGroup; direction: 'asc' | 'desc' }>({
+  const [sortConfig, setSortConfig] = useState<{ key: keyof MonitorGroupListItem; direction: 'asc' | 'desc' }>({
     key: 'name',
     direction: 'asc'
   });
@@ -235,7 +90,7 @@ export function MonitorGroups() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [groups, setGroups] = useState<MonitorGroupListItem[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAdding] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
   // Move fetchGroups outside useEffect so it can be reused
@@ -273,7 +128,7 @@ export function MonitorGroups() {
     return 0;
   });
 
-  const handleSort = (key: keyof MonitorGroup) => {
+  const handleSort = (key: keyof MonitorGroupListItem) => {
     setSortConfig(current => ({
       key,
       direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
@@ -292,11 +147,10 @@ export function MonitorGroups() {
       await fetchGroups(); // Refresh the list after deletion
     } catch (error: any) {
       console.error('Failed to delete monitor group:', error);
-      // Check if it's a 400 error (group has monitors)
       if (error.response?.status === 400) {
         toast.error('Cannot delete group: Please remove all monitors from this group first', { 
           position: 'bottom-right',
-          duration: 5000 // Show for longer since it's an important message
+          duration: 5000
         });
       } else {
         toast.error('Failed to delete monitor group', { position: 'bottom-right' });
@@ -310,10 +164,17 @@ export function MonitorGroups() {
     const fullGroup: MonitorGroup = {
       id: group.id,
       name: group.name,
-      description: '',
-      monitorCount: 0,
+      description: group.description,
+      monitorCount: group.monitorCount,
       createdAt: new Date().toISOString(),
-      isActive: true
+      isActive: true,
+      monitors: [],
+      avgUptime1Hr: 0,
+      avgUptime24Hrs: 0,
+      avgUptime7Days: 0,
+      avgUptime30Days: 0,
+      avgUptime3Months: 0,
+      avgUptime6Months: 0
     };
     
     setFormMode('edit');
@@ -485,7 +346,22 @@ export function MonitorGroups() {
                           </button>
                           <button
                             onClick={() => {
-                              setSelectedGroup(group);
+                              const fullGroup: MonitorGroup = {
+                                id: group.id,
+                                name: group.name,
+                                description: group.description,
+                                monitorCount: group.monitorCount,
+                                createdAt: new Date().toISOString(),
+                                isActive: true,
+                                monitors: [],
+                                avgUptime1Hr: 0,
+                                avgUptime24Hrs: 0,
+                                avgUptime7Days: 0,
+                                avgUptime30Days: 0,
+                                avgUptime3Months: 0,
+                                avgUptime6Months: 0
+                              };
+                              setSelectedGroup(fullGroup);
                               setShowDeleteConfirmation(true);
                             }}
                             className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
