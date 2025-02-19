@@ -15,12 +15,17 @@ interface MonitorAgent {
 // Helper function to convert region number to location name
 const getRegionName = (region: number): string => {
   const regions: { [key: number]: string } = {
-    1: 'US East',
-    2: 'US West',
-    3: 'Europe',
-    4: 'Asia',
-    5: 'South America',
-    6: 'Oceania'
+    1: 'Europe',
+    2: 'Oceania',
+    3: 'North America',
+    4: 'South America',
+    5: 'Africa',
+    6: 'Asia',
+    7: 'Custom',
+    8: 'Custom2',
+    9: 'Custom3',
+    10: 'Custom4',
+    11: 'Custom5'
   };
   return regions[region] || 'Unknown';
 };

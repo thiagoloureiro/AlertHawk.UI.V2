@@ -596,7 +596,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
 
           <div>
             <label className="block text-sm font-medium dark:text-gray-300 mb-1">
-              Notification Type
+                Notification Type
               </label>
               <select
                 value={type}

@@ -10,6 +10,24 @@ export enum MonitorRegion {
   Oceania = 6
 }
 
+export interface CreateMonitorHttpPayload {
+  name: string;
+  monitorGroup: number;
+  monitorRegion: number;
+  monitorEnvironment: number;
+  monitorHttpMethod: number;
+  checkCertExpiry: boolean;
+  ignoreTlsSsl: boolean;
+  urlToCheck: string;
+  maxRedirects: number;
+  heartBeatInterval: number;
+  body: string;
+  timeout: number;
+  retries: number;
+  status: boolean;
+  monitorTypeId: number;
+}
+
 export class MonitorService {
   private static instance: MonitorService;
 
@@ -111,9 +129,9 @@ export class MonitorService {
     }
   }
 
-  async createMonitor(monitor: Partial<Monitor>): Promise<boolean> {
+  async createMonitor(monitor: CreateMonitorHttpPayload): Promise<boolean> {
     try {
-      await monitoringHttp.post('/api/Monitor/createMonitor', monitor);
+      await monitoringHttp.post('/api/Monitor/CreateMonitorHttp', monitor);
       return true;
     } catch (error) {
       console.error('Failed to create monitor:', error);

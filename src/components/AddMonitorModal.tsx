@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Globe, Network, Plus } from 'lucide-react';
+import { X, Globe, Network, Plus, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
 import monitorService from '../services/monitorService';
@@ -47,6 +47,7 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
   const [headerValue, setHeaderValue] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -89,7 +90,7 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsCreating(true);
 
     try {
       const monitorData = {
@@ -116,7 +117,7 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
 
       await onAdd(monitorData);
     } finally {
-      setIsSubmitting(false);
+      setIsCreating(false);
     }
   };
 
@@ -497,11 +498,18 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isCreating}
                 className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
                          disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Adding...' : 'Add Monitor'}
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Add Monitor'
+                )}
               </button>
             </div>
           </div>
