@@ -71,7 +71,7 @@ export function Login({ onLogin }: LoginProps) {
             try {
               // Fetch user info from your API
               const userResponse = await axios.get<UserInfo>(
-                `${import.meta.env.VITE_AUTH_API_URL}/api/user/${userEmail}`,
+                `${import.meta.env.VITE_APP_AUTH_API_URL}/api/user/${userEmail}`,
                 {
                   headers: {
                     Authorization: `Bearer ${response.accessToken}`
@@ -143,7 +143,7 @@ export function Login({ onLogin }: LoginProps) {
     try {
       setIsLoading(true);
       const response = await axios.post<LoginResponse>(
-        `${import.meta.env.VITE_AUTH_API_URL}/api/auth/login`,
+        `${import.meta.env.VITE_APP_AUTH_API_URL}/api/auth/login`,
         {
           username: email,
           password: password
