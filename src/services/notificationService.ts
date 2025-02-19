@@ -64,8 +64,60 @@ export class NotificationService {
   }
 
   async updateNotification(data: NotificationItem) {
-    const response = await notificationHttp.put(`${this.baseUrl}/UpdateNotification`, data);
-    return response.data;
+    try {
+      const payload = {
+        id: data.id,
+        monitorGroupId: data.monitorGroupId,
+        name: data.name,
+        notificationTypeId: data.notificationTypeId,
+        description: data.description,
+        notificationSlack: {
+          notificationId: 0,
+          channel: "",
+          webHookUrl: ""
+        },
+        notificationEmail: {
+          notificationId: 0,
+          fromEmail: "",
+          toEmail: "",
+          hostname: "",
+          port: 0,
+          username: "",
+          password: "",
+          toCCEmail: "",
+          toBCCEmail: "",
+          enableSsl: true,
+          subject: "",
+          body: "",
+          isHtmlBody: true
+        },
+        notificationTeams: {
+          notificationId: 0,
+          webHookUrl: ""
+        },
+        notificationTelegram: {
+          notificationId: 0,
+          chatId: 0,
+          telegramBotToken: ""
+        },
+        notificationWebHook: {
+          notificationId: 0,
+          message: "",
+          webHookUrl: "",
+          body: "",
+          headersJson: "",
+          headers: [{
+            item1: "",
+            item2: ""
+          }]
+        }
+      };
+
+      const response = await notificationHttp.put(`${this.baseUrl}/UpdateNotificationItem`, payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error };
+    }
   }
 
   async deleteNotification(id: number) {

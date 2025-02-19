@@ -40,10 +40,8 @@ export class MonitorService {
     return MonitorService.instance;
   }
 
-  async getMonitorGroupList(): Promise<MonitorGroupListItem[]> {
-    const response = await monitoringHttp.get<MonitorGroupListItem[]>(
-      `${this.baseUrl}/monitorGroupList`
-    );
+  async getMonitorGroupList(): Promise<MonitorGroup[]> {
+    const response = await monitoringHttp.get('/api/MonitorGroup/monitorGroupListByUser');
     return response.data;
   }
 

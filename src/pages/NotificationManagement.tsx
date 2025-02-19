@@ -3,14 +3,17 @@ import { Plus, Bell, Trash2, AlertCircle, Check, Loader2, Mail, MessageSquare, S
 import notificationService from '../services/notificationService';
 import { NotificationItem, NotificationType } from '../services/notificationService';
 import { toast } from 'react-hot-toast';
+import monitorService from '../services/monitorService';
+import { MonitorGroup } from '../services/monitorService';
 
 interface NotificationFormProps {
   onClose: () => void;
   onSave: (notification: Partial<NotificationItem>) => void;
   notification?: NotificationItem;
+  monitorGroups: MonitorGroup[];
 }
 
-function NotificationForm({ onClose, onSave, notification }: NotificationFormProps) {
+function NotificationForm({ onClose, onSave, notification, monitorGroups }: NotificationFormProps) {
   const [name, setName] = useState(notification?.name || '');
   const [description, setDescription] = useState(notification?.description || '');
   const [type, setType] = useState(notification?.notificationTypeId || 1);
@@ -49,6 +52,7 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
     }
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState(notification?.monitorGroupId || monitorGroups[0]?.id || 1);
 
   useEffect(() => {
     const fetchNotificationTypes = async () => {
@@ -81,7 +85,7 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
     try {
       const basePayload = {
         id: 0,
-        monitorGroupId: 1,
+        monitorGroupId: selectedGroupId,
         name,
         notificationTypeId: type,
         description,
@@ -546,6 +550,24 @@ function NotificationForm({ onClose, onSave, notification }: NotificationFormPro
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              Monitor Group
+            </label>
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
+            >
+              {monitorGroups.map(group => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Type-specific fields */}
           {renderTypeSpecificFields()}
 
@@ -667,36 +689,29 @@ export function NotificationManagement() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<NotificationItem | null>(null);
   const [isDeletingNotification, setIsDeletingNotification] = useState(false);
+  const [monitorGroups, setMonitorGroups] = useState<MonitorGroup[]>([]);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const data = await notificationService.getNotifications();
-        setNotifications(data);
+        const [notifications, types, groups] = await Promise.all([
+          notificationService.getNotifications(),
+          notificationService.getNotificationTypes(),
+          monitorService.getMonitorGroupList()
+        ]);
+        setNotifications(notifications);
+        setNotificationTypes(types);
+        setMonitorGroups(groups);
       } catch (err) {
-        console.error('Failed to fetch notifications:', err);
-        setNotification({
-          type: 'error',
-          message: 'Failed to load notifications'
-        });
+        console.error('Failed to fetch data:', err);
+        toast.error('Failed to load data', { position: 'bottom-right' });
       } finally {
         setIsLoading(false);
       }
     };
 
-    const fetchNotificationTypes = async () => {
-      try {
-        const types = await notificationService.getNotificationTypes();
-        setNotificationTypes(types);
-      } catch (error) {
-        console.error('Failed to fetch notification types:', error);
-        toast.error('Failed to load notification types', { position: 'bottom-right' });
-      }
-    };
-
-    fetchNotifications();
-    fetchNotificationTypes();
+    fetchData();
   }, []);
 
   const getTypeLabel = (typeId: number) => {
@@ -707,20 +722,64 @@ export function NotificationManagement() {
   const handleSave = async (notificationData: Partial<NotificationItem>) => {
     try {
       if (selectedNotification) {
-        // Handle edit
+        // Handle edit - make sure to include the ID
         const response = await notificationService.updateNotification({
-          ...selectedNotification,
-          ...notificationData
-        });
+          ...notificationData,
+          id: selectedNotification.id, // Ensure we're using the correct ID
+          monitorGroupId: notificationData.monitorGroupId || selectedNotification.monitorGroupId,
+          name: notificationData.name || selectedNotification.name,
+          notificationTypeId: notificationData.notificationTypeId || selectedNotification.notificationTypeId,
+          description: notificationData.description || selectedNotification.description,
+          notificationSlack: {
+            notificationId: 0,
+            channel: "",
+            webHookUrl: ""
+          },
+          notificationEmail: {
+            notificationId: 0,
+            fromEmail: "",
+            toEmail: "",
+            hostname: "",
+            port: 0,
+            username: "",
+            password: "",
+            toCCEmail: "",
+            toBCCEmail: "",
+            enableSsl: true,
+            subject: "",
+            body: "",
+            isHtmlBody: true
+          },
+          notificationTeams: {
+            notificationId: 0,
+            webHookUrl: ""
+          },
+          notificationTelegram: {
+            notificationId: 0,
+            chatId: 0,
+            telegramBotToken: ""
+          },
+          notificationWebHook: {
+            notificationId: 0,
+            message: "",
+            webHookUrl: "",
+            body: "",
+            headersJson: "",
+            headers: [{
+              item1: "",
+              item2: ""
+            }]
+          }
+        } as NotificationItem);
+        
         if (response.success) {
           const data = await notificationService.getNotifications();
           setNotifications(data);
           return { success: true };
         }
       } else {
-        // Handle create
+        // Handle create - remains the same
         const response = await notificationService.createNotification(notificationData);
-        // If we get here, it means the request was successful
         const data = await notificationService.getNotifications();
         setNotifications(data);
         return { success: true };
@@ -744,6 +803,11 @@ export function NotificationManagement() {
     } finally {
       setIsDeletingNotification(false);
     }
+  };
+
+  const getGroupName = (groupId: number) => {
+    const group = monitorGroups.find(g => g.id === groupId);
+    return group?.name || 'Unknown Group';
   };
 
   if (isLoading) {
@@ -799,6 +863,7 @@ export function NotificationManagement() {
                   <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Name</th>
                   <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Description</th>
                   <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Type</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Group</th>
                   <th className="w-10 px-4 py-3"></th>
                 </tr>
               </thead>
@@ -821,6 +886,12 @@ export function NotificationManagement() {
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                      bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
                         {getTypeLabel(item.notificationTypeId)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                     bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                        {getGroupName(item.monitorGroupId)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -866,6 +937,7 @@ export function NotificationManagement() {
           }}
           onSave={handleSave}
           notification={selectedNotification}
+          monitorGroups={monitorGroups}
         />
       )}
 
