@@ -40,7 +40,7 @@ export function MonitorAgents() {
       try {
         const token = localStorage.getItem('authToken');
         const response = await axios.get<MonitorAgent[]>(
-          `${import.meta.env.VITE_MONITORING_API_URL}/api/Monitor/allMonitorAgents`,
+          `${import.meta.env.VITE_APP_MONITORING_API_URL}/api/Monitor/allMonitorAgents`,
           {
             headers: {
               Authorization: `Bearer ${token}`
