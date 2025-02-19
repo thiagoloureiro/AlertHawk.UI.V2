@@ -4,10 +4,15 @@ import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
 import monitorService from '../services/monitorService';
 import { MonitorRegion } from '../services/monitorService';
+import { UpdateMonitorHttpPayload } from '../services/monitorService';
+import { Monitor } from '../services/monitorService';
 
 interface AddMonitorModalProps {
   onClose: () => void;
   onAdd: (monitor: any) => Promise<void>;
+  onUpdate?: (monitor: UpdateMonitorHttpPayload) => Promise<void>;
+  existingMonitor?: Monitor;
+  isEditing?: boolean;
 }
 
 export enum MonitorEnvironment {
@@ -24,25 +29,25 @@ interface Header {
   value: string;
 }
 
-export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
+export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
   const [monitorType, setMonitorType] = useState<'http' | 'tcp'>('http');
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
+  const [name, setName] = useState(existingMonitor?.name || '');
+  const [url, setUrl] = useState(existingMonitor?.urlToCheck || '');
   const [port, setPort] = useState('');
-  const [interval, setInterval] = useState('5');
-  const [retries, setRetries] = useState('3');
+  const [interval, setInterval] = useState(existingMonitor?.heartBeatInterval.toString() || '5');
+  const [retries, setRetries] = useState(existingMonitor?.retries.toString() || '3');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [environment, setEnvironment] = useState<MonitorEnvironment>(MonitorEnvironment.Production);
-  const [checkCertExpiry, setCheckCertExpiry] = useState(true);
-  const [ignoreTLS, setIgnoreTLS] = useState(false);
+  const [environment, setEnvironment] = useState(existingMonitor?.monitorEnvironment || MonitorEnvironment.Production);
+  const [checkCertExpiry, setCheckCertExpiry] = useState(existingMonitor?.checkCertExpiry ?? true);
+  const [ignoreTLS, setIgnoreTLS] = useState(existingMonitor?.ignoreTlsSsl ?? false);
   const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>('GET');
-  const [maxRedirects, setMaxRedirects] = useState('3');
-  const [timeout, setTimeout] = useState('30');
+  const [maxRedirects, setMaxRedirects] = useState(existingMonitor?.maxRedirects?.toString() || '3');
+  const [timeout, setTimeout] = useState(existingMonitor?.timeout?.toString() || '30');
   const [body, setBody] = useState('');
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<number>(0);
+  const [selectedGroupId, setSelectedGroupId] = useState(existingMonitor?.monitorGroup || 0);
   const [regions, setRegions] = useState<number[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<MonitorRegion>(MonitorRegion.Europe);
+  const [selectedRegion, setSelectedRegion] = useState(existingMonitor?.monitorRegion || MonitorRegion.Europe);
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
@@ -93,38 +98,66 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
     setIsCreating(true);
 
     try {
-      const basePayload = {
-        name,
-        monitorGroup: selectedGroupId,
-        monitorRegion: selectedRegion,
-        monitorEnvironment: environment,
-        heartBeatInterval: parseInt(interval),
-        timeout: parseInt(timeout),
-        retries: parseInt(retries),
-        status: true,
-      };
-
-      if (monitorType === 'tcp') {
-        const tcpPayload: CreateMonitorTcpPayload = {
-          ...basePayload,
-          monitorTypeId: 3,
-          ip: url,  // URL field contains the IP for TCP
-          port: parseInt(port),
-          part: parseInt(port)  // API requires both port and part
-        };
-        await onAdd(tcpPayload);
-      } else {
-        const httpPayload: CreateMonitorHttpPayload = {
-          ...basePayload,
-          monitorTypeId: 1,
-          monitorHttpMethod: httpMethod === 'GET' ? 1 : httpMethod === 'POST' ? 2 : 3,
-          checkCertExpiry,
+      if (isEditing && existingMonitor) {
+        const updatePayload: UpdateMonitorHttpPayload = {
+          monitorId: existingMonitor.id,
+          id: existingMonitor.id,
           ignoreTlsSsl: ignoreTLS,
-          urlToCheck: url,
           maxRedirects: parseInt(maxRedirects),
-          body: body || ''
+          urlToCheck: url,
+          responseStatusCode: 0,
+          timeout: parseInt(timeout),
+          lastStatus: existingMonitor.status,
+          responseTime: 0,
+          monitorHttpMethod: 1,
+          body: body || '',
+          monitorTypeId: 1,
+          name,
+          heartBeatInterval: parseInt(interval),
+          retries: parseInt(retries),
+          status: true,
+          daysToExpireCert: existingMonitor.daysToExpireCert,
+          paused: existingMonitor.paused,
+          monitorRegion: selectedRegion,
+          monitorEnvironment: environment,
+          checkCertExpiry,
+          monitorGroup: selectedGroupId
         };
-        await onAdd(httpPayload);
+        await onUpdate?.(updatePayload);
+      } else {
+        const basePayload = {
+          name,
+          monitorGroup: selectedGroupId,
+          monitorRegion: selectedRegion,
+          monitorEnvironment: environment,
+          heartBeatInterval: parseInt(interval),
+          timeout: parseInt(timeout),
+          retries: parseInt(retries),
+          status: true,
+        };
+
+        if (monitorType === 'tcp') {
+          const tcpPayload: CreateMonitorTcpPayload = {
+            ...basePayload,
+            monitorTypeId: 3,
+            ip: url,  // URL field contains the IP for TCP
+            port: parseInt(port),
+            part: parseInt(port)  // API requires both port and part
+          };
+          await onAdd(tcpPayload);
+        } else {
+          const httpPayload: CreateMonitorHttpPayload = {
+            ...basePayload,
+            monitorTypeId: 1,
+            monitorHttpMethod: httpMethod === 'GET' ? 1 : httpMethod === 'POST' ? 2 : 3,
+            checkCertExpiry,
+            ignoreTlsSsl: ignoreTLS,
+            urlToCheck: url,
+            maxRedirects: parseInt(maxRedirects),
+            body: body || ''
+          };
+          await onAdd(httpPayload);
+        }
       }
     } finally {
       setIsCreating(false);
@@ -135,7 +168,9 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-2xl max-h-[90vh] dark:bg-gray-800 bg-white rounded-lg shadow-lg flex flex-col">
         <div className="flex-none flex items-center justify-between p-4 border-b dark:border-gray-700">
-          <h2 className="text-lg font-medium dark:text-white">Add New Monitor</h2>
+          <h2 className="text-lg font-medium dark:text-white">
+            {isEditing ? 'Edit Monitor' : 'Add New Monitor'}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -515,10 +550,10 @@ export function AddMonitorModal({ onClose, onAdd }: AddMonitorModalProps) {
                 {isCreating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating...
+                    {isEditing ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
-                  'Add Monitor'
+                  isEditing ? 'Update Monitor' : 'Add Monitor'
                 )}
               </button>
             </div>

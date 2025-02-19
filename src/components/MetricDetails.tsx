@@ -10,6 +10,7 @@ import { convertUTCToLocalTime } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
+import { AddMonitorModal } from './AddMonitorModal';
 
 interface MetricDetailsProps {
   metric: Monitor;
@@ -126,6 +127,8 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
   // Add state for pause loading
   const [isPauseLoading, setIsPauseLoading] = useState(false);
 
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
     { label: '24 Hours', value: metric.monitorStatusDashboard.uptime24Hrs },
@@ -205,6 +208,11 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
     }
   };
 
+  // Add handler for edit button
+  const handleEditClick = () => {
+    setShowEditModal(true);
+  };
+
   return (
     <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
       {/* Header */}
@@ -251,7 +259,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           </button>
 
           <button
-            onClick={() => {/* TODO: Implement edit */}}
+            onClick={handleEditClick}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
                      dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
@@ -512,6 +520,29 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Edit Modal */}
+      {showEditModal && (
+        <AddMonitorModal
+          onClose={() => setShowEditModal(false)}
+          onAdd={async () => {}} // Not used in edit mode
+          onUpdate={async (updatedMonitor) => {
+            try {
+              const success = await monitorService.updateMonitorHttp(updatedMonitor);
+              if (success) {
+                toast.success('Monitor updated successfully', { position: 'bottom-right' });
+                setShowEditModal(false);
+                window.location.reload(); // Refresh the page to show updated data
+              }
+            } catch (error) {
+              console.error('Failed to update monitor:', error);
+              toast.error('Failed to update monitor', { position: 'bottom-right' });
+            }
+          }}
+          existingMonitor={metric}
+          isEditing={true}
+        />
       )}
     </div>
   );

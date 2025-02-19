@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { MonitorGroup, Monitor } from '../types';
-import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus } from 'lucide-react';
+import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus, Edit } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
+import { toast } from 'react-hot-toast';
 
 interface MetricsListProps {
   selectedMetric: Monitor | null;
@@ -63,6 +64,8 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [selectedEnvironment, setSelectedEnvironment] = useState<number>(6); // Default to Production (6)
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -115,6 +118,12 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     { id: 5, name: 'PreProd' },
     { id: 6, name: 'Production' }
   ];
+
+  // Add handler for edit button click
+  const handleEditClick = (monitor: Monitor) => {
+    setMonitorToEdit(monitor);
+    setShowEditModal(true);
+  };
 
   if (isLoading) {
     return (
@@ -332,6 +341,36 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
           }}
         />
       )}
+
+      {/* Edit Monitor Modal */}
+      {showEditModal && monitorToEdit && (
+        <AddMonitorModal
+          onClose={() => {
+            setShowEditModal(false);
+            setMonitorToEdit(null);
+          }}
+          onAdd={async () => {}} // Not used in edit mode
+          onUpdate={async (updatedMonitor) => {
+            try {
+              const success = await monitorService.updateMonitorHttp(updatedMonitor);
+              if (success) {
+                toast.success('Monitor updated successfully', { position: 'bottom-right' });
+                setShowEditModal(false);
+                // Refresh the list
+                const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
+                setGroups(updatedGroups);
+              }
+            } catch (error) {
+              console.error('Failed to update monitor:', error);
+              toast.error('Failed to update monitor', { position: 'bottom-right' });
+            }
+          }}
+          existingMonitor={monitorToEdit}
+          isEditing={true}
+        />
+      )}
+
+  
     </div>
   );
 }

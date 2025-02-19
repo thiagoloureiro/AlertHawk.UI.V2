@@ -42,6 +42,31 @@ export interface CreateMonitorTcpPayload {
   monitorTypeId: number;
 }
 
+export interface UpdateMonitorHttpPayload {
+  monitorId: number;
+  ignoreTlsSsl: boolean;
+  maxRedirects: number;
+  urlToCheck: string;
+  responseStatusCode: number;
+  timeout: number;
+  lastStatus: boolean;
+  responseTime: number;
+  monitorHttpMethod: number;
+  body: string;
+  id: number;
+  monitorTypeId: number;
+  name: string;
+  heartBeatInterval: number;
+  retries: number;
+  status: boolean;
+  daysToExpireCert: number;
+  paused: boolean;
+  monitorRegion: number;
+  monitorEnvironment: number;
+  checkCertExpiry: boolean;
+  monitorGroup: number;
+}
+
 export class MonitorService {
   private static instance: MonitorService;
 
@@ -155,6 +180,16 @@ export class MonitorService {
       return true;
     } catch (error) {
       console.error('Failed to create monitor:', error);
+      return false;
+    }
+  }
+
+  async updateMonitorHttp(monitor: UpdateMonitorHttpPayload): Promise<boolean> {
+    try {
+      await monitoringHttp.post('/api/Monitor/updateMonitorHttp', monitor);
+      return true;
+    } catch (error) {
+      console.error('Failed to update monitor:', error);
       return false;
     }
   }
