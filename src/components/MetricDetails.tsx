@@ -138,6 +138,10 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
 
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Add state for clone confirmation
+  const [showCloneConfirm, setShowCloneConfirm] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
+
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
     { label: '24 Hours', value: metric.monitorStatusDashboard.uptime24Hrs },
@@ -243,6 +247,22 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
     }
   };
 
+  // Add clone handler
+  const handleClone = async () => {
+    setIsCloning(true);
+    try {
+      await monitorService.cloneMonitor(metric.id);
+      toast.success('Monitor cloned successfully', { position: 'bottom-right' });
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to clone monitor:', error);
+      toast.error('Failed to clone monitor', { position: 'bottom-right' });
+    } finally {
+      setIsCloning(false);
+      setShowCloneConfirm(false);
+    }
+  };
+
   return (
     <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
       {/* Header */}
@@ -333,7 +353,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           </button>
 
           <button
-            onClick={() => {/* TODO: Implement clone functionality */}}
+            onClick={() => setShowCloneConfirm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
                      dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
@@ -583,6 +603,49 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           monitorId={metric.id}
           onClose={() => setShowNotifications(false)}
         />
+      )}
+
+      {/* Add clone confirmation modal */}
+      {showCloneConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Clone Monitor
+            </h3>
+            
+            <p className="dark:text-gray-300 text-gray-700 mb-6">
+              Are you sure you want to clone monitor "{metric.name}"? A new monitor will be created with name "{metric.name}_Clone".
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCloneConfirm(false)}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClone}
+                disabled={isCloning}
+                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                         disabled:opacity-50 flex items-center gap-2"
+              >
+                {isCloning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cloning...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Clone Monitor
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

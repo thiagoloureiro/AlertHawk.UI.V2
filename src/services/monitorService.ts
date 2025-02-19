@@ -253,6 +253,16 @@ export class MonitorService {
     return response.data;
   }
 
+  async cloneMonitor(monitorId: number): Promise<boolean> {
+    try {
+      await monitoringHttp.post(`/api/Monitor/Clone/${monitorId}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to clone monitor:', error);
+      return false;
+    }
+  }
+
   // ... other existing methods ...
 }
 
