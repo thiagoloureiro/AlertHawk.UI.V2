@@ -29,11 +29,6 @@ export interface NotificationType {
 
 export class NotificationService {
   private static instance: NotificationService;
-  private baseUrl: string;
-
-  private constructor() {
-    this.baseUrl = '/api/Notification';
-  }
 
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -44,7 +39,7 @@ export class NotificationService {
 
   async getNotifications(): Promise<NotificationItem[]> {
     const response = await notificationHttp.get<NotificationItem[]>(
-      `${this.baseUrl}/SelectNotificationItemList`
+      `/api/Notification/SelectNotificationItemList`
     );
     return response.data;
   }
@@ -56,7 +51,7 @@ export class NotificationService {
 
   async createNotification(data: Partial<NotificationItem>) {
     try {
-      const response = await notificationHttp.post(`${this.baseUrl}/createNotificationItem`, data);
+      const response = await notificationHttp.post(`/api/createNotificationItem`, data);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error };
@@ -113,7 +108,7 @@ export class NotificationService {
         }
       };
 
-      const response = await notificationHttp.put(`${this.baseUrl}/UpdateNotificationItem`, payload);
+      const response = await notificationHttp.put(`/UpdateNotificationItem`, payload);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error };
@@ -122,7 +117,7 @@ export class NotificationService {
 
   async deleteNotification(id: number) {
     try {
-      await notificationHttp.delete(`${this.baseUrl}/DeleteNotificationItem?id=${id}`);
+      await notificationHttp.delete(`/DeleteNotificationItem?id=${id}`);
       return { success: true };
     } catch (error) {
       return { success: false, error };

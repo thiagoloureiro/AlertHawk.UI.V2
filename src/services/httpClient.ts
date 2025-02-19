@@ -8,7 +8,6 @@ class HttpClient {
   private static notificationInstance: HttpClient;
   private axiosInstance: AxiosInstance;
   private msalInstance: PublicClientApplication;
-  private initialized: boolean = false;
 
   private constructor(baseURL: string) {
     this.axiosInstance = axios.create({ baseURL });
@@ -16,7 +15,6 @@ class HttpClient {
     
     // Initialize MSAL immediately and get token if possible
     this.msalInstance.initialize().then(() => {
-      this.initialized = true;
       const currentAccounts = this.msalInstance.getAllAccounts();
       if (currentAccounts.length > 0) {
         this.msalInstance.acquireTokenSilent({
@@ -45,7 +43,7 @@ class HttpClient {
             config.headers['Authorization'] = `Bearer ${tokenResponse.accessToken}`;
             localStorage.setItem('authToken', tokenResponse.accessToken);
           }
-        } catch (error) {
+        } catch  {
           const token = localStorage.getItem('authToken');
           if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
