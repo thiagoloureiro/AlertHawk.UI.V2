@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MonitorGroup, Monitor } from '../types';
-import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus, Edit } from 'lucide-react';
+import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
 import { toast } from 'react-hot-toast';
@@ -118,12 +118,6 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     { id: 5, name: 'PreProd' },
     { id: 6, name: 'Production' }
   ];
-
-  // Add handler for edit button click
-  const handleEditClick = (monitor: Monitor) => {
-    setMonitorToEdit(monitor);
-    setShowEditModal(true);
-  };
 
   if (isLoading) {
     return (

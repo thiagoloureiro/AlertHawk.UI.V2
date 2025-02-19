@@ -51,7 +51,7 @@ export class NotificationService {
 
   async createNotification(data: Partial<NotificationItem>) {
     try {
-      const response = await notificationHttp.post(`/api/createNotificationItem`, data);
+      const response = await notificationHttp.post(`/api/Notification/createNotificationItem`, data);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error };
@@ -108,7 +108,7 @@ export class NotificationService {
         }
       };
 
-      const response = await notificationHttp.put(`/UpdateNotificationItem`, payload);
+      const response = await notificationHttp.put(`/api/Notification/UpdateNotificationItem`, payload);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error };
@@ -117,7 +117,7 @@ export class NotificationService {
 
   async deleteNotification(id: number) {
     try {
-      await notificationHttp.delete(`/DeleteNotificationItem?id=${id}`);
+      await notificationHttp.delete(`/api/Notification/DeleteNotificationItem?id=${id}`);
       return { success: true };
     } catch (error) {
       return { success: false, error };

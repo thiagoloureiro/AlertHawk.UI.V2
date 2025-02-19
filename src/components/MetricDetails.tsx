@@ -11,6 +11,11 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
+import { 
+  UpdateMonitorHttpPayload,
+  UpdateMonitorTcpPayload 
+} from '../services/monitorService';
+import { NotificationListModal } from './NotificationListModal';
 
 interface MetricDetailsProps {
   metric: Monitor;
@@ -130,6 +135,8 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
+
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
@@ -304,7 +311,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           </Link>
 
           <button
-            onClick={() => {/* TODO: Implement notifications */}}
+            onClick={() => setShowNotifications(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
                      dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
@@ -568,6 +575,13 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           }}
           existingMonitor={monitorToEdit || metric}
           isEditing={true}
+        />
+      )}
+
+      {showNotifications && (
+        <NotificationListModal
+          monitorId={metric.id}
+          onClose={() => setShowNotifications(false)}
         />
       )}
     </div>

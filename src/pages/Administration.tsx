@@ -47,7 +47,7 @@ export function Administration() {
         }
         setSelectedFile(file);
         setShowConfirmation(true);
-      } catch (error) {
+      } catch {
         toast.error('Invalid backup file', { position: 'bottom-right' });
       }
     }

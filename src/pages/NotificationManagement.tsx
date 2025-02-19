@@ -5,7 +5,6 @@ import { NotificationItem, NotificationType } from '../services/notificationServ
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
 import { MonitorGroup } from '../services/monitorService';
-import { data } from 'react-router-dom';
 
 interface NotificationFormProps {
   onClose: () => void;
@@ -206,7 +205,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
           { position: 'bottom-right' }
         );
       }
-    } catch (error) {
+    } catch {
       toast.error(
         notification
           ? 'Failed to update notification'
@@ -745,7 +744,7 @@ export function NotificationManagement() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [notification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [notificationTypes, setNotificationTypes] = useState<NotificationType[]>([]);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -841,7 +840,7 @@ export function NotificationManagement() {
         }
       } else {
         // Handle create - remains the same
-        const response = await notificationService.createNotification(notificationData);
+        await notificationService.createNotification(notificationData);
         const data = await notificationService.getNotifications();
         setNotifications(data);
         return { success: true };
@@ -850,20 +849,6 @@ export function NotificationManagement() {
     } catch (error) {
       console.error('Failed to save notification:', error);
       return { success: false, error };
-    }
-  };
-
-  const handleDelete = async (notification: NotificationItem) => {
-    try {
-      setIsDeletingNotification(true);
-      await notificationService.deleteNotification(notification.id);
-      toast.success('Notification deleted successfully', { position: 'bottom-right' });
-      await fetchNotifications();
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
-      toast.error('Failed to delete notification', { position: 'bottom-right' });
-    } finally {
-      setIsDeletingNotification(false);
     }
   };
 
