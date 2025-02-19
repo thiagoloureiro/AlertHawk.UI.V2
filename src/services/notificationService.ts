@@ -73,42 +73,42 @@ export class NotificationService {
         description: data.description,
         notificationSlack: {
           notificationId: 0,
-          channel: "",
-          webHookUrl: ""
+          channel: data.notificationSlack?.channel || "",
+          webHookUrl: data.notificationSlack?.webHookUrl || ""
         },
         notificationEmail: {
           notificationId: 0,
-          fromEmail: "",
-          toEmail: "",
-          hostname: "",
-          port: 0,
-          username: "",
-          password: "",
-          toCCEmail: "",
-          toBCCEmail: "",
-          enableSsl: true,
-          subject: "",
-          body: "",
-          isHtmlBody: true
+          fromEmail: data.notificationEmail?.fromEmail || "",
+          toEmail: data.notificationEmail?.toEmail || "",
+          hostname: data.notificationEmail?.hostname || "",
+          port: data.notificationEmail?.port || 0,
+          username: data.notificationEmail?.username || "",
+          password: data.notificationEmail?.password || "",
+          toCCEmail: data.notificationEmail?.toCCEmail || "",
+          toBCCEmail: data.notificationEmail?.toCCEmail,
+          enableSsl: data.notificationEmail?.enableSsl,
+          subject: data.notificationEmail?.subject || "",
+          body: data.notificationEmail?.body || "",
+          isHtmlBody: data.notificationEmail?.isHtmlBody || false
         },
         notificationTeams: {
           notificationId: 0,
-          webHookUrl: ""
+          webHookUrl: data.notificationTeams?.webHookUrl || ""
         },
         notificationTelegram: {
           notificationId: 0,
-          chatId: 0,
-          telegramBotToken: ""
+          chatId: data.notificationTelegram?.chatId || 0,
+          telegramBotToken: data.notificationTelegram?.telegramBotToken || ""
         },
         notificationWebHook: {
           notificationId: 0,
-          message: "",
-          webHookUrl: "",
-          body: "",
-          headersJson: "",
+          message: data.notificationWebHook?.message,
+          webHookUrl: data.notificationWebHook?.webHookUrl,
+          body: data.notificationWebHook?.body,
+          headersJson: data.notificationWebHook?.headersJson,
           headers: [{
-            item1: "",
-            item2: ""
+            item1: data.notificationWebHook?.headers?.item1 || "",
+            item2: data.notificationWebHook?.headers?.item2 || ""
           }]
         }
       };

@@ -5,6 +5,7 @@ import { NotificationItem, NotificationType } from '../services/notificationServ
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
 import { MonitorGroup } from '../services/monitorService';
+import { data } from 'react-router-dom';
 
 interface NotificationFormProps {
   onClose: () => void;
@@ -84,7 +85,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
     
     try {
       const basePayload = {
-        id: 0,
+        id: notification?.id || 0,
         monitorGroupId: selectedGroupId,
         name,
         notificationTypeId: type,
@@ -133,6 +134,56 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
 
       // Update the specific notification type data based on form input
       switch (type) {
+        case 1: // Email
+        basePayload.notificationEmail = {
+          notificationId: 0,
+          fromEmail: formData.email.fromEmail,
+          toEmail: formData.email.toEmail,
+          hostname: formData.email.hostname,
+          port: Number(formData.email.port),
+          username: formData.email.username,
+          password: formData.email.password,
+          toCCEmail: formData.email.toCCEmail,
+          toBCCEmail: formData.email.toBCCEmail,
+          enableSsl: formData.email.enableSsl,
+          subject: formData.email.subject,
+          body: formData.email.body,
+          isHtmlBody: formData.email.isHtmlBody
+        };
+        break;
+        case 2: // Teams
+          basePayload.notificationTeams = {
+            notificationId: 0,
+            webHookUrl: formData.teams.webHookUrl
+          };
+          break;
+        case 3: // Telegram
+          basePayload.notificationTelegram = {
+            notificationId: 0,
+            chatId: Number(formData.telegram.chatId),
+            telegramBotToken: formData.telegram.telegramBotToken
+          };
+          break;
+        case 4: // Slack
+          basePayload.notificationSlack = {
+            notificationId: 0,
+            channel: formData.slack.channel,
+            webHookUrl: formData.slack.webHookUrl
+          };
+          break;
+          case 5: // Webhook
+          basePayload.notificationWebHook = {
+            notificationId: 0,
+            message: formData.webhook.message,
+            webHookUrl: formData.webhook.webHookUrl,
+            body: formData.webhook.body,
+            headersJson: formData.webhook.headers,
+            headers: [{
+              item1: formData.webhook.headers.item1,
+              item2: formData.webhook.headers.item2
+            }]
+          };
+          break;
         case 6: // Push notification - no extra fields needed
           break;
         // Other cases will be added when you provide the payloads
@@ -227,12 +278,23 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
                 Chat ID
               </label>
               <input
-                type="text"
+                type="number"
                 value={formData.telegram.chatId}
-                onChange={(e) => handleFormDataChange('telegram', 'chatId', e.target.value)}
+                onChange={(e) => {
+                  // Remove any decimal points and convert to integer
+                  const value = parseInt(e.target.value);
+                  handleFormDataChange('telegram', 'chatId', isNaN(value) ? '' : value.toString());
+                }}
                 className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter chat ID"
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter chat ID (numbers only)"
+                step="1" // Only allow whole numbers
+                onKeyDown={(e) => {
+                  // Prevent decimal point and e (scientific notation)
+                  if (e.key === '.' || e.key === 'e') {
+                    e.preventDefault();
+                  }
+                }}
               />
             </div>
             <div>
@@ -244,7 +306,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
                 value={formData.telegram.telegramBotToken}
                 onChange={(e) => handleFormDataChange('telegram', 'telegramBotToken', e.target.value)}
                 className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                         dark:text-white focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter bot token"
               />
             </div>
@@ -722,20 +784,19 @@ export function NotificationManagement() {
   const handleSave = async (notificationData: Partial<NotificationItem>) => {
     try {
       if (selectedNotification) {
-        // Handle edit - make sure to include the ID
-        const response = await notificationService.updateNotification({
-          ...notificationData,
-          id: selectedNotification.id, // Ensure we're using the correct ID
+        // Create base payload for update
+        const updatePayload = {
+          id: selectedNotification.id,
           monitorGroupId: notificationData.monitorGroupId || selectedNotification.monitorGroupId,
           name: notificationData.name || selectedNotification.name,
           notificationTypeId: notificationData.notificationTypeId || selectedNotification.notificationTypeId,
           description: notificationData.description || selectedNotification.description,
-          notificationSlack: {
+          notificationSlack: notificationData.notificationSlack || {
             notificationId: 0,
             channel: "",
             webHookUrl: ""
           },
-          notificationEmail: {
+          notificationEmail: notificationData.notificationEmail || {
             notificationId: 0,
             fromEmail: "",
             toEmail: "",
@@ -750,16 +811,16 @@ export function NotificationManagement() {
             body: "",
             isHtmlBody: true
           },
-          notificationTeams: {
+          notificationTeams: notificationData.notificationTeams || {
             notificationId: 0,
             webHookUrl: ""
           },
-          notificationTelegram: {
+          notificationTelegram:  notificationData.notificationTelegram || {
             notificationId: 0,
             chatId: 0,
             telegramBotToken: ""
           },
-          notificationWebHook: {
+          notificationWebHook: notificationData.notificationWebHook || {
             notificationId: 0,
             message: "",
             webHookUrl: "",
@@ -770,8 +831,9 @@ export function NotificationManagement() {
               item2: ""
             }]
           }
-        } as NotificationItem);
-        
+        };
+
+        const response = await notificationService.updateNotification(updatePayload as NotificationItem);
         if (response.success) {
           const data = await notificationService.getNotifications();
           setNotifications(data);
