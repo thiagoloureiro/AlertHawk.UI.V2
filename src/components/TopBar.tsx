@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bell, Sun, Moon, LogOut } from 'lucide-react';
 import { useMsal } from "@azure/msal-react";
 
@@ -17,6 +17,7 @@ interface UserInfo {
 export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
   const { accounts, instance } = useMsal();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   const userInfo: UserInfo | null = (() => {
     const stored = localStorage.getItem('userInfo');
@@ -31,6 +32,20 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
     localStorage.removeItem('userInfo');
     await instance.logoutRedirect();
   };
+
+  // Add click outside handler
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="h-16 px-4 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between
@@ -65,12 +80,11 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
         </button>
 
         {/* User Menu */}
-        <div 
-          className="relative"
-          onMouseEnter={() => setShowUserMenu(true)}
-          onMouseLeave={() => setShowUserMenu(false)}
-        >
-          <button className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <div ref={menuRef} className="relative">
+          <button 
+            onClick={() => setShowUserMenu(!showUserMenu)} 
+            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white">
               {displayName.charAt(0).toUpperCase()}
             </div>
@@ -84,7 +98,6 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
             </div>
           </button>
 
-          {/* User Menu Dropdown */}
           {showUserMenu && (
             <div className="absolute top-full right-0 mt-1 w-48 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200">
               {userInfo?.isAdmin && (
