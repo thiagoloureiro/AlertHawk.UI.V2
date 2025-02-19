@@ -134,12 +134,6 @@ export function MonitorAgents() {
       <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm">
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 border-gray-200">
           <h2 className="text-lg font-medium dark:text-white text-gray-900">Agent List</h2>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                           dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
-                           transition-colors duration-200">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
         </div>
 
         <div className="overflow-x-auto">

@@ -290,9 +290,17 @@ export function MonitorGroups() {
       setShowDeleteConfirmation(false);
       setSelectedGroup(null);
       await fetchGroups(); // Refresh the list after deletion
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete monitor group:', error);
-      toast.error('Failed to delete monitor group', { position: 'bottom-right' });
+      // Check if it's a 400 error (group has monitors)
+      if (error.response?.status === 400) {
+        toast.error('Cannot delete group: Please remove all monitors from this group first', { 
+          position: 'bottom-right',
+          duration: 5000 // Show for longer since it's an important message
+        });
+      } else {
+        toast.error('Failed to delete monitor group', { position: 'bottom-right' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -423,31 +431,29 @@ export function MonitorGroups() {
         <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="dark:bg-gray-800 bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('name')}
-                      className="flex items-center gap-1 dark:text-gray-300 text-gray-700"
-                    >
+              <thead>
+                <tr className="dark:bg-gray-700 bg-gray-50">
+                  <th
+                    onClick={() => handleSort('name')}
+                    className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 cursor-pointer
+                             hover:dark:bg-gray-600 hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    <div className="flex items-center gap-2">
                       Name
                       {sortConfig.key === 'name' && (
                         sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                       )}
-                    </button>
+                    </div>
                   </th>
-                  <th className="px-4 py-3 text-left dark:text-gray-300 text-gray-700">
-                    Monitors
-                  </th>
-                  <th className="px-4 py-3 text-left dark:text-gray-300 text-gray-700">
-                    Actions
+                  <th className="px-4 py-3 text-right text-sm font-medium dark:text-gray-300 text-gray-700">
+                    &nbsp;
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {sortedGroups.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center dark:text-gray-400 text-gray-500">
+                    <td colSpan={2} className="px-4 py-8 text-center dark:text-gray-400 text-gray-500">
                       No monitor groups found
                     </td>
                   </tr>
@@ -468,13 +474,7 @@ export function MonitorGroups() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 dark:text-gray-300 text-gray-700">
-                          <Users className="w-4 h-4" />
-                          {group.monitorCount}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleEditClick(group)}
                             className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
