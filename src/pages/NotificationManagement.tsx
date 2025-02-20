@@ -759,7 +759,7 @@ export function NotificationManagement() {
         const [notifications, types, groups] = await Promise.all([
           notificationService.getNotifications(),
           notificationService.getNotificationTypes(),
-          monitorService.getMonitorGroupList()
+          monitorService.getMonitorGroupListByUser()
         ]);
         setNotifications(notifications);
         setNotificationTypes(types);

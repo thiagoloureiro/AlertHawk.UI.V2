@@ -97,7 +97,7 @@ export function MonitorGroups() {
   const fetchGroups = async () => {
     try {
       setIsLoading(true);
-      const groupList = await monitorService.getMonitorGroupList();
+      const groupList = await monitorService.getMonitorGroupListByUser();
       setGroups(groupList);
     } catch (err) {
       console.error('Failed to fetch monitor groups:', err);

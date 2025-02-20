@@ -67,7 +67,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const groups = await monitorService.getMonitorGroupList();
+        const groups = await monitorService.getMonitorGroupListByUser();
         setGroups(groups);
         if (groups.length > 0) {
           setSelectedGroupId(groups[0].id);

@@ -120,6 +120,11 @@ export class MonitorService {
   }
 
   async getMonitorGroupList(): Promise<MonitorGroup[]> {
+    const response = await monitoringHttp.get('/api/MonitorGroup/monitorGroupList');
+    return response.data;
+  }
+
+  async getMonitorGroupListByUser(): Promise<MonitorGroup[]> {
     const response = await monitoringHttp.get('/api/MonitorGroup/monitorGroupListByUser');
     return response.data;
   }
