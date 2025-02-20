@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MonitorGroup, Monitor } from '../types';
-import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus } from 'lucide-react';
+import { 
+  AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, 
+  Search, Plus, ChevronsDown, ChevronsUp 
+} from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
 import { toast } from 'react-hot-toast';
@@ -66,6 +69,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
+  const [areAllCollapsed, setAreAllCollapsed] = useState(false);
 
   const sortedGroups = useMemo(() => {
     return [...filteredGroups].sort((a, b) => a.name.localeCompare(b.name));
@@ -123,6 +127,20 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     { id: 6, name: 'Production' }
   ];
 
+  // Update the toggle function
+  const handleToggleAll = () => {
+    if (areAllCollapsed) {
+      setCollapsedGroups({});
+    } else {
+      const allCollapsed = sortedGroups.reduce((acc, group) => {
+        acc[group.id.toString()] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+      setCollapsedGroups(allCollapsed);
+    }
+    setAreAllCollapsed(!areAllCollapsed);
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -178,25 +196,24 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
 
       {/* Search and Filter Section */}
       <div className="p-4 border-b dark:border-gray-700 border-gray-200">
-        <div className="space-y-3">
-          {/* Filters */}
-          <div className="flex gap-2 items-center">
-            {/* Environment Dropdown */}
-            <select
-              value={selectedEnvironment}
-              onChange={(e) => setSelectedEnvironment(Number(e.target.value))}
-              className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
-                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                       transition-colors duration-200"
-            >
-              {environments.map(env => (
-                <option key={env.id} value={env.id}>
-                  {env.name}
-                </option>
-              ))}
-            </select>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          {/* Environment Dropdown */}
+          <select
+            value={selectedEnvironment}
+            onChange={(e) => setSelectedEnvironment(Number(e.target.value))}
+            className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
+                     dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                     transition-colors duration-200"
+          >
+            {environments.map(env => (
+              <option key={env.id} value={env.id}>
+                {env.name}
+              </option>
+            ))}
+          </select>
 
+          <div className="flex items-center gap-4">
             {/* Status Filter */}
             <div className="flex gap-2">
               <button
@@ -230,6 +247,21 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                 Offline
               </button>
             </div>
+
+            {/* Toggle Collapse/Expand Button */}
+            <button
+              onClick={handleToggleAll}
+              className="p-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 
+                       border-gray-300 dark:text-gray-300 text-gray-700
+                       hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+              title={areAllCollapsed ? "Expand All" : "Collapse All"}
+            >
+              {areAllCollapsed ? (
+                <ChevronsDown className="w-5 h-5" />
+              ) : (
+                <ChevronsUp className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -248,9 +280,9 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
               >
                 <div className="flex items-center gap-2">
                   {collapsedGroups[group.id.toString()] ? (
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  ) : (
                     <ChevronDown className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
                   )}
                   <div>
                     <h2 className="text-lg font-medium dark:text-white text-gray-900">{group.name}</h2>
