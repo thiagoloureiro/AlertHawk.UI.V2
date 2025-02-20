@@ -2,12 +2,17 @@ import { monitoringHttp } from './httpClient';
 import { MonitorGroup, MonitorAgent } from '../types';
 
 export enum MonitorRegion {
-  USEast = 1,
-  USWest = 2,
-  Europe = 3,
-  Asia = 4,
-  SouthAmerica = 5,
-  Oceania = 6
+  Europe = 1,
+  Oceania = 2,
+  NorthAmerica = 3,
+  SourthAmerica = 4,
+  Africa = 5,
+  Asia = 6,
+  Custom = 7,
+  Custom2 = 8,
+  Custom3 = 9,
+  Custom4 = 10,
+  Custom5 = 11
 }
 
 export interface CreateMonitorHttpPayload {

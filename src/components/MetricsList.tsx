@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MonitorGroup, Monitor } from '../types';
 import { AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, Search, Plus } from 'lucide-react';
 import monitorService from '../services/monitorService';
@@ -66,6 +66,10 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
+
+  const sortedGroups = useMemo(() => {
+    return [...filteredGroups].sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredGroups]);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -232,14 +236,15 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
 
       {/* Monitor List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredGroups.map(group => {
+        {sortedGroups.map(group => {
           const { online, offline, paused } = getMonitorCounts(group.monitors);
           
           return (
-            <div key={group.id} className="p-4">
-              <div 
-                className="flex items-center justify-between mb-4 cursor-pointer"
+            <div key={group.id} className="space-y-2">
+              <div
                 onClick={() => toggleGroup(group.id.toString())}
+                className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-800/40 
+                         bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60 cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   {collapsedGroups[group.id.toString()] ? (

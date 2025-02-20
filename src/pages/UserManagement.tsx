@@ -24,6 +24,7 @@ export function UserManagement() {
   const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -98,6 +99,19 @@ export function UserManagement() {
     setUserToDelete(user);
     setShowDeleteConfirmation(true);
   };
+
+  const handleSelectAll = () => {
+    const allGroupIds = sortedGroups.map(group => Number(group.id));
+    setSelectedGroups(new Set(allGroupIds));
+  };
+
+  const handleRemoveAll = () => {
+    setSelectedGroups(new Set());
+  };
+
+  const sortedGroups = useMemo(() => {
+    return [...allGroups].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allGroups]);
 
   if (isLoading) return (
     <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
@@ -376,13 +390,45 @@ export function UserManagement() {
             ) : (
               <div className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto pr-2">
+                  <div className="flex justify-end gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={handleSelectAll}
+                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveAll}
+                      className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      Remove All
+                    </button>
+                  </div>
+
                   <div className="space-y-2">
-                    {allGroups.map(group => {
+                    {sortedGroups.map(group => {
                       const isChecked = selectedGroups.has(Number(group.id));
                       return (
                         <div
                           key={group.id}
-                          className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 bg-gray-50"
+                          onClick={() => {
+                            setSelectedGroups(prev => {
+                              const newSet = new Set(prev);
+                              if (isChecked) {
+                                newSet.delete(Number(group.id));
+                              } else {
+                                newSet.add(Number(group.id));
+                              }
+                              return newSet;
+                            });
+                          }}
+                          className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 
+                                   bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
+                                   transition-colors duration-200"
                         >
                           <div>
                             <h4 className="font-medium dark:text-white text-gray-900">{group.name}</h4>
@@ -392,18 +438,10 @@ export function UserManagement() {
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              onChange={() => {
-                                setSelectedGroups(prev => {
-                                  const newSet = new Set(prev);
-                                  if (isChecked) {
-                                    newSet.delete(Number(group.id));
-                                  } else {
-                                    newSet.add(Number(group.id));
-                                  }
-                                  return newSet;
-                                });
-                              }}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                              onChange={() => {}}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500
+                                       cursor-pointer"
                             />
                           </div>
                         </div>
@@ -412,57 +450,77 @@ export function UserManagement() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-4 pt-4 border-t dark:border-gray-700">
-                  <button
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setSelectedUser(null);
-                    }}
-                    className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                             dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!selectedUser) return;
-                      
-                      setIsSaving(true);
-                      try {
-                        const success = await userService.updateUserGroups(
-                          selectedUser.id, 
-                          Array.from(selectedGroups)
-                        );
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                  {/* Show validation error if present */}
+                  {validationError && (
+                    <div className="text-sm text-red-500 dark:text-red-400 mb-2">
+                      {validationError}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setSelectedUser(null);
+                        setValidationError(null);
+                      }}
+                      className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                               dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!selectedUser) return;
                         
-                        if (success) {
-                          toast.success('User groups updated successfully', { position: 'bottom-right' });
-                          setShowEditModal(false);
-                          setSelectedUser(null);
-                        } else {
-                          toast.error('Failed to update user groups', { position: 'bottom-right' });
+                        // Clear any previous validation error
+                        setValidationError(null);
+
+                        // Check if at least one group is selected
+                        if (selectedGroups.size === 0) {
+                          setValidationError('Please select at least one group');
+                          return;
                         }
-                      } catch (error) {
-                        toast.error('Failed to update user groups', { position: 'bottom-right' });
-                      } finally {
-                        setIsSaving(false);
-                      }
-                    }}
-                    disabled={isSaving}
-                    className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                             disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
+                        
+                        setIsSaving(true);
+                        try {
+                          const success = await userService.updateUserGroups(
+                            selectedUser.id, 
+                            Array.from(selectedGroups)
+                          );
+                          
+                          if (success) {
+                            toast.success('User groups updated successfully', { position: 'bottom-right' });
+                            setShowEditModal(false);
+                            setSelectedUser(null);
+                            setValidationError(null);
+                          } else {
+                            toast.error('Failed to update user groups', { position: 'bottom-right' });
+                          }
+                        } catch (error) {
+                          toast.error('Failed to update user groups', { position: 'bottom-right' });
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                      disabled={isSaving || selectedGroups.size === 0}
+                      className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

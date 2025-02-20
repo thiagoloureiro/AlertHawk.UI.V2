@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Globe, Network, Plus, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
@@ -63,6 +63,10 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [headerName, setHeaderName] = useState('');
   const [headerValue, setHeaderValue] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+
+  const sortedGroups = useMemo(() => {
+    return [...groups].sort((a, b) => a.name.localeCompare(b.name));
+  }, [groups]);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -268,7 +272,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                   value={selectedGroupId}
                   onValueChange={(value) => setSelectedGroupId(Number(value))}
                 >
-                  {groups.map((group) => (
+                  {sortedGroups.map(group => (
                     <Select.Item key={group.id} value={group.id.toString()}>
                       {group.name}
                     </Select.Item>
