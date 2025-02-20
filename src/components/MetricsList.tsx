@@ -313,7 +313,11 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
               {!collapsedGroups[group.id.toString()] && (
                 <div className="space-y-2 ml-7">
                   {group.monitors.map(monitor => {
-                    const typeInfo = getMonitorTypeInfo(monitor.monitorTypeId, monitor.status, monitor.paused);
+                    const { icon, label } = getMonitorTypeInfo(
+                      monitor.monitorTypeId, 
+                      monitor.status,
+                      monitor.paused
+                    );
                     
                     return (
                       <div
@@ -325,14 +329,14 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                                    : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60'}`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className="mt-1">{typeInfo.icon}</div>
+                          <div className="mt-1">{icon}</div>
                           
                           <div className="flex-1">
                             <h3 className="font-medium dark:text-white text-gray-900">
                               {monitor.name}
                             </h3>
                             <div className="text-sm dark:text-gray-400 text-gray-600">
-                              {typeInfo.label}
+                              {label}
                             </div>
                             
                             <div className="mt-2 grid grid-cols-2 gap-2 text-sm">

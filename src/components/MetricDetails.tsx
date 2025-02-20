@@ -77,22 +77,28 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
   );
 };
 
-// Update helper function to get monitor type info
-const getMonitorTypeInfo = (typeId: number) => {
+// Add or update the getMonitorTypeInfo function
+const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean) => {
+  const statusColor = isPaused 
+    ? 'text-gray-400 dark:text-gray-500'
+    : isOnline 
+      ? 'text-green-500 dark:text-green-400' 
+      : 'text-red-500 dark:text-red-400';
+  
   switch (typeId) {
     case 1:
       return {
-        icon: <Globe className="w-6 h-6 dark:text-blue-400 text-blue-500" />,
+        icon: <Globe className={`w-5 h-5 ${statusColor}`} />,
         label: 'HTTP(S)'
       };
-    case 3:  // Changed from 2 to 3 for TCP
+    case 3:
       return {
-        icon: <Network className="w-6 h-6 dark:text-purple-400 text-purple-500" />,
+        icon: <Network className={`w-5 h-5 ${statusColor}`} />,
         label: 'TCP'
       };
     default:
       return {
-        icon: <Globe className="w-6 h-6 dark:text-gray-400 text-gray-500" />,
+        icon: <Globe className={`w-5 h-5 ${statusColor}`} />,
         label: 'Unknown'
       };
   }
@@ -124,7 +130,7 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
 };
 
 export function MetricDetails({ metric }: MetricDetailsProps) {
-  const typeInfo = getMonitorTypeInfo(metric.monitorTypeId);
+  const typeInfo = getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused);
   // Add state for delete confirmation and loading
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -408,12 +414,12 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
         <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              {React.cloneElement(typeInfo.icon, { className: 'w-5 h-5' })}
+              {getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused).icon}
             </div>
             <div>
               <p className="text-xs dark:text-gray-400 text-gray-600">Monitor Type</p>
               <p className="text-xl font-bold dark:text-white text-gray-900">
-                {typeInfo.label}
+                {getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused).label}
               </p>
             </div>
           </div>
