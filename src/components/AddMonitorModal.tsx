@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Globe, Network, Plus, Loader2 } from 'lucide-react';
+import { X, Globe, Network, Plus, Loader2, Server } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
 import monitorService from '../services/monitorService';
@@ -29,10 +29,28 @@ interface Header {
   value: string;
 }
 
+const monitorTypes = [
+  { id: 'http', label: 'HTTP(S)', icon: Globe },
+  { id: 'tcp', label: 'TCP', icon: Network },
+  { id: 'k8s', label: 'Kubernetes', icon: Server }
+];
+
+interface MonitorK8sPayload {
+  monitorId: number;
+  clusterName: string;
+  kubeConfig: string;
+  lastStatus: boolean;
+  name: string;
+  monitorGroup: number;
+  monitorRegion: number;
+  monitorEnvironment: number;
+  heartBeatInterval: number;
+  retries: number;
+  timeout: number;
+}
+
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
-  const [monitorType, setMonitorType] = useState<'http' | 'tcp'>(
-    existingMonitor?.monitorTypeId === 3 ? 'tcp' : 'http'
-  );
+  const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>('http');
   const [name, setName] = useState(existingMonitor?.name || '');
   const [url, setUrl] = useState(
     existingMonitor?.monitorTypeId === 3 
@@ -44,7 +62,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       ? existingMonitor.monitorTcp?.port?.toString() ?? ''
     : ''
   );
-  const [interval, setInterval] = useState(existingMonitor?.heartBeatInterval.toString() || '5');
+  const [interval, setInterval] = useState(existingMonitor?.heartBeatInterval.toString() || '1');
   const [retries, setRetries] = useState(existingMonitor?.retries.toString() || '3');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [environment, setEnvironment] = useState(existingMonitor?.monitorEnvironment || MonitorEnvironment.Production);
@@ -63,6 +81,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [headerName, setHeaderName] = useState('');
   const [headerValue, setHeaderValue] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [clusterName, setClusterName] = useState('');
+  const [kubeConfig, setKubeConfig] = useState<File | null>(null);
 
   const sortedGroups = useMemo(() => {
     return [...groups].sort((a, b) => a.name.localeCompare(b.name));
@@ -109,97 +129,85 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
+    setIsSubmitting(true);
 
     try {
-      if (isEditing && existingMonitor) {
-        if (monitorType === 'tcp') {
-          const updatePayload: UpdateMonitorTcpPayload = {
-            monitorId: existingMonitor.id,
-            id: existingMonitor.id,
-            port: parseInt(port),
-            ip: url,
-            timeout: parseInt(timeout),
-            lastStatus: existingMonitor.status,
-            monitorTypeId: 3,
-            name,
-            heartBeatInterval: parseInt(interval),
-            retries: parseInt(retries),
-            status: true,
-            daysToExpireCert: existingMonitor.daysToExpireCert,
-            paused: existingMonitor.paused,
-            monitorRegion: selectedRegion,
-            monitorEnvironment: environment,
-            checkCertExpiry: false,
-            monitorGroup: selectedGroupId,
-            ignoreTlsSsl: false,
-            part: parseInt(port)
-          };
-          await onUpdate?.(updatePayload);
-        } else {
-          const updatePayload: UpdateMonitorHttpPayload = {
-            monitorId: existingMonitor.id,
-            id: existingMonitor.id,
-            ignoreTlsSsl: ignoreTLS,
-            maxRedirects: parseInt(maxRedirects),
-            urlToCheck: url,
-            responseStatusCode: 0,
-            timeout: parseInt(timeout),
-            lastStatus: existingMonitor.status,
-            responseTime: 0,
-            monitorHttpMethod: 1,
-            body: body || '',
-            monitorTypeId: 1,
-            name,
-            heartBeatInterval: parseInt(interval),
-            retries: parseInt(retries),
-            status: true,
-            daysToExpireCert: existingMonitor.daysToExpireCert,
-            paused: existingMonitor.paused,
-            monitorRegion: selectedRegion,
-            monitorEnvironment: environment,
-            checkCertExpiry,
-            monitorGroup: selectedGroupId
-          };
-          await onUpdate?.(updatePayload);
+      if (monitorType === 'k8s') {
+        if (!kubeConfig) {
+          throw new Error('KubeConfig file is required');
         }
-      } else {
-        const basePayload = {
+
+        // Read the kubeconfig file content
+        const kubeConfigContent = await kubeConfig.text();
+
+        // Create the K8s monitor directly
+        const k8sPayload: MonitorK8sPayload = {
+          monitorId: 0, // The API will handle the ID
+          clusterName,
+          kubeConfig: kubeConfigContent,
+          lastStatus: false,
           name,
           monitorGroup: selectedGroupId,
           monitorRegion: selectedRegion,
           monitorEnvironment: environment,
-          heartBeatInterval: parseInt(interval),
-          timeout: parseInt(timeout),
-          retries: parseInt(retries),
-          status: true,
+          heartBeatInterval: Number(interval),
+          retries: Number(retries),
+          timeout: Number(timeout),
         };
 
-        if (monitorType === 'tcp') {
-          const tcpPayload: CreateMonitorTcpPayload = {
-            ...basePayload,
-            monitorTypeId: 3,
-            ip: url,  // URL field contains the IP for TCP
-            port: parseInt(port),
-            part: parseInt(port)  // API requires both port and part
-          };
-          await onAdd(tcpPayload);
-        } else {
-          const httpPayload: CreateMonitorHttpPayload = {
-            ...basePayload,
-            monitorTypeId: 1,
-            monitorHttpMethod: httpMethod === 'GET' ? 1 : httpMethod === 'POST' ? 2 : 3,
-            checkCertExpiry,
-            ignoreTlsSsl: ignoreTLS,
-            urlToCheck: url,
-            maxRedirects: parseInt(maxRedirects),
-            body: body || ''
-          };
-          await onAdd(httpPayload);
-        }
+        await monitorService.createMonitorK8s(k8sPayload);
+        onClose();
+        return;
       }
+
+      // Rest of the existing code for HTTP and TCP monitors...
+      let monitorData;
+      if (monitorType === 'http') {
+        monitorData = {
+          name,
+          monitorGroup: selectedGroupId,
+          monitorRegion: selectedRegion,
+          monitorEnvironment: environment,
+          heartBeatInterval: Number(interval),
+          retries: Number(retries),
+          timeout: Number(timeout),
+          monitorTypeId: 1,
+          urlToCheck: url,
+          checkCertExpiry,
+          ignoreTlsSsl: ignoreTLS,
+          maxRedirects: Number(maxRedirects),
+          method: httpMethod,
+          body: httpMethod !== 'GET' ? body : undefined,
+          headers
+        };
+      } else if (monitorType === 'tcp') {
+        monitorData = {
+          name,
+          monitorGroup: selectedGroupId,
+          monitorRegion: selectedRegion,
+          monitorEnvironment: environment,
+          heartBeatInterval: Number(interval),
+          retries: Number(retries),
+          timeout: Number(timeout),
+          monitorTypeId: 3,
+          monitorTcp: {
+            host: url,
+            port: Number(port)
+          }
+        };
+      }
+
+      if (isEditing && onUpdate && existingMonitor) {
+        await onUpdate(monitorData);
+      } else {
+        await onAdd(monitorData);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to submit monitor:', error);
     } finally {
-      setIsCreating(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -221,33 +229,39 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto">
             <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMonitorType('http')}
-                  className={cn(
-                    "p-3 rounded-lg flex items-center gap-2 border transition-colors dark:text-white",
-                    monitorType === 'http'
-                      ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700"
-                  )}
-                >
-                  <Globe className="w-5 h-5" />
-                  <span>HTTP(S)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMonitorType('tcp')}
-                  className={cn(
-                    "p-3 rounded-lg flex items-center gap-2 border transition-colors dark:text-white",
-                    monitorType === 'tcp'
-                      ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700"
-                  )}
-                >
-                  <Network className="w-5 h-5" />
-                  <span>TCP</span>
-                </button>
+              <div className="flex gap-2 mb-6">
+                {monitorTypes.map(type => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setMonitorType(type.id as 'http' | 'tcp' | 'k8s')}
+                    className={`flex-1 px-4 py-2 rounded-lg border transition-colors duration-200 
+                              flex items-center justify-center gap-2 relative
+                              ${monitorType === type.id
+                                ? 'border-blue-500 dark:bg-blue-900/20 bg-blue-50'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-500'}`}
+                  >
+                    <type.icon className={`w-5 h-5 ${
+                      monitorType === type.id
+                        ? 'text-blue-500'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      monitorType === type.id
+                        ? 'text-blue-500'
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {type.label}
+                    </span>
+                    {type.id === 'k8s' && (
+                      <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 
+                                    text-yellow-800 dark:text-yellow-500 text-xs rounded-full border border-yellow-300 
+                                    dark:border-yellow-700/50">
+                        Beta
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
 
               <div>
@@ -314,20 +328,22 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                 </Select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
-                  {monitorType === 'http' ? 'URL' : 'Host'}
-                </label>
-                <input
-                  type="text"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder={monitorType === 'http' ? 'https://example.com' : 'Hostname or IP'}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                           dark:text-white focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
+              {(monitorType === 'http' || monitorType === 'tcp') && (
+                <div>
+                  <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                    {monitorType === 'http' ? 'URL' : 'Host'}
+                  </label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder={monitorType === 'http' ? 'https://example.com' : 'Hostname or IP'}
+                    className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                             dark:text-white focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              )}
 
               {monitorType === 'tcp' && (
                 <div>
@@ -567,6 +583,56 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                   </div>
                 </>
               )}
+
+              {monitorType === 'k8s' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                      Cluster Name
+                    </label>
+                    <input
+                      type="text"
+                      value={clusterName}
+                      onChange={(e) => setClusterName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                               dark:text-white focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                      KubeConfig File
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept=".yaml,.yml"
+                        onChange={(e) => setKubeConfig(e.target.files?.[0] || null)}
+                        className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                                 dark:text-white focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 
+                                 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                                 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
+                                 dark:file:bg-blue-900/20 dark:file:text-blue-400"
+                        required
+                      />
+                      {kubeConfig && (
+                        <button
+                          onClick={() => setKubeConfig(null)}
+                          className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 
+                                   dark:hover:text-red-400 transition-colors"
+                          title="Remove file"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Upload your kubeconfig YAML file
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -582,11 +648,11 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
               </button>
               <button
                 type="submit"
-                disabled={isCreating}
+                disabled={isSubmitting}
                 className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
                          disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isCreating ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     {isEditing ? 'Updating...' : 'Creating...'}

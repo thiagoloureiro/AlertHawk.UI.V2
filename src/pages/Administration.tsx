@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, Download, Save, AlertTriangle, Loader2 } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { toast } from 'react-hot-toast';
 
 export function Administration() {
-  const [retentionDays, setRetentionDays] = useState<string>('30');
+  const [retentionDays, setRetentionDays] = useState<number>(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -12,6 +12,24 @@ export function Administration() {
   const [isClearing, setIsClearing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRetention = async () => {
+      try {
+        setIsLoading(true);
+        const days = await monitorService.getMonitorHistoryRetention();
+        setRetentionDays(days);
+      } catch (error) {
+        console.error('Failed to load retention days:', error);
+        toast.error('Failed to load retention settings', { position: 'bottom-right' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRetention();
+  }, []);
 
   const handleExportBackup = async () => {
     setIsExporting(true);
@@ -53,20 +71,14 @@ export function Administration() {
     }
   };
 
-  const handleSaveRetention = async () => {
-    const days = parseInt(retentionDays);
-    if (isNaN(days) || days < 0) {
-      toast.error('Please enter a valid number of days', { position: 'bottom-right' });
-      return;
-    }
-    
-    setIsSaving(true);
+  const handleSave = async () => {
     try {
-      await monitorService.setMonitorHistoryRetention(days);
-      toast.success('Monitor history retention period saved successfully', { position: 'bottom-right' });
+      setIsSaving(true);
+      await monitorService.setMonitorHistoryRetention(retentionDays);
+      toast.success('Retention settings updated successfully', { position: 'bottom-right' });
     } catch (error) {
-      console.error('Failed to save retention period:', error);
-      toast.error('Failed to save retention period', { position: 'bottom-right' });
+      console.error('Failed to update retention days:', error);
+      toast.error('Failed to update retention settings', { position: 'bottom-right' });
     } finally {
       setIsSaving(false);
     }
@@ -85,6 +97,17 @@ export function Administration() {
       setIsClearing(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen transition-colors duration-200">
@@ -140,35 +163,38 @@ export function Administration() {
       <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Monitor History</h2>
         
-        <div className="flex items-end gap-4 mb-6">
-          <div className="flex-1 max-w-xs">
-            <label htmlFor="retention" className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2">
-              Number of days to keep monitor data (0 for infinite retention)
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              Retention Period (Days)
             </label>
             <input
               type="number"
-              id="retention"
-              min="0"
+              min="1"
               value={retentionDays}
-              onChange={(e) => setRetentionDays(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg dark:bg-gray-700 bg-white border dark:border-gray-600 
-                       border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 
-                       dark:focus:ring-blue-400 transition-colors duration-200"
+              onChange={(e) => setRetentionDays(Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button
-            onClick={handleSaveRetention}
-            disabled={isSaving}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
-                      flex items-center gap-2 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+          </div>
         </div>
 
         <div>

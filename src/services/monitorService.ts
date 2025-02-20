@@ -114,6 +114,17 @@ export interface TcpMonitorDetails {
   monitorGroup: number;
 }
 
+export interface MonitorK8sPayload {
+  monitorId: number;
+  clusterName: string;
+  kubeConfig: string;
+  lastStatus: boolean;
+}
+
+interface HistoryRetention {
+  historyDaysRetention: number;
+}
+
 export class MonitorService {
   private static instance: MonitorService;
 
@@ -151,11 +162,15 @@ export class MonitorService {
     return response.data;
   }
 
-  async setMonitorHistoryRetention(days: number) {
-    const response = await monitoringHttp.post('/api/MonitorHistory/SetMonitorHistoryRetention', {
+  async getMonitorHistoryRetention(): Promise<number> {
+    const response = await monitoringHttp.get<HistoryRetention>('/api/MonitorHistory/GetMonitorHistoryRetention');
+    return response.data.historyDaysRetention;
+  }
+
+  async setMonitorHistoryRetention(days: number): Promise<void> {
+    await monitoringHttp.post('/api/MonitorHistory/SetMonitorHistoryRetention', {
       historyDaysRetention: days
     });
-    return response.data;
   }
 
   async clearAllStatistics() {
@@ -271,6 +286,10 @@ export class MonitorService {
       console.error('Failed to clone monitor:', error);
       return false;
     }
+  }
+
+  async createMonitorK8s(payload: MonitorK8sPayload): Promise<void> {
+    await monitoringHttp.post('/api/Monitor/createMonitorK8s', payload);
   }
 
   // ... other existing methods ...
