@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, AlertCircle, Check, Loader2, Edit, Trash2, X, Users } from 'lucide-react';
 import userService, { UserListItem, UserGroup } from '../services/userService';
-import monitorService from '../services/monitorService';
+import monitorService, { MonitorGroup } from '../services/monitorService';
 import { toast } from 'react-hot-toast';
 import { Switch } from '../components/ui/switch';
 
@@ -61,9 +61,13 @@ export function UserManagement() {
     });
   }, [users, searchTerm, adminFilter]);
 
+  const sortedUsers = useMemo(() => {
+    return [...filteredUsers].sort((a, b) => a.username.localeCompare(b.username));
+  }, [filteredUsers]);
+
   // Calculate pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = filteredUsers.slice(
+  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
+  const paginatedUsers = sortedUsers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -84,11 +88,11 @@ export function UserManagement() {
         monitorService.getMonitorGroupList()
       ]);
       
-      // Initialize selected groups from user's current groups
       setSelectedGroups(new Set(userGroupsData.map(ug => ug.groupMonitorId)));
       setUserGroups(userGroupsData);
       setAllGroups(allGroupsData);
-    } catch (error) {
+    } catch (err: any) {
+      console.error('Failed to load user groups:', err);
       toast.error('Failed to load user groups', { position: 'bottom-right' });
     } finally {
       setIsLoadingGroups(false);
@@ -260,8 +264,8 @@ export function UserManagement() {
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between px-4">
           <div className="text-sm dark:text-gray-400 text-gray-500">
-            Showing {Math.min(itemsPerPage * (currentPage - 1) + 1, filteredUsers.length)} to{' '}
-            {Math.min(itemsPerPage * currentPage, filteredUsers.length)} of {filteredUsers.length} users
+            Showing {Math.min(itemsPerPage * (currentPage - 1) + 1, sortedUsers.length)} to{' '}
+            {Math.min(itemsPerPage * currentPage, sortedUsers.length)} of {sortedUsers.length} users
           </div>
           <div className="flex gap-2">
             <button
@@ -412,20 +416,22 @@ export function UserManagement() {
                   <div className="space-y-2">
                     {sortedGroups.map(group => {
                       const isChecked = selectedGroups.has(Number(group.id));
+                      const toggleGroup = () => {
+                        setSelectedGroups(prev => {
+                          const newSet = new Set(prev);
+                          if (isChecked) {
+                            newSet.delete(Number(group.id));
+                          } else {
+                            newSet.add(Number(group.id));
+                          }
+                          return newSet;
+                        });
+                      };
+
                       return (
                         <div
                           key={group.id}
-                          onClick={() => {
-                            setSelectedGroups(prev => {
-                              const newSet = new Set(prev);
-                              if (isChecked) {
-                                newSet.delete(Number(group.id));
-                              } else {
-                                newSet.add(Number(group.id));
-                              }
-                              return newSet;
-                            });
-                          }}
+                          onClick={toggleGroup}
                           className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 
                                    bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
                                    transition-colors duration-200"
@@ -438,8 +444,11 @@ export function UserManagement() {
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              onChange={() => {}}
-                              onClick={(e) => e.stopPropagation()}
+                              onChange={toggleGroup}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleGroup();
+                              }}
                               className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500
                                        cursor-pointer"
                             />
