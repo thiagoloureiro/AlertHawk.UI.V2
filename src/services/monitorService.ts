@@ -197,8 +197,8 @@ export class MonitorService {
     return response.data;
   }
 
-  async getMonitorAlerts(monitorId: number) {
-    const response = await monitoringHttp.get(`/api/MonitorAlert/monitorAlerts/${monitorId}/7`);
+  async getMonitorAlerts(monitorId: number, days: number = 7) {
+    const response = await monitoringHttp.get(`/api/MonitorAlert/monitorAlerts/${monitorId}/${days}`);
     return response.data;
   }
 

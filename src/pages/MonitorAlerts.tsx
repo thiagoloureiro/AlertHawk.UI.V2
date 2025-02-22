@@ -42,8 +42,10 @@ export function MonitorAlerts() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
+        setIsLoading(true);
         const id = monitorId ? parseInt(monitorId, 10) : 0;
-        const data = await monitorService.getMonitorAlerts(id);
+        const days = parseInt(selectedPeriod, 10);
+        const data = await monitorService.getMonitorAlerts(id, days);
         setAlerts(data);
         setFilteredAlerts(data);
       } catch (error) {
@@ -55,7 +57,7 @@ export function MonitorAlerts() {
     };
 
     fetchAlerts();
-  }, [monitorId]);
+  }, [monitorId, selectedPeriod]);
 
   // Filter alerts based on search term
   useEffect(() => {
