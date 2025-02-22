@@ -529,7 +529,6 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
       <div className="h-64 mt-6">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
-            // Sort the data chronologically before displaying
             data={[...historyData].sort((a, b) => 
               new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime()
             )}
@@ -540,7 +539,18 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
             />
             <YAxis />
             <Tooltip
-              labelFormatter={(label) => convertUTCToLocalTime(label as string)}
+              labelFormatter={(label) => {
+                const date = new Date(label as string);
+                return new Intl.DateTimeFormat('default', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                }).format(date);
+              }}
               formatter={(value) => [`${value}ms`, 'Response Time']}
             />
             <Line
