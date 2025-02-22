@@ -312,6 +312,29 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
     }
   };
 
+  // Add this function before the return statement
+  const getOfflinePeriods = (data: MonitorHistoryPoint[]) => {
+    const periods: { start: string; end: string; }[] = [];
+    let currentPeriod: { start: string; end: string; } | null = null;
+
+    data.forEach((point, index) => {
+      if (point.responseTime === 0 && !currentPeriod) {
+        currentPeriod = { start: point.timeStamp, end: point.timeStamp };
+      } else if (point.responseTime === 0 && currentPeriod) {
+        currentPeriod.end = point.timeStamp;
+      } else if (point.responseTime !== 0 && currentPeriod) {
+        periods.push(currentPeriod);
+        currentPeriod = null;
+      }
+    });
+
+    if (currentPeriod) {
+      periods.push(currentPeriod);
+    }
+
+    return periods;
+  };
+
   return (
     <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
       {/* Header */}
@@ -542,6 +565,14 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
               new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime()
             )}
           >
+            {getOfflinePeriods(historyData).map((period, index) => (
+              <ReferenceArea
+                key={index}
+                x1={period.start}
+                x2={period.end}
+                fill="#EF444460"
+              />
+            ))}
             <XAxis 
               dataKey="timeStamp" 
               tickFormatter={(time) => {
