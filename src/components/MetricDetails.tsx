@@ -558,7 +558,12 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
       <StatusTimeline historyData={historyData} />
 
       {/* Response Time Chart */}
-      <div className="h-64 mt-6">
+      <div className="h-64 mt-6 relative">
+        {isLoadingHistory && (
+          <div className="absolute inset-0 bg-gray-900/20 dark:bg-gray-900/40 flex items-center justify-center z-10 rounded-lg">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          </div>
+        )}
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
             data={[...historyData].sort((a, b) => 
