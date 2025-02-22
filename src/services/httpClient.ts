@@ -12,20 +12,6 @@ class HttpClient {
   private constructor(baseURL: string) {
     this.axiosInstance = axios.create({ baseURL });
     this.msalInstance = new PublicClientApplication(msalConfig);
-    
-    // Initialize MSAL immediately and get token if possible
-    this.msalInstance.initialize().then(() => {
-      const currentAccounts = this.msalInstance.getAllAccounts();
-      if (currentAccounts.length > 0) {
-        this.msalInstance.acquireTokenSilent({
-          ...loginRequest,
-          account: currentAccounts[0]
-        }).then(tokenResponse => {
-          localStorage.setItem('authToken', tokenResponse.accessToken);
-        }).catch(console.error);
-      }
-    }).catch(console.error);
-
     this.setupInterceptors();
   }
 
@@ -33,6 +19,14 @@ class HttpClient {
     // Request interceptor to add token
     this.axiosInstance.interceptors.request.use(
       async (config) => {
+        // First check for stored auth token
+        const storedToken = localStorage.getItem('authToken');
+        if (storedToken) {
+          config.headers['Authorization'] = `Bearer ${storedToken}`;
+          return config;
+        }
+
+        // If no stored token, try MSAL
         try {
           const currentAccounts = this.msalInstance.getAllAccounts();
           if (currentAccounts.length > 0) {
@@ -43,12 +37,10 @@ class HttpClient {
             config.headers['Authorization'] = `Bearer ${tokenResponse.accessToken}`;
             localStorage.setItem('authToken', tokenResponse.accessToken);
           }
-        } catch  {
-          const token = localStorage.getItem('authToken');
-          if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-          }
+        } catch (error) {
+          console.error('Failed to get token:', error);
         }
+        
         return config;
       }
     );
@@ -59,8 +51,10 @@ class HttpClient {
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
           localStorage.removeItem('authToken');
-          console.log('Token expired. Redirecting to login...');
-          await this.msalInstance.loginRedirect(loginRequest);
+          localStorage.removeItem('userInfo');
+          
+          // Redirect to login page
+          window.location.href = '/login';
         }
         return Promise.reject(error);
       }

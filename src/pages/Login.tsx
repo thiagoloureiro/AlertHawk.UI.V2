@@ -3,6 +3,8 @@ import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from '../auth/msalConfig';
 import axios from 'axios';
+import { RegisterModal } from '../components/RegisterModal';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 
 interface LoginProps {
   onLogin: () => void;
@@ -32,6 +34,8 @@ export function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<LoginError | null>(null);
+  const [showRegister, setShowRegister] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Initialize MSAL
   useEffect(() => {
@@ -149,7 +153,7 @@ export function Login({ onLogin }: LoginProps) {
           password: password
         }
       );
-
+      console.log(response.data.token);
       // Store the token in localStorage
       localStorage.setItem('authToken', response.data.token);
       
@@ -291,11 +295,19 @@ export function Login({ onLogin }: LoginProps) {
         <div className="flex items-center justify-between mb-6 text-sm">
           <span className="dark:text-gray-400 text-gray-600">
             Not have an account yet?{' '}
-            <a href="/register" className="text-[#5CD4E2] hover:underline">Register</a>
+            <button 
+              onClick={() => setShowRegister(true)} 
+              className="text-[#5CD4E2] hover:underline"
+            >
+              Register
+            </button>
           </span>
-          <a href="/forgot-password" className="text-[#5CD4E2] hover:underline">
+          <button 
+            onClick={() => setShowForgotPassword(true)}
+            className="text-[#5CD4E2] hover:underline"
+          >
             Forgot Password?
-          </a>
+          </button>
         </div>
 
         {/* Divider */}
@@ -334,6 +346,19 @@ export function Login({ onLogin }: LoginProps) {
           AlertHawk © 2025
         </p>
       </div>
+
+      {/* Add the RegisterModal */}
+      {showRegister && (
+        <RegisterModal 
+          onClose={() => setShowRegister(false)} 
+          onLogin={onLogin}
+        />
+      )}
+
+      {/* Add the ForgotPasswordModal */}
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   );
 }

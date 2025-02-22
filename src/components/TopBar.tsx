@@ -28,9 +28,19 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
   const email = userInfo?.email || accounts[0]?.username || '';
 
   const handleLogout = async () => {
+    const hasMsalAccount = accounts.length > 0;
+    
+    // Clear local storage
     localStorage.removeItem('authToken');
     localStorage.removeItem('userInfo');
-    await instance.logoutRedirect();
+
+    // Only do MSAL logout if we're using MSAL
+    if (hasMsalAccount) {
+      await instance.logoutRedirect();
+    } else {
+      // For standard auth, just redirect to login
+      window.location.href = '/login';
+    }
   };
 
   // Add click outside handler
