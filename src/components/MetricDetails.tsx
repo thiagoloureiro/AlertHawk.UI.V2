@@ -535,7 +535,22 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           >
             <XAxis 
               dataKey="timeStamp" 
-              tickFormatter={(time) => convertUTCToLocalTime(time)}
+              tickFormatter={(time) => {
+                const date = new Date(time);
+                return new Intl.DateTimeFormat('default', {
+                  month: 'short',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).format(date);
+              }}
+              angle={-45}
+              textAnchor="end"
+              height={70}
+              tick={{ fontSize: 12 }}
+              interval="preserveStartEnd"
+              padding={{ left: 20, right: 20 }}
             />
             <YAxis />
             <Tooltip
