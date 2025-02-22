@@ -32,11 +32,11 @@ export function MonitorAlerts() {
   const [error] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('7');
   const [searchTerm, setSearchTerm] = useState('');
-  const [recordsPerPage, setRecordsPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(25);
   const [sortConfig, setSortConfig] = useState<{ key: keyof AlertIncident; direction: 'asc' | 'desc' }>({
-    key: 'timeStamp',
-    direction: 'desc'
+    key: 'monitorName',
+    direction: 'asc'
   });
 
   useEffect(() => {
@@ -80,9 +80,11 @@ export function MonitorAlerts() {
     }));
 
     const sorted = [...filteredAlerts].sort((a, b) => {
-      if (a[key] < b[key]) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (a[key] > b[key]) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
+      const aValue = a[key].toString().toLowerCase();
+      const bValue = b[key].toString().toLowerCase();
+      return sortConfig.direction === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     });
     setFilteredAlerts(sorted);
   };

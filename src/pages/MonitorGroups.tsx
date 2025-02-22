@@ -92,6 +92,9 @@ export function MonitorGroups() {
   const [newGroupName, setNewGroupName] = useState('');
   const [isAdding] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const recordsPerPageOptions = [10, 25, 50, 100];
 
   // Move fetchGroups outside useEffect so it can be reused
   const fetchGroups = async () => {
@@ -120,12 +123,12 @@ export function MonitorGroups() {
   );
 
   const sortedGroups = [...filteredGroups].sort((a, b) => {
-    const aValue = a[sortConfig.key];
-    const bValue = b[sortConfig.key];
+    const aValue = a[sortConfig.key].toString().toLowerCase();
+    const bValue = b[sortConfig.key].toString().toLowerCase();
     
-    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
+    return sortConfig.direction === 'asc' 
+      ? aValue.localeCompare(bValue)
+      : bValue.localeCompare(aValue);
   });
 
   const handleSort = (key: keyof MonitorGroupListItem) => {
@@ -234,6 +237,12 @@ export function MonitorGroups() {
     setFormMode('create');
   };
 
+  const totalPages = Math.ceil(sortedGroups.length / recordsPerPage);
+  const paginatedGroups = sortedGroups.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
   return (
     <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen transition-colors duration-200">
       <div className="mb-6">
@@ -312,14 +321,14 @@ export function MonitorGroups() {
                 </tr>
               </thead>
               <tbody>
-                {sortedGroups.length === 0 ? (
+                {paginatedGroups.length === 0 ? (
                   <tr>
                     <td colSpan={2} className="px-4 py-8 text-center dark:text-gray-400 text-gray-500">
                       No monitor groups found
                     </td>
                   </tr>
                 ) : (
-                  sortedGroups.map(group => (
+                  paginatedGroups.map(group => (
                     <tr 
                       key={group.id}
                       className="border-t dark:border-gray-700 border-gray-200 transition-colors duration-200"
@@ -445,6 +454,55 @@ export function MonitorGroups() {
           </div>
         </div>
       )}
+
+      {/* Add pagination controls after the table */}
+      <div className="mt-4 py-4 border-t dark:border-gray-700 border-gray-200">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm dark:text-gray-300 text-gray-700">
+              Records per page:
+            </label>
+            <select
+              value={recordsPerPage}
+              onChange={e => {
+                setRecordsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 
+                       dark:text-white text-gray-900 p-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                       transition-colors duration-200"
+            >
+              {recordsPerPageOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 rounded-lg dark:bg-gray-800 bg-white dark:text-white text-gray-900
+                       dark:hover:bg-gray-700 hover:bg-gray-100 disabled:opacity-50
+                       transition-colors duration-200"
+            >
+              Previous
+            </button>
+            <span className="dark:text-gray-300 text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 rounded-lg dark:bg-gray-800 bg-white dark:text-white text-gray-900
+                       dark:hover:bg-gray-700 hover:bg-gray-100 disabled:opacity-50
+                       transition-colors duration-200"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
