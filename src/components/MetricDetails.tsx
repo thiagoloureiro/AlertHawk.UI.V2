@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor } from '../types';
 import { 
@@ -20,6 +20,20 @@ import { NotificationListModal } from './NotificationListModal';
 interface MetricDetailsProps {
   metric: Monitor;
 }
+
+interface TimePeriod {
+  label: string;
+  days: number;
+}
+
+const TIME_PERIODS: TimePeriod[] = [
+  { label: '1 Hour', days: 0 },
+  { label: '24 Hours', days: 1 },
+  { label: '7 Days', days: 7 },
+  { label: '30 Days', days: 30 },
+  { label: '3 Months', days: 90 },
+  { label: '6 Months', days: 180 }
+];
 
 const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeStamp: string }[] }) => {
   const userTimeZone = localStorage.getItem('userTimezone') || 
@@ -147,6 +161,26 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
   // Add state for clone confirmation
   const [showCloneConfirm, setShowCloneConfirm] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[1]); // Default to 24 hours
+  const [historyData, setHistoryData] = useState<MonitorHistoryPoint[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const loadHistoryData = async (period: TimePeriod) => {
+    try {
+      setIsLoadingHistory(true);
+      const data = await monitorService.getMonitorHistory(metric.id, period.days);
+      setHistoryData(data);
+    } catch (error) {
+      console.error('Failed to load history data:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHistoryData(selectedPeriod);
+  }, [selectedPeriod, metric.id]);
 
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
@@ -458,81 +492,66 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
         )}
       </div>
 
-      {/* Uptime Metrics */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {uptimeMetrics.map(({ label, value }) => (
-            <UptimeBlock key={label} label={label} value={value} />
-          ))}
-        </div>
+      {/* Metrics Boxes */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        {TIME_PERIODS.map((period) => (
+          <button
+            key={period.label}
+            onClick={() => setSelectedPeriod(period)}
+            className={`p-4 rounded-lg ${
+              selectedPeriod === period
+                ? 'bg-blue-500 text-white'
+                : 'dark:bg-gray-700 bg-white hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'
+            } transition-colors duration-200`}
+          >
+            <div className="text-sm font-medium mb-1">{period.label}</div>
+            <div className="text-2xl font-bold">
+              {period.label === '1 Hour'
+                ? metric.monitorStatusDashboard.uptime1Hr
+                : period.label === '24 Hours'
+                ? metric.monitorStatusDashboard.uptime24Hrs
+                : period.label === '7 Days'
+                ? metric.monitorStatusDashboard.uptime7Days
+                : period.label === '30 Days'
+                ? metric.monitorStatusDashboard.uptime30Days
+                : period.label === '3 Months'
+                ? metric.monitorStatusDashboard.uptime3Months
+                : metric.monitorStatusDashboard.uptime6Months}%
+            </div>
+          </button>
+        ))}
       </div>
 
-      {/* Response Time Chart */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-        
-        <StatusTimeline historyData={metric.monitorStatusDashboard.historyData} />
-        
-        <div className="h-[240px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis 
-                dataKey="time" 
-                stroke="#6B7280"
-                fontSize={12}
-                tickFormatter={(value) => value.split(':')[0] + ':' + value.split(':')[1]}
-              />
-              <YAxis 
-                stroke="#6B7280"
-                fontSize={12}
-                unit="ms"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  color: '#F3F4F6'
-                }}
-                labelFormatter={(label) => `Time: ${label}`}
-                formatter={(value: number, name: string) => {
-                  if (name === 'responseTime') {
-                    return [`${value}ms`, 'Response Time'];
-                  }
-                  return [value, name];
-                }}
-              />
-              
-              {/* Offline period areas */}
-              {offlinePeriods.map((period, index) => (
-                <ReferenceArea
-                  key={index}
-                  x1={chartData[period.start].time}
-                  x2={chartData[period.end].time}
-                  fill="#EF444422"
-                  fillOpacity={0.3}
-                />
-              ))}
+      {/* Status Timeline */}
+      <StatusTimeline historyData={historyData} />
 
-              <Line 
-                type="monotone" 
-                dataKey="responseTime" 
-                stroke="#5CD4E2"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        
-        {/* Legend for offline periods */}
-        {offlinePeriods.length > 0 && (
-          <div className="mt-4 flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 bg-opacity-30 rounded"></div>
-            <span className="text-sm dark:text-gray-400 text-gray-600">
-              Offline Periods
-            </span>
-          </div>
-        )}
+      {/* Response Time Chart */}
+      <div className="h-64 mt-6">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart 
+            // Sort the data chronologically before displaying
+            data={[...historyData].sort((a, b) => 
+              new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime()
+            )}
+          >
+            <XAxis 
+              dataKey="timeStamp" 
+              tickFormatter={(time) => convertUTCToLocalTime(time)}
+            />
+            <YAxis />
+            <Tooltip
+              labelFormatter={(label) => convertUTCToLocalTime(label as string)}
+              formatter={(value) => [`${value}ms`, 'Response Time']}
+            />
+            <Line
+              type="monotone"
+              dataKey="responseTime"
+              stroke="#5CD4E2"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Delete Confirmation Modal */}
