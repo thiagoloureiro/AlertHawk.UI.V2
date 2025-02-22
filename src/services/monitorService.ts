@@ -125,6 +125,13 @@ interface HistoryRetention {
   historyDaysRetention: number;
 }
 
+interface MonitorHistoryPoint {
+  status: boolean;
+  timeStamp: string;
+  statusCode: number;
+  responseTime: number;
+}
+
 export class MonitorService {
   private static instance: MonitorService;
 
@@ -290,6 +297,28 @@ export class MonitorService {
 
   async createMonitorK8s(payload: MonitorK8sPayload): Promise<void> {
     await monitoringHttp.post('/api/Monitor/createMonitorK8s', payload);
+  }
+
+  async getMonitorHistory(monitorId: number, days: number): Promise<MonitorHistoryPoint[]> {
+    const sampling = days > 0;
+    let samplingPoints = days === 1 ? 10 : 50;
+    if (days > 1) {
+      samplingPoints = Math.floor(days * 10);
+    }
+    
+    const response = await monitoringHttp.get<MonitorHistoryPoint[]>(
+      `/api/MonitorHistory/MonitorHistoryByIdDays/${monitorId}/${days}/${sampling}/${samplingPoints}`
+    );
+
+    let data = response.data;
+    
+    // If more than 500 points, interpolate
+    if (data.length > 500) {
+      const step = Math.ceil(data.length / 150);
+      data = data.filter((_, index) => index % step === 0);
+    }
+
+    return data;
   }
 
   // ... other existing methods ...
