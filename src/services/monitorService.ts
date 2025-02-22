@@ -300,11 +300,14 @@ export class MonitorService {
   }
 
   async getMonitorHistory(monitorId: number, days: number): Promise<MonitorHistoryPoint[]> {
-    // For 1 hour view (days = 0), use sampling = false
     const sampling = days > 0;
+    let samplingPoints = days === 1 ? 10 : 50;
+    if (days > 1) {
+      samplingPoints = Math.floor(days * 10);
+    }
     
     const response = await monitoringHttp.get<MonitorHistoryPoint[]>(
-      `/api/MonitorHistory/MonitorHistoryByIdDays/${monitorId}/${days}/${sampling}/50`
+      `/api/MonitorHistory/MonitorHistoryByIdDays/${monitorId}/${days}/${sampling}/${samplingPoints}`
     );
     return response.data;
   }

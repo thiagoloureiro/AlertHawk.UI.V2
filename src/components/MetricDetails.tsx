@@ -39,20 +39,19 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
   const userTimeZone = localStorage.getItem('userTimezone') || 
     Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Get the last hour of data (should be 60 points), maintain chronological order (older to newer)
-  const lastHourData = [...historyData]
-    .slice(-60)  // Take last 60 entries
-    .filter(point => point.timeStamp)  // Remove any invalid entries
-    .sort((a, b) => new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime()); // Sort by time ascending
+  // Sort chronologically (older to newer) but don't limit the points
+  const timelineData = [...historyData]
+    .filter(point => point.timeStamp)
+    .sort((a, b) => new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime());
 
   return (
     <div className="mb-4">
       <div className="flex justify-between text-sm dark:text-gray-400 text-gray-600 mb-2">
-        <span>Last Hour Status Timeline ({userTimeZone})</span>
-        <span>{lastHourData.length} checks</span>
+        <span>Status Timeline ({userTimeZone})</span>
+        <span>{timelineData.length} checks</span>
       </div>
       <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
-        {lastHourData.map((point, index) => {
+        {timelineData.map((point, index) => {
           const timeString = convertUTCToLocalTime(point.timeStamp);
           
           return (
@@ -72,7 +71,17 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
                 <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                  <div>Time: {timeString}</div>
+                  <div>
+                    {new Intl.DateTimeFormat('default', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    }).format(new Date(point.timeStamp))}
+                  </div>
                   <div>Status: {point.status ? 'Online' : 'Offline'}</div>
                 </div>
                 {/* Arrow */}
@@ -566,7 +575,16 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
                   hour12: false
                 }).format(date);
               }}
-              formatter={(value) => [`${value}ms`, 'Response Time']}
+              formatter={(value, name, props) => {
+                if (value === 0) {
+                  return [<span style={{ color: '#EF4444' }}>Offline</span>, 'Status'];
+                }
+                return [`${value}ms`, 'Response Time'];
+              }}
+              contentStyle={{ 
+                backgroundColor: '#1F2937',
+                color: '#fff'
+              }}
             />
             <Line
               type="monotone"
