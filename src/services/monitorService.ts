@@ -309,7 +309,16 @@ export class MonitorService {
     const response = await monitoringHttp.get<MonitorHistoryPoint[]>(
       `/api/MonitorHistory/MonitorHistoryByIdDays/${monitorId}/${days}/${sampling}/${samplingPoints}`
     );
-    return response.data;
+
+    let data = response.data;
+    
+    // If more than 500 points, interpolate
+    if (data.length > 500) {
+      const step = Math.ceil(data.length / 150);
+      data = data.filter((_, index) => index % step === 0);
+    }
+
+    return data;
   }
 
   // ... other existing methods ...
