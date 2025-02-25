@@ -235,8 +235,10 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                     key={type.id}
                     type="button"
                     onClick={() => setMonitorType(type.id as 'http' | 'tcp' | 'k8s')}
+                    disabled={isEditing}
                     className={`flex-1 px-4 py-2 rounded-lg border transition-colors duration-200 
                               flex items-center justify-center gap-2 relative
+                              ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}
                               ${monitorType === type.id
                                 ? 'border-blue-500 dark:bg-blue-900/20 bg-blue-50'
                                 : 'border-gray-200 dark:border-gray-700 hover:border-blue-500'}`}
@@ -667,4 +669,4 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       </div>
     </div>
   );
-} 
+}
