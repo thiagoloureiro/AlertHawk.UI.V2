@@ -16,6 +16,7 @@ import {
   UpdateMonitorTcpPayload 
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
+import { MetricsList } from './MetricsList';
 
 interface MetricDetailsProps {
   metric: Monitor;
@@ -683,6 +684,8 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
           onAdd={async () => {}}
           onUpdate={async (updatedMonitor) => {
             try {
+              updatedMonitor.id = metric.id;
+              updatedMonitor.monitorId = metric.id;
               const success = metric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);
