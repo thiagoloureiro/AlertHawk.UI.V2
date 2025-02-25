@@ -108,7 +108,7 @@ export interface MonitorStatusDashboard {
 }
 
 export interface MonitorTcp {
-  host: string;
+  IP: string;
   port: number;
 }
 

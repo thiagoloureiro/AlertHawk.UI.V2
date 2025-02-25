@@ -273,27 +273,43 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
 
   // Add handler for edit button
   const handleEditClick = async () => {
-    if (metric.monitorTypeId === 3) {
-      try {
+    try {
+      let monitorData: Monitor;
+      
+      if (metric.monitorTypeId === 3) {
         const tcpDetails = await monitorService.getMonitorTcpDetails(metric.id);
-        // Create a monitor object that matches the expected structure
-        const monitorData: Monitor = {
+        monitorData = {
           ...tcpDetails,
           monitorTcp: {
-            host: tcpDetails.ip,
+            IP: tcpDetails.ip,
             port: tcpDetails.port
           },
           urlToCheck: '',  // Required by Monitor type but not used for TCP
-          monitorStatusDashboard: metric.monitorStatusDashboard  // Keep the dashboard data
+          monitorStatusDashboard: metric.monitorStatusDashboard
         };
-        setMonitorToEdit(monitorData);
-        setShowEditModal(true);
-      } catch (error) {
-        console.error('Failed to fetch TCP monitor details:', error);
-        toast.error('Failed to load monitor details', { position: 'bottom-right' });
+      } else {
+        // Fetch HTTP monitor details
+        const httpDetails = await monitorService.getMonitorHttpDetails(metric.id);
+        monitorData = {
+          ...httpDetails,
+          monitorHttp: {
+            ignoreTlsSsl: httpDetails.ignoreTlsSsl,
+            maxRedirects: httpDetails.maxRedirects,
+            responseStatusCode: httpDetails.responseStatusCode,
+            timeout: httpDetails.timeout,
+            monitorHttpMethod: httpDetails.monitorHttpMethod,
+            body: httpDetails.body
+          },
+          urlToCheck: httpDetails.urlToCheck,
+          monitorStatusDashboard: metric.monitorStatusDashboard
+        };
       }
-    } else {
+      
+      setMonitorToEdit(monitorData);
       setShowEditModal(true);
+    } catch (error) {
+      console.error('Failed to fetch monitor details:', error);
+      toast.error('Failed to load monitor details', { position: 'bottom-right' });
     }
   };
 
@@ -343,11 +359,11 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
         <div className="flex items-center gap-4 mb-4">
           <h1 className="text-2xl font-bold dark:text-white text-gray-900">{metric.name}</h1>
           <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            {metric.monitorTypeId === 3 && metric.monitorTcp ? (
+            {metric.monitorTypeId === 3 ? (
               <>
                 <Network className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
                 <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                  {`${metric.monitorTcp}`}
+                  {`${metric.monitorTcp?.IP}:${metric.monitorTcp?.port}`}
                 </span>
               </>
             ) : (
@@ -686,6 +702,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
             try {
               updatedMonitor.id = metric.id;
               updatedMonitor.monitorId = metric.id;
+              updatedMonitor.monitorRegion = metric.monitorRegion;
               const success = metric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);

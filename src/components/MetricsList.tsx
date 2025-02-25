@@ -141,6 +141,32 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     setAreAllCollapsed(!areAllCollapsed);
   };
 
+  // Add this function to handle monitor selection
+  const handleMonitorSelect = async (monitor: Monitor) => {
+    try {
+      if (monitor.monitorTypeId === 3) {
+        // Fetch TCP details
+        const tcpDetails = await monitorService.getMonitorTcpDetails(monitor.id);
+        // Create the monitor object with TCP details
+        const monitorWithTcp: Monitor = {
+          ...monitor,
+          monitorTcp: {
+            IP: tcpDetails.ip,
+            port: tcpDetails.port
+          }
+        };
+        onSelectMetric(monitorWithTcp);
+      } else {
+        onSelectMetric(monitor);
+      }
+    } catch (error) {
+      console.error('Failed to fetch TCP details:', error);
+      toast.error('Failed to load monitor details', { position: 'bottom-right' });
+      // Still select the monitor even if TCP details fail to load
+      onSelectMetric(monitor);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -322,7 +348,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                     return (
                       <div
                         key={monitor.id}
-                        onClick={() => onSelectMetric(monitor)}
+                        onClick={() => handleMonitorSelect(monitor)}
                         className={`p-4 rounded-lg cursor-pointer transition-colors duration-200
                                  ${selectedMetric?.id === monitor.id 
                                    ? 'bg-blue-50 dark:bg-blue-900/20' 

@@ -321,6 +321,26 @@ export class MonitorService {
     return data;
   }
 
+  async getMonitorHttpDetails(monitorId: number) {
+    try {
+      const response = await monitoringHttp.get(`/api/Monitor/getMonitorHttpByMonitorId/${monitorId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch HTTP monitor details:', error);
+      throw error;
+    }
+  }
+
+  async getMonitorTcpDetails(monitorId: number) {
+    try {
+      const response = await monitoringHttp.get(`/api/Monitor/getMonitorTcpByMonitorId/${monitorId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch TCP monitor details:', error);
+      throw error;
+    }
+  }
+
   // ... other existing methods ...
 }
 

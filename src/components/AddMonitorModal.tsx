@@ -50,11 +50,13 @@ interface MonitorK8sPayload {
 }
 
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
-  const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>('http');
+  const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>(
+    existingMonitor?.monitorTypeId === 3 ? 'tcp' : 'http'
+  );
   const [name, setName] = useState(existingMonitor?.name || '');
   const [url, setUrl] = useState(
     existingMonitor?.monitorTypeId === 3 
-      ? existingMonitor.monitorTcp?.host ?? ''
+      ? existingMonitor.monitorTcp?.IP ?? ''
       : existingMonitor?.urlToCheck ?? ''
   );
   const [port, setPort] = useState(
@@ -190,10 +192,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           retries: Number(retries),
           timeout: Number(timeout),
           monitorTypeId: 3,
-          monitorTcp: {
-            host: url,
-            port: Number(port)
-          }
+          ip: url,
+          port: Number(port)
         };
       }
 
@@ -331,7 +331,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
               {(monitorType === 'http' || monitorType === 'tcp') && (
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300 mb-1">
-                    {monitorType === 'http' ? 'URL' : 'Host'}
+                    {monitorType === 'http' ? 'URL' : 'IP'}
                   </label>
                   <input
                     type="text"
