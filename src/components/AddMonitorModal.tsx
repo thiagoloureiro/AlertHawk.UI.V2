@@ -49,6 +49,12 @@ interface MonitorK8sPayload {
   timeout: number;
 }
 
+enum HttpMethod {
+  Get = 1,
+  Post = 2,
+  Put = 3
+}
+
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
   const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>(
     existingMonitor?.monitorTypeId === 3 ? 'tcp' : 'http'
@@ -70,14 +76,39 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [environment, setEnvironment] = useState(existingMonitor?.monitorEnvironment || MonitorEnvironment.Production);
   const [checkCertExpiry, setCheckCertExpiry] = useState(existingMonitor?.checkCertExpiry ?? true);
   const [ignoreTLS, setIgnoreTLS] = useState(existingMonitor?.ignoreTlsSsl ?? false);
-  const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>('GET');
+  const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>(() => {
+    if (existingMonitor?.monitorHttp?.monitorHttpMethod) {
+      switch (existingMonitor.monitorHttp.monitorHttpMethod) {
+        case HttpMethod.Get:
+          return 'GET';
+        case HttpMethod.Post:
+          return 'POST';
+        case HttpMethod.Put:
+          return 'PUT';
+        default:
+          return 'GET';
+      }
+    }
+    return 'GET';
+  });
   const [maxRedirects, setMaxRedirects] = useState(existingMonitor?.maxRedirects?.toString() || '3');
   const [timeout, setTimeout] = useState(existingMonitor?.timeout?.toString() || '30');
   const [body, setBody] = useState('');
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(existingMonitor?.monitorGroup || 0);
   const [regions, setRegions] = useState<number[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState(existingMonitor?.monitorRegion || MonitorRegion.Europe);
+  const [selectedRegion, setSelectedRegion] = useState(() => {
+    if (existingMonitor?.monitorRegion) {
+      return existingMonitor.monitorRegion;
+    }
+    if (existingMonitor?.monitorHttp?.monitorRegion) {
+      return existingMonitor.monitorHttp.monitorRegion;
+    }
+    if (existingMonitor?.monitorTcp?.monitorRegion) {
+      return existingMonitor.monitorTcp.monitorRegion;
+    }
+    return MonitorRegion.Europe; // default value
+  });
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
@@ -111,10 +142,11 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       try {
         const agents = await monitorService.getMonitorAgents();
         const uniqueRegions = [...new Set(agents.map(a => a.monitorRegion))];
+        console.log(uniqueRegions);
         setRegions(uniqueRegions);
-        if (uniqueRegions.length > 0) {
-          setSelectedRegion(uniqueRegions[0]);
-        }
+   //     if (uniqueRegions.length > 0) {
+    // /     setSelectedRegion(uniqueRegions[0]);
+      //  }
       } catch (error) {
         console.error('Failed to fetch regions:', error);
       }
@@ -166,9 +198,11 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       let monitorData;
       if (monitorType === 'http') {
         monitorData = {
+          monitorId: existingMonitor?.id || 0,
+          id: existingMonitor?.id || 0,
           name,
           monitorGroup: selectedGroupId,
-          monitorRegion: selectedRegion,
+          monitorRegion: Number(selectedRegion),
           monitorEnvironment: environment,
           heartBeatInterval: Number(interval),
           retries: Number(retries),
@@ -178,22 +212,37 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           checkCertExpiry,
           ignoreTlsSsl: ignoreTLS,
           maxRedirects: Number(maxRedirects),
-          method: httpMethod,
+          monitorHttpMethod: httpMethod === 'GET' ? HttpMethod.Get : 
+                            httpMethod === 'POST' ? HttpMethod.Post : 
+                            HttpMethod.Put,
           body: httpMethod !== 'GET' ? body : undefined,
-          headers
+          headers,
+          lastStatus: existingMonitor?.lastStatus || false,
+          responseTime: existingMonitor?.responseTime || 0,
+          daysToExpireCert: existingMonitor?.daysToExpireCert || 0,
+          paused: existingMonitor?.paused || false,
+          responseStatusCode: existingMonitor?.responseStatusCode || 0
         };
       } else if (monitorType === 'tcp') {
         monitorData = {
+          monitorId: existingMonitor?.id || 0,
+          id: existingMonitor?.id || 0,
           name,
           monitorGroup: selectedGroupId,
-          monitorRegion: selectedRegion,
+          monitorRegion: Number(selectedRegion),
           monitorEnvironment: environment,
           heartBeatInterval: Number(interval),
           retries: Number(retries),
           timeout: Number(timeout),
           monitorTypeId: 3,
           ip: url,
-          port: Number(port)
+          port: Number(port),
+          lastStatus: existingMonitor?.lastStatus || false,
+          daysToExpireCert: existingMonitor?.daysToExpireCert || 0,
+          paused: existingMonitor?.paused || false,
+          checkCertExpiry: false,
+          ignoreTlsSsl: false,
+          part: 0
         };
       }
 
@@ -284,16 +333,23 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                 <label className="block text-sm font-medium dark:text-gray-300 mb-1">
                   Group
                 </label>
-                <Select
-                  value={selectedGroupId}
-                  onValueChange={(value) => setSelectedGroupId(Number(value))}
-                >
-                  {sortedGroups.map(group => (
-                    <Select.Item key={group.id} value={group.id.toString()}>
-                      {group.name}
-                    </Select.Item>
-                  ))}
-                </Select>
+                {isEditing ? (
+                  <div className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                                 dark:text-white bg-gray-100 dark:bg-gray-800 cursor-not-allowed">
+                    {sortedGroups.find(g => g.id === selectedGroupId)?.name || 'Unknown Group'}
+                  </div>
+                ) : (
+                  <Select
+                    value={selectedGroupId}
+                    onValueChange={(value) => setSelectedGroupId(Number(value))}
+                  >
+                    {sortedGroups.map(group => (
+                      <Select.Item key={group.id} value={group.id.toString()}>
+                        {group.name}
+                      </Select.Item>
+                    ))}
+                  </Select>
+                )}
               </div>
 
               <div>
