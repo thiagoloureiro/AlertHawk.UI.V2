@@ -702,7 +702,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
             try {
               updatedMonitor.id = metric.id;
               updatedMonitor.monitorId = metric.id;
-              updatedMonitor.monitorRegion = metric.monitorRegion;
+          //    updatedMonitor.monitorRegion = metric.monitorRegion;
               const success = metric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);

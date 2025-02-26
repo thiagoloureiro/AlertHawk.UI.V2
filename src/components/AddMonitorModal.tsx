@@ -97,18 +97,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(existingMonitor?.monitorGroup || 0);
   const [regions, setRegions] = useState<number[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState(() => {
-    if (existingMonitor?.monitorRegion) {
-      return existingMonitor.monitorRegion;
-    }
-    if (existingMonitor?.monitorHttp?.monitorRegion) {
-      return existingMonitor.monitorHttp.monitorRegion;
-    }
-    if (existingMonitor?.monitorTcp?.monitorRegion) {
-      return existingMonitor.monitorTcp.monitorRegion;
-    }
-    return MonitorRegion.Europe; // default value
-  });
+  const [selectedRegion, setSelectedRegion] = useState(existingMonitor?.monitorRegion || 0);
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
@@ -142,11 +131,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       try {
         const agents = await monitorService.getMonitorAgents();
         const uniqueRegions = [...new Set(agents.map(a => a.monitorRegion))];
-        console.log(uniqueRegions);
         setRegions(uniqueRegions);
-   //     if (uniqueRegions.length > 0) {
-    // /     setSelectedRegion(uniqueRegions[0]);
-      //  }
       } catch (error) {
         console.error('Failed to fetch regions:', error);
       }
@@ -196,6 +181,10 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
 
       // Rest of the existing code for HTTP and TCP monitors...
       let monitorData;
+
+    
+          
+
       if (monitorType === 'http') {
         monitorData = {
           monitorId: existingMonitor?.id || 0,
@@ -245,6 +234,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           part: 0
         };
       }
+      console.log(monitorData);
 
       if (isEditing && onUpdate && existingMonitor) {
         await onUpdate(monitorData);
@@ -358,7 +348,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                 </label>
                 <Select
                   value={selectedRegion}
-                  onValueChange={(value) => setSelectedRegion(Number(value))}
+                  onValueChange={(value) =>  setSelectedRegion(Number(value))}
                 >
                   {regions.map((region) => (
                     <Select.Item key={region} value={region.toString()}>
