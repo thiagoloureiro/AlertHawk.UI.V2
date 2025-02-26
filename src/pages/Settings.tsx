@@ -114,6 +114,19 @@ export function Settings() {
             )}
           </div>
         </div>
+
+        {/* App Version Section */}
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mt-6">
+          <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">About</h2>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm dark:text-gray-400 text-gray-600">Version</span>
+              <span className="text-sm font-medium dark:text-white text-gray-900">
+                {import.meta.env.VITE_APP_VERSION || 'Not available'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
