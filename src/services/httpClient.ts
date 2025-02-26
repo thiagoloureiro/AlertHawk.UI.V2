@@ -8,28 +8,11 @@ class HttpClient {
   private static notificationInstance: HttpClient;
   private axiosInstance: AxiosInstance;
   private msalInstance: PublicClientApplication;
-  private msalInitialized: boolean = false;
 
   private constructor(baseURL: string) {
     this.axiosInstance = axios.create({ baseURL });
     this.msalInstance = new PublicClientApplication(msalConfig);
-    this.initializeMsal();
     this.setupInterceptors();
-  }
-
-  private async initializeMsal() {
-    try {
-      await this.msalInstance.initialize();
-      this.msalInitialized = true;
-    } catch (error) {
-      console.error('Failed to initialize MSAL:', error);
-    }
-  }
-
-  private async ensureMsalInitialized() {
-    if (!this.msalInitialized) {
-      await this.initializeMsal();
-    }
   }
 
   private setupInterceptors() {
@@ -45,7 +28,6 @@ class HttpClient {
 
         // If no stored token, try MSAL
         try {
-          await this.ensureMsalInitialized();
           const currentAccounts = this.msalInstance.getAllAccounts();
           if (currentAccounts.length > 0) {
             const tokenResponse = await this.msalInstance.acquireTokenSilent({
@@ -68,33 +50,11 @@ class HttpClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          try {
-            await this.ensureMsalInitialized();
-            // Try to get a new token silently
-            const currentAccounts = this.msalInstance.getAllAccounts();
-            if (currentAccounts.length > 0) {
-              const tokenResponse = await this.msalInstance.acquireTokenSilent({
-                ...loginRequest,
-                account: currentAccounts[0]
-              });
-              
-              // Update stored token
-              localStorage.setItem('authToken', tokenResponse.accessToken);
-              
-              // Retry the failed request with new token
-              const config = error.config;
-              if (config) {
-                config.headers['Authorization'] = `Bearer ${tokenResponse.accessToken}`;
-                return this.axiosInstance(config);
-              }
-            }
-          } catch (refreshError) {
-            console.error('Failed to refresh token:', refreshError);
-            // If token refresh fails, clear storage and redirect to login
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userInfo');
-            window.location.href = '/login';
-          }
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userInfo');
+          
+          // Redirect to login page
+          window.location.href = '/login';
         }
         return Promise.reject(error);
       }
