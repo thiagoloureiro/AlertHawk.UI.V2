@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
-import { Monitor } from '../types';
+import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
   Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2 
@@ -19,7 +19,8 @@ import { NotificationListModal } from './NotificationListModal';
 import { MetricsList } from './MetricsList';
 
 interface MetricDetailsProps {
-  metric: Monitor;
+  metric: Monitor | null;
+  group?: MonitorGroup;
 }
 
 interface TimePeriod {
@@ -153,30 +154,30 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
   );
 };
 
-export function MetricDetails({ metric }: MetricDetailsProps) {
-  const typeInfo = getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused);
-  // Add state for delete confirmation and loading
+export function MetricDetails({ metric, group }: MetricDetailsProps) {
+  // Move all hooks to the top level
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Add state for pause loading
   const [isPauseLoading, setIsPauseLoading] = useState(false);
-
   const [showEditModal, setShowEditModal] = useState(false);
-
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
-
   const [showNotifications, setShowNotifications] = useState(false);
-
-  // Add state for clone confirmation
   const [showCloneConfirm, setShowCloneConfirm] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
-
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[1]); // Default to 24 hours
-  const [historyData, setHistoryData] = useState<MonitorHistoryPoint[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[1]);
+  const [historyData, setHistoryData] = useState<MonitorHistoryData[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+  // Load history data when metric or period changes
+  useEffect(() => {
+    if (metric) {
+      loadHistoryData(selectedPeriod);
+    }
+  }, [selectedPeriod, metric?.id]);
+
   const loadHistoryData = async (period: TimePeriod) => {
+    if (!metric) return;
+    
     try {
       setIsLoadingHistory(true);
       const data = await monitorService.getMonitorHistory(metric.id, period.days);
@@ -188,9 +189,84 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
     }
   };
 
-  useEffect(() => {
-    loadHistoryData(selectedPeriod);
-  }, [selectedPeriod, metric.id]);
+  // Early return for group view
+  if (!metric && group) {
+    return (
+      <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
+        {/* Group Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <h1 className="text-2xl font-bold dark:text-white text-gray-900">{group.name}</h1>
+          </div>
+        </div>
+
+        {/* Group Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          {[
+            { label: '1 Hour', value: group.avgUptime1Hr },
+            { label: '24 Hours', value: group.avgUptime24Hrs },
+            { label: '7 Days', value: group.avgUptime7Days },
+            { label: '30 Days', value: group.avgUptime30Days },
+            { label: '3 Months', value: group.avgUptime3Months },
+            { label: '6 Months', value: group.avgUptime6Months }
+          ].map((period) => (
+            <div
+              key={period.label}
+              className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4"
+            >
+              <div className="text-sm font-medium mb-1 dark:text-gray-300 text-gray-700">
+                {period.label}
+              </div>
+              <div className={`text-2xl font-bold ${
+                !period.value || period.value === -1 
+                  ? 'dark:text-gray-500 text-gray-400' 
+                  : period.value >= 99
+                    ? 'dark:text-green-400 text-green-500'
+                    : period.value >= 95
+                      ? 'dark:text-yellow-400 text-yellow-500'
+                      : 'dark:text-red-400 text-red-500'
+              }`}>
+                {!period.value || period.value === -1 ? 'N/A' : `${period.value.toFixed(2)}%`}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Group Status Summary */}
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+            Group Status Summary
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { label: 'Total Monitors', value: group.monitors.length },
+              { label: 'Online Monitors', value: group.monitors.filter(m => m.status).length },
+              { label: 'Offline Monitors', value: group.monitors.filter(m => !m.status).length }
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col">
+                <span className="text-sm dark:text-gray-400 text-gray-600">{stat.label}</span>
+                <span className="text-2xl font-bold dark:text-white text-gray-900">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Return early if no metric and no group
+  if (!metric) {
+    return (
+      <div className="h-full flex items-center justify-center dark:bg-gray-900 bg-gray-50">
+        <div className="text-center dark:text-gray-400 text-gray-600">
+          Select a monitor or group to view details
+        </div>
+      </div>
+    );
+  }
+
+  // Rest of the existing MetricDetails component code for individual monitors
+  const typeInfo = getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused);
 
   const uptimeMetrics = [
     { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
@@ -330,7 +406,7 @@ export function MetricDetails({ metric }: MetricDetailsProps) {
   };
 
   // Add this function before the return statement
-  const getOfflinePeriods = (data: MonitorHistoryPoint[]) => {
+  const getOfflinePeriods = (data: MonitorHistoryData[]) => {
     const periods: { start: string; end: string; }[] = [];
     let currentPeriod: { start: string; end: string; } | null = null;
 

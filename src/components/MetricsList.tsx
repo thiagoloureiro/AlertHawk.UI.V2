@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 
 interface MetricsListProps {
   selectedMetric: Monitor | null;
-  onSelectMetric: (metric: Monitor) => void;
+  onSelectMetric: (metric: Monitor | null, group?: MonitorGroup) => void;
 }
 
 // Helper function to get monitor type icon and label
@@ -70,6 +70,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [showEditModal, setShowEditModal] = useState(false);
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
   const [areAllCollapsed, setAreAllCollapsed] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
   const sortedGroups = useMemo(() => {
     return [...filteredGroups].sort((a, b) => a.name.localeCompare(b.name));
@@ -109,12 +110,25 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     setFilteredGroups(filtered);
   }, [groups, searchTerm, statusFilter]);
 
-  // Toggle group collapse
-  const toggleGroup = (groupId: string) => {
+  // Separate toggle collapse function
+  const toggleCollapse = (e: React.MouseEvent, groupId: string) => {
+    e.stopPropagation(); // Prevent triggering the group selection
     setCollapsedGroups(prev => ({
       ...prev,
       [groupId]: !prev[groupId]
     }));
+  };
+
+  // Update group selection function
+  const handleGroupSelect = (group: MonitorGroup) => {
+    const groupId = group.id.toString();
+    if (selectedGroup === groupId) {
+      setSelectedGroup(null);
+      onSelectMetric(null);
+    } else {
+      setSelectedGroup(groupId);
+      onSelectMetric(null, group);
+    }
   };
 
   // Add environment options
@@ -300,17 +314,29 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
           return (
             <div key={group.id} className="space-y-2">
               <div
-                onClick={() => toggleGroup(group.id.toString())}
-                className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-800/40 
-                         bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60 cursor-pointer"
+                className={`flex items-center justify-between p-4 rounded-lg 
+                         ${selectedGroup === group.id.toString() 
+                           ? 'bg-blue-50 dark:bg-blue-900/20' 
+                           : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60'}`}
               >
                 <div className="flex items-center gap-2">
-                  {collapsedGroups[group.id.toString()] ? (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  )}
-                  <div>
+                  {/* Collapse/Expand button */}
+                  <button
+                    onClick={(e) => toggleCollapse(e, group.id.toString())}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {collapsedGroups[group.id.toString()] ? (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+
+                  {/* Group info and metrics - clickable for group selection */}
+                  <div
+                    onClick={() => handleGroupSelect(group)}
+                    className="flex-1 cursor-pointer"
+                  >
                     <h2 className="text-lg font-medium dark:text-white text-gray-900">{group.name}</h2>
                     <div className="text-sm dark:text-gray-400 text-gray-600">
                       Avg Uptime (24h): {group.avgUptime24Hrs.toFixed(2)}%
@@ -318,7 +344,11 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                   </div>
                 </div>
                 
-                <div className="text-sm flex flex-col gap-1">
+                {/* Status indicators - also clickable for group selection */}
+                <div 
+                  onClick={() => handleGroupSelect(group)}
+                  className="text-sm flex flex-col gap-1 cursor-pointer"
+                >
                   <div className="flex items-center gap-2 justify-start">
                     <span className="h-2 w-2 rounded-full bg-green-500"></span>
                     <span className="dark:text-gray-400 text-gray-600">{online} online</span>
