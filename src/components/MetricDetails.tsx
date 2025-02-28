@@ -363,7 +363,7 @@ Please provide a concise analysis of the monitor's performance and alert history
       ) : hasAnalyzed ? (
         <div>
           <div 
-            className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900"
+            className="prose prose-sm dark:prose-invert max-w-none p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900 [&>ul]:mb-4 [&>ul]:mt-2 [&>ul>li]:mb-1 [&>p]:mb-4 [&>h3]:mb-2 [&>h4]:mb-2"
             dangerouslySetInnerHTML={{ __html: md.render(messages) }}
           />
           <button
