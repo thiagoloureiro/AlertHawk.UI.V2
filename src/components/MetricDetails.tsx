@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
@@ -18,6 +18,14 @@ import {
 import { NotificationListModal } from './NotificationListModal';
 import { MetricsList } from './MetricsList';
 import { aiService, msalInstance } from '../services/aiService';
+import MarkdownIt from 'markdown-it';
+
+// Initialize markdown-it
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
+  linkify: true
+});
 
 interface MetricDetailsProps {
   metric: Monitor | null;
@@ -276,9 +284,10 @@ Please provide a concise analysis of the monitor's performance, highlighting any
         AI Analysis - Powered by Abby
       </h2>
       {messages ? (
-        <div className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900 whitespace-pre-wrap">
-          {messages}
-        </div>
+        <div 
+          className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900"
+          dangerouslySetInnerHTML={{ __html: md.render(messages) }}
+        />
       ) : (
         <div className="text-center dark:text-gray-400 text-gray-600">
           No analysis available
