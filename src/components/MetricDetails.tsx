@@ -18,7 +18,6 @@ import {
 import { NotificationListModal } from './NotificationListModal';
 import { MetricsList } from './MetricsList';
 import { aiService, msalInstance } from '../services/aiService';
-import ReactMarkdown from 'react-markdown';
 
 interface MetricDetailsProps {
   metric: Monitor | null;
@@ -277,8 +276,8 @@ Please provide a concise analysis of the monitor's performance, highlighting any
         AI Analysis - Powered by Abby
       </h2>
       {messages ? (
-        <div className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900">
-          <ReactMarkdown>{messages}</ReactMarkdown>
+        <div className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900 whitespace-pre-wrap">
+          {messages}
         </div>
       ) : (
         <div className="text-center dark:text-gray-400 text-gray-600">

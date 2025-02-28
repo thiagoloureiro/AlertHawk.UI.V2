@@ -110,23 +110,46 @@ class AiService {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete lines in the buffer
+        let newlineIndex;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          
           if (line.startsWith('data: ')) {
             try {
-              const jsonData = JSON.parse(line.slice(6));
-              onMessage(jsonData);
+              // Remove 'data: ' prefix and any trailing whitespace
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const jsonData = JSON.parse(jsonStr);
+                onMessage(jsonData);
+              }
             } catch (e) {
-              console.error('Error parsing JSON:', e);
+              console.warn('Incomplete or invalid JSON:', e);
+              // Don't throw error, just continue processing
             }
           }
+        }
+      }
+
+      // Process any remaining data in the buffer
+      if (buffer.length > 0 && buffer.startsWith('data: ')) {
+        try {
+          const jsonStr = buffer.slice(6).trim();
+          if (jsonStr) {
+            const jsonData = JSON.parse(jsonStr);
+            onMessage(jsonData);
+          }
+        } catch (e) {
+          console.warn('Error processing final buffer:', e);
         }
       }
     } catch (error) {
