@@ -17,6 +17,8 @@ import {
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
 import { MetricsList } from './MetricsList';
+import { aiService, msalInstance } from '../services/aiService';
+import ReactMarkdown from 'react-markdown';
 
 interface MetricDetailsProps {
   metric: Monitor | null;
@@ -154,6 +156,139 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
   );
 };
 
+// Add the AiResponse component
+const AiResponse = ({ group, metric }: { group?: MonitorGroup; metric?: Monitor | null }) => {
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const generateAnalysisPrompt = () => {
+    if (group) {
+      return `Please analyze and generate some bullet points for these monitoring metrics for the group "${group.name}":
+- 1 Hour Uptime: ${group.avgUptime1Hr}%
+- 24 Hours Uptime: ${group.avgUptime24Hrs}%
+- 7 Days Uptime: ${group.avgUptime7Days}%
+- 30 Days Uptime: ${group.avgUptime30Days}%
+- 3 Months Uptime: ${group.avgUptime3Months}%
+- 6 Months Uptime: ${group.avgUptime6Months}%
+Total Monitors: ${group.monitors.length}
+Online Monitors: ${group.monitors.filter(m => m.status).length}
+Offline Monitors: ${group.monitors.filter(m => !m.status).length}
+
+Please provide a concise analysis of the group's performance, highlighting any concerning trends or notable achievements.`;
+    }
+    
+    if (metric) {
+      return `Please analyze these monitoring metrics for "${metric.name}" (${metric.monitorTypeId === 1 ? 'HTTP' : 'TCP'} monitor):
+- 1 Hour Uptime: ${metric.monitorStatusDashboard.uptime1Hr}%
+- 24 Hours Uptime: ${metric.monitorStatusDashboard.uptime24Hrs}%
+- 7 Days Uptime: ${metric.monitorStatusDashboard.uptime7Days}%
+- 30 Days Uptime: ${metric.monitorStatusDashboard.uptime30Days}%
+- 3 Months Uptime: ${metric.monitorStatusDashboard.uptime3Months}%
+- 6 Months Uptime: ${metric.monitorStatusDashboard.uptime6Months}%
+Current Status: ${metric.status ? 'Online' : 'Offline'}
+Current Response Time: ${metric.monitorStatusDashboard.responseTime}ms
+
+Please provide a concise analysis of the monitor's performance, highlighting any concerning trends or notable achievements.`;
+    }
+
+    return '';
+  };
+
+  useEffect(() => {
+    const initializeConversation = async () => {
+      try {
+        setError(null);
+        const response = await aiService.getNewConversationId();
+        setConversationId(response.conversation_id);
+        
+        // After getting conversation ID, automatically start the analysis
+        if (response.conversation_id && (group || metric)) {
+          setIsAnalyzing(true);
+          const prompt = generateAnalysisPrompt();
+          await aiService.chat(response.conversation_id, prompt, (message) => {
+            if (message.output.type === 'text') {
+              setMessages(prev => prev + message.output.content);
+            }
+          });
+          setIsAnalyzing(false);
+
+          // Delete the conversation after receiving the response
+          try {
+            await aiService.deleteConversation(response.conversation_id);
+          } catch (deleteError) {
+            console.error('Failed to delete conversation:', deleteError);
+            // Don't set error state here as we don't want to show this to the user
+            // The analysis was successful, deletion failure is not critical
+          }
+        }
+      } catch (error) {
+        console.error('Failed to initialize conversation:', error);
+        if (error instanceof Error && error.message.includes('Please sign in first')) {
+          setError('Please sign in to use AI features');
+          try {
+            await msalInstance.loginRedirect();
+          } catch (loginError) {
+            console.error('Failed to initiate login:', loginError);
+          }
+        } else {
+          setError('Failed to initialize AI conversation');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeConversation();
+  }, [group, metric]);
+
+  if (isLoading || isAnalyzing) {
+    return (
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+          AI Analysis - Powered by Abby
+        </h2>
+        <div className="flex items-center gap-3 text-sm dark:text-gray-400 text-gray-600">
+          <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          {isAnalyzing ? 'Analyzing metrics...' : 'Initializing...'}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+          AI Analysis - Powered by Abby
+        </h2>
+        <div className="text-center dark:text-gray-400 text-gray-600">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+      <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+        AI Analysis - Powered by Abby
+      </h2>
+      {messages ? (
+        <div className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900">
+          <ReactMarkdown>{messages}</ReactMarkdown>
+        </div>
+      ) : (
+        <div className="text-center dark:text-gray-400 text-gray-600">
+          No analysis available
+        </div>
+      )}
+    </div>
+  );
+};
+
 export function MetricDetails({ metric, group }: MetricDetailsProps) {
   // Move all hooks to the top level
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -250,6 +385,9 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             ))}
           </div>
         </div>
+
+        {/* AI Response Component */}
+        <AiResponse group={group} metric={metric} />
       </div>
     );
   }
@@ -778,7 +916,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             try {
               updatedMonitor.id = metric.id;
               updatedMonitor.monitorId = metric.id;
-          //    updatedMonitor.monitorRegion = metric.monitorRegion;
+              console.log(updatedMonitor.monitorRegion);
               const success = metric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);
