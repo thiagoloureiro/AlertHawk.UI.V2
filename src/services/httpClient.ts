@@ -8,17 +8,34 @@ class HttpClient {
   private static notificationInstance: HttpClient;
   private axiosInstance: AxiosInstance;
   private msalInstance: PublicClientApplication;
+  private initialized: boolean = false;
 
   private constructor(baseURL: string) {
     this.axiosInstance = axios.create({ baseURL });
     this.msalInstance = new PublicClientApplication(msalConfig);
-    this.setupInterceptors();
+    this.initialize();
+  }
+
+  private async initialize() {
+    if (!this.initialized) {
+      try {
+        await this.msalInstance.initialize();
+        this.initialized = true;
+        this.setupInterceptors();
+      } catch (error) {
+        console.error('Failed to initialize MSAL:', error);
+      }
+    }
   }
 
   private setupInterceptors() {
     // Request interceptor to add token
     this.axiosInstance.interceptors.request.use(
       async (config) => {
+        if (!this.initialized) {
+          await this.initialize();
+        }
+
         // First check for stored auth token
         const storedToken = localStorage.getItem('authToken');
         if (storedToken) {
@@ -50,39 +67,83 @@ class HttpClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
+          if (!this.initialized) {
+            await this.initialize();
+          }
+
+          // Clear existing tokens
           localStorage.removeItem('authToken');
           localStorage.removeItem('userInfo');
           
-          // Redirect to login page
-          window.location.href = '/login';
+          try {
+            // Try to get current account
+            const currentAccounts = this.msalInstance.getAllAccounts();
+            if (currentAccounts.length > 0) {
+              // Try to get a new token
+              const tokenResponse = await this.msalInstance.acquireTokenSilent({
+                ...loginRequest,
+                account: currentAccounts[0]
+              });
+              
+              // Store the new token
+              localStorage.setItem('authToken', tokenResponse.accessToken);
+              
+              // Retry the failed request with the new token
+              const config = error.config;
+              if (config) {
+                config.headers['Authorization'] = `Bearer ${tokenResponse.accessToken}`;
+                return this.axiosInstance(config);
+              }
+            } else {
+              // If no account is found, trigger interactive login
+              await this.msalInstance.loginRedirect(loginRequest);
+            }
+          } catch (msalError) {
+            console.error('Failed to re-authenticate:', msalError);
+            // If silent token acquisition fails, trigger interactive login
+            await this.msalInstance.loginRedirect(loginRequest);
+          }
         }
         return Promise.reject(error);
       }
     );
   }
 
-  public static getMonitoringInstance(): AxiosInstance {
+  public static async getMonitoringInstance(): Promise<AxiosInstance> {
     if (!HttpClient.monitoringInstance) {
       HttpClient.monitoringInstance = new HttpClient(import.meta.env.VITE_APP_MONITORING_API_URL);
+      await HttpClient.monitoringInstance.initialize();
     }
     return HttpClient.monitoringInstance.axiosInstance;
   }
 
-  public static getAuthInstance(): AxiosInstance {
+  public static async getAuthInstance(): Promise<AxiosInstance> {
     if (!HttpClient.authInstance) {
       HttpClient.authInstance = new HttpClient(import.meta.env.VITE_APP_AUTH_API_URL);
+      await HttpClient.authInstance.initialize();
     }
     return HttpClient.authInstance.axiosInstance;
   }
 
-  public static getNotificationInstance(): AxiosInstance {
+  public static async getNotificationInstance(): Promise<AxiosInstance> {
     if (!HttpClient.notificationInstance) {
       HttpClient.notificationInstance = new HttpClient(import.meta.env.VITE_APP_NOTIFICATION_API_URL);
+      await HttpClient.notificationInstance.initialize();
     }
     return HttpClient.notificationInstance.axiosInstance;
   }
 }
 
-export const monitoringHttp = HttpClient.getMonitoringInstance();
-export const authHttp = HttpClient.getAuthInstance();
-export const notificationHttp = HttpClient.getNotificationInstance(); 
+// Create and initialize instances
+let monitoringHttp: AxiosInstance;
+let authHttp: AxiosInstance;
+let notificationHttp: AxiosInstance;
+
+// Initialize instances
+(async () => {
+  monitoringHttp = await HttpClient.getMonitoringInstance();
+  authHttp = await HttpClient.getAuthInstance();
+  notificationHttp = await HttpClient.getNotificationInstance();
+})();
+
+export { monitoringHttp, authHttp, notificationHttp }; 
