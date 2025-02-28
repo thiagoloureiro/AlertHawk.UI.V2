@@ -114,7 +114,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     const fetchRegions = async () => {
       try {
         const agents = await monitorService.getMonitorAgents();
-        const uniqueRegions = [...new Set(agents.map(agent => (agent as MonitorAgent).monitorRegion))];
+        const uniqueRegions = [...new Set(agents.map(agent => agent.monitorRegion))];
         setRegions(uniqueRegions);
         
         if (existingMonitor?.monitorRegion) {
@@ -139,96 +139,63 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      if (monitorType === 'k8s') {
-        if (!kubeConfig) {
-          throw new Error('KubeConfig file is required');
-        }
+      const basePayload = {
+        name,
+        monitorGroup: selectedGroupId,
+        monitorRegion: selectedRegion,
+        monitorEnvironment: environment,
+        heartBeatInterval: parseInt(interval),
+        retries: parseInt(retries),
+        status: true,
+        monitorTypeId: monitorType === 'tcp' ? 3 : 1,
+      };
 
-        // Read the kubeconfig file content
-        const kubeConfigContent = await kubeConfig.text();
-
-        // Create the K8s monitor directly
-        const k8sPayload: MonitorK8sPayload = {
-          monitorId: 0, // The API will handle the ID
-          clusterName,
-          kubeConfig: kubeConfigContent,
-          lastStatus: false,
-          name,
-          monitorGroup: selectedGroupId,
-          monitorRegion: selectedRegion,
-          monitorEnvironment: environment,
-          heartBeatInterval: Number(interval),
-          retries: Number(retries),
-          timeout: Number(timeout),
-        };
-
-        await monitorService.createMonitorK8s(k8sPayload);
-        onClose();
-        return;
-      }
-
-      let monitorData: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload;
-
-      if (monitorType === 'http') {
-        monitorData = {
+      if (monitorType === 'tcp') {
+        const tcpPayload: UpdateMonitorTcpPayload = {
+          ...basePayload,
           monitorId: existingMonitor?.id || 0,
           id: existingMonitor?.id || 0,
-          name,
-          monitorGroup: selectedGroupId,
-          monitorRegion: selectedRegion,
-          monitorEnvironment: environment,
-          heartBeatInterval: Number(interval),
-          retries: Number(retries),
-          timeout: Number(timeout),
-          monitorTypeId: 1,
-          urlToCheck: url,
-          checkCertExpiry,
-          ignoreTlsSsl: ignoreTLS,
-          maxRedirects: Number(maxRedirects),
-          monitorHttpMethod: httpMethod === 'GET' ? HttpMethod.Get : 
-                          httpMethod === 'POST' ? HttpMethod.Post : 
-                          HttpMethod.Put,
-          body: httpMethod !== 'GET' ? body : undefined,
-          headers,
-          lastStatus: existingMonitor?.lastStatus || false,
-          responseTime: existingMonitor?.responseTime || 0,
-          daysToExpireCert: existingMonitor?.daysToExpireCert || 0,
-          paused: existingMonitor?.paused || false,
-          responseStatusCode: existingMonitor?.responseStatusCode || 0
-        };
-      } else {
-        monitorData = {
-          monitorId: existingMonitor?.id || 0,
-          id: existingMonitor?.id || 0,
-          name,
-          monitorGroup: selectedGroupId,
-          monitorRegion: selectedRegion,
-          monitorEnvironment: environment,
-          heartBeatInterval: Number(interval),
-          retries: Number(retries),
-          timeout: Number(timeout),
-          monitorTypeId: 3,
+          port: parseInt(port),
           ip: url,
-          port: Number(port),
-          lastStatus: existingMonitor?.lastStatus || false,
-          daysToExpireCert: existingMonitor?.daysToExpireCert || 0,
-          paused: existingMonitor?.paused || false,
+          timeout: parseInt(timeout),
+          ignoreTlsSsl: ignoreTLS,
           checkCertExpiry: false,
-          ignoreTlsSsl: false,
+          daysToExpireCert: 0,
+          paused: false,
           part: 0
         };
-      }
-
-      console.log("Monitor Data:", monitorData);
-
-      if (isEditing && onUpdate) {
-        await onUpdate(monitorData);
+        
+        if (isEditing && onUpdate) {
+          await onUpdate(tcpPayload);
+        } else {
+          await onAdd(tcpPayload);
+        }
       } else {
-        await onAdd(monitorData);
+        const httpPayload: UpdateMonitorHttpPayload = {
+          ...basePayload,
+          monitorId: existingMonitor?.id || 0,
+          id: existingMonitor?.id || 0,
+          urlToCheck: url,
+          ignoreTlsSsl: ignoreTLS,
+          maxRedirects: parseInt(maxRedirects),
+          timeout: parseInt(timeout),
+          monitorHttpMethod: httpMethod === 'POST' ? 2 : httpMethod === 'PUT' ? 3 : 1,
+          body,
+          checkCertExpiry,
+          daysToExpireCert: 0,
+          paused: false,
+          responseStatusCode: 200,
+          responseTime: 0,
+          lastStatus: true
+        };
+
+        if (isEditing && onUpdate) {
+          await onUpdate(httpPayload);
+        } else {
+          await onAdd(httpPayload);
+        }
       }
-      
       onClose();
     } catch (error) {
       console.error('Failed to submit monitor:', error);
