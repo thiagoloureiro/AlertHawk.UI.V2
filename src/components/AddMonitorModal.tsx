@@ -96,7 +96,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(existingMonitor?.monitorGroup || 0);
   const [regions, setRegions] = useState<number[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<number>(existingMonitor?.monitorRegion || 0);
+  const [selectedRegion, setSelectedRegion] = useState<number>(0);
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
@@ -134,7 +134,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
         
         if (existingMonitor?.monitorRegion) {
           setSelectedRegion(existingMonitor.monitorRegion);
-        } else if (uniqueRegions.length === 1) {
+        } else if (uniqueRegions.length > 0) {
           setSelectedRegion(uniqueRegions[0]);
         }
       } catch (error) {
@@ -316,8 +316,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                   Region
                 </label>
                 <Select
-                  value={selectedRegion}
-                  onValueChange={(value) =>  setSelectedRegion(Number(value))}
+                  value={selectedRegion.toString()}
+                  onValueChange={(value) => setSelectedRegion(Number(value))}
                 >
                   {regions.map((region) => (
                     <Select.Item key={region} value={region.toString()}>
