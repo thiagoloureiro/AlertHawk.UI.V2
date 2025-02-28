@@ -166,10 +166,11 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
 // Add the AiResponse component
 const AiResponse = ({ group, metric }: { group?: MonitorGroup; metric?: Monitor | null }) => {
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
   const generateAnalysisPrompt = () => {
     if (group) {
@@ -204,51 +205,57 @@ Please provide a concise analysis of the monitor's performance, highlighting any
     return '';
   };
 
-  useEffect(() => {
-    const initializeConversation = async () => {
-      try {
-        setError(null);
-        const response = await aiService.getNewConversationId();
-        setConversationId(response.conversation_id);
-        
-        // After getting conversation ID, automatically start the analysis
-        if (response.conversation_id && (group || metric)) {
-          setIsAnalyzing(true);
-          const prompt = generateAnalysisPrompt();
-          await aiService.chat(response.conversation_id, prompt, (message) => {
-            if (message.output.type === 'text') {
-              setMessages(prev => prev + message.output.content);
-            }
-          });
-          setIsAnalyzing(false);
+  const startAnalysis = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      setMessages('');
+      
+      const response = await aiService.getNewConversationId();
+      setConversationId(response.conversation_id);
+      
+      if (response.conversation_id && (group || metric)) {
+        setIsAnalyzing(true);
+        const prompt = generateAnalysisPrompt();
+        await aiService.chat(response.conversation_id, prompt, (message) => {
+          if (message.output.type === 'text') {
+            setMessages(prev => prev + message.output.content);
+          }
+        });
+        setHasAnalyzed(true);
 
-          // Delete the conversation after receiving the response
-          try {
-            await aiService.deleteConversation(response.conversation_id);
-          } catch (deleteError) {
-            console.error('Failed to delete conversation:', deleteError);
-            // Don't set error state here as we don't want to show this to the user
-            // The analysis was successful, deletion failure is not critical
-          }
+        // Delete the conversation after receiving the response
+        try {
+          await aiService.deleteConversation(response.conversation_id);
+        } catch (deleteError) {
+          console.error('Failed to delete conversation:', deleteError);
         }
-      } catch (error) {
-        console.error('Failed to initialize conversation:', error);
-        if (error instanceof Error && error.message.includes('Please sign in first')) {
-          setError('Please sign in to use AI features');
-          try {
-            await msalInstance.loginRedirect();
-          } catch (loginError) {
-            console.error('Failed to initiate login:', loginError);
-          }
-        } else {
-          setError('Failed to initialize AI conversation');
-        }
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Failed to initialize conversation:', error);
+      if (error instanceof Error && error.message.includes('Please sign in first')) {
+        setError('Please sign in to use AI features');
+        try {
+          await msalInstance.loginRedirect();
+        } catch (loginError) {
+          console.error('Failed to initiate login:', loginError);
+        }
+      } else {
+        setError('Failed to initialize AI conversation');
+      }
+    } finally {
+      setIsLoading(false);
+      setIsAnalyzing(false);
+    }
+  };
 
-    initializeConversation();
+  // Reset state when group or metric changes
+  useEffect(() => {
+    setMessages('');
+    setError(null);
+    setHasAnalyzed(false);
+    setIsAnalyzing(false);
+    setIsLoading(false);
   }, [group, metric]);
 
   if (isLoading || isAnalyzing) {
@@ -265,32 +272,38 @@ Please provide a concise analysis of the monitor's performance, highlighting any
     );
   }
 
-  if (error) {
-    return (
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
-          AI Analysis - Powered by Abby
-        </h2>
-        <div className="text-center dark:text-gray-400 text-gray-600">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
         AI Analysis - Powered by Abby
       </h2>
-      {messages ? (
-        <div 
-          className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900"
-          dangerouslySetInnerHTML={{ __html: md.render(messages) }}
-        />
-      ) : (
+      {error ? (
         <div className="text-center dark:text-gray-400 text-gray-600">
-          No analysis available
+          {error}
+        </div>
+      ) : hasAnalyzed ? (
+        <div>
+          <div 
+            className="p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900"
+            dangerouslySetInnerHTML={{ __html: md.render(messages) }}
+          />
+          <button
+            onClick={startAnalysis}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
+          >
+            <Loader2 className="w-4 h-4" />
+            Analyze Again
+          </button>
+        </div>
+      ) : (
+        <div className="text-center">
+          <button
+            onClick={startAnalysis}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
+          >
+            <Loader2 className="w-4 h-4" />
+            Start AI Analysis
+          </button>
         </div>
       )}
     </div>
