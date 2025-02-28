@@ -151,7 +151,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     }
   }, [httpMethod]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
     try {
       const basePayload = {
