@@ -2,14 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Globe, Network, Plus, Loader2, Server } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
-import monitorService from '../services/monitorService';
-import { MonitorRegion } from '../services/monitorService';
-import { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
-import { Monitor } from '../services/monitorService';
+import monitorService, { MonitorRegion } from '../services/monitorService';
+import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
+import type { Monitor } from '../types';
 
 interface AddMonitorModalProps {
   onClose: () => void;
-  onAdd: (monitor: any) => Promise<void>;
+  onAdd: (monitor: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload) => Promise<void>;
   onUpdate?: (monitor: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload) => Promise<void>;
   existingMonitor?: Monitor;
   isEditing?: boolean;
@@ -97,7 +96,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(existingMonitor?.monitorGroup || 0);
   const [regions, setRegions] = useState<number[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState(existingMonitor?.monitorRegion || 0);
+  const [selectedRegion, setSelectedRegion] = useState<number>(existingMonitor?.monitorRegion || 0);
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
@@ -130,15 +129,21 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     const fetchRegions = async () => {
       try {
         const agents = await monitorService.getMonitorAgents();
-        const uniqueRegions = [...new Set(agents.map(a => a.monitorRegion))];
+        const uniqueRegions = [...new Set(agents.map(a => a.region))];
         setRegions(uniqueRegions);
+        
+        if (existingMonitor?.monitorRegion) {
+          setSelectedRegion(existingMonitor.monitorRegion);
+        } else if (uniqueRegions.length === 1) {
+          setSelectedRegion(uniqueRegions[0]);
+        }
       } catch (error) {
         console.error('Failed to fetch regions:', error);
       }
     };
 
     fetchRegions();
-  }, []);
+  }, [existingMonitor?.monitorRegion]);
 
   useEffect(() => {
     if (httpMethod === 'GET') {
@@ -179,11 +184,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
         return;
       }
 
-      // Rest of the existing code for HTTP and TCP monitors...
-      let monitorData;
-
-    
-          
+      let monitorData: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload;
 
       if (monitorType === 'http') {
         monitorData = {
@@ -191,7 +192,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           id: existingMonitor?.id || 0,
           name,
           monitorGroup: selectedGroupId,
-          monitorRegion: Number(selectedRegion),
+          monitorRegion: selectedRegion,
           monitorEnvironment: environment,
           heartBeatInterval: Number(interval),
           retries: Number(retries),
@@ -202,8 +203,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           ignoreTlsSsl: ignoreTLS,
           maxRedirects: Number(maxRedirects),
           monitorHttpMethod: httpMethod === 'GET' ? HttpMethod.Get : 
-                            httpMethod === 'POST' ? HttpMethod.Post : 
-                            HttpMethod.Put,
+                          httpMethod === 'POST' ? HttpMethod.Post : 
+                          HttpMethod.Put,
           body: httpMethod !== 'GET' ? body : undefined,
           headers,
           lastStatus: existingMonitor?.lastStatus || false,
@@ -212,13 +213,13 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           paused: existingMonitor?.paused || false,
           responseStatusCode: existingMonitor?.responseStatusCode || 0
         };
-      } else if (monitorType === 'tcp') {
+      } else {
         monitorData = {
           monitorId: existingMonitor?.id || 0,
           id: existingMonitor?.id || 0,
           name,
           monitorGroup: selectedGroupId,
-          monitorRegion: Number(selectedRegion),
+          monitorRegion: selectedRegion,
           monitorEnvironment: environment,
           heartBeatInterval: Number(interval),
           retries: Number(retries),
@@ -234,9 +235,10 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           part: 0
         };
       }
-      console.log(monitorData);
 
-      if (isEditing && onUpdate && existingMonitor) {
+      console.log("Monitor Data:", monitorData);
+
+      if (isEditing && onUpdate) {
         await onUpdate(monitorData);
       } else {
         await onAdd(monitorData);
