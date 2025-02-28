@@ -17,7 +17,7 @@ interface ChatResponse {
 }
 
 class AiService {
-  private baseUrl = 'https://dev.api.abby.abb.com/api/v1';
+  private baseUrl = import.meta.env.VITE_APP_ABBY_API_URL + 'v1';
 
   private async ensureActiveAccount() {
     const currentAccount = msalInstance.getActiveAccount();
