@@ -4,8 +4,18 @@ import { Layout } from './components/Layout';
 import { AppRoutes } from './routes';
 import { Login } from './pages/Login';
 import { Toaster } from 'react-hot-toast';
+import axios from 'axios';
+import { useMsal } from "@azure/msal-react";
+
+interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  isAdmin: boolean;
+}
 
 export default function App() {
+  const { accounts } = useMsal();
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('authToken') !== null;
   });
@@ -21,8 +31,49 @@ export default function App() {
     return true; // default to dark theme
   });
 
-  const [selectedMetric, setSelectedMetric] = useState<Monitor | null>(null);
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  // Effect to check and fetch user info if needed
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const authToken = localStorage.getItem('authToken');
+      const userInfo = localStorage.getItem('userInfo');
+      
+      if (authToken && !userInfo) {
+        try {
+          // Try to get email from MSAL first
+          let email = accounts[0]?.username;
+          
+          if (!email) {
+            // If no MSAL account, try to decode the JWT token to get the email
+            try {
+              const tokenData = JSON.parse(atob(authToken.split('.')[1]));
+              email = tokenData.email || tokenData.unique_name || tokenData.preferred_username;
+            } catch (e) {
+              console.error('Failed to decode token:', e);
+              return;
+            }
+          }
+
+          if (email) {
+            const response = await axios.get<UserInfo>(
+              `${import.meta.env.VITE_APP_AUTH_API_URL}api/user/${email}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${authToken}`
+                }
+              }
+            );
+            localStorage.setItem('userInfo', JSON.stringify(response.data));
+          }
+        } catch (error) {
+          console.error('Failed to fetch user info:', error);
+        }
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchUserInfo();
+    }
+  }, [isAuthenticated, accounts]);
 
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(isSidebarCollapsed));
@@ -33,13 +84,8 @@ export default function App() {
     document.documentElement.classList.toggle('dark', isDarkTheme);
   }, [isDarkTheme]);
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
-
   const handleLogin = () => {
     setIsAuthenticated(true);
-    setCurrentPage('dashboard');
   };
 
   if (!isAuthenticated) {
