@@ -3,8 +3,8 @@ import { X, Globe, Network, Plus, Loader2, Server } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
 import monitorService, { MonitorRegion } from '../services/monitorService';
-import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
-import type { Monitor } from '../types';
+import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload, CreateMonitorHttpPayload, CreateMonitorTcpPayload } from '../services/monitorService';
+import type { Monitor, MonitorAgent } from '../types';
 
 interface AddMonitorModalProps {
   onClose: () => void;
@@ -69,39 +69,24 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       ? existingMonitor.monitorTcp?.port?.toString() ?? ''
     : ''
   );
-  const [interval, setInterval] = useState(existingMonitor?.heartBeatInterval.toString() || '1');
-  const [retries, setRetries] = useState(existingMonitor?.retries.toString() || '3');
+  const [interval, setInterval] = useState(existingMonitor?.heartBeatInterval?.toString() || '1');
+  const [retries, setRetries] = useState(existingMonitor?.retries?.toString() || '3');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [environment, setEnvironment] = useState(existingMonitor?.monitorEnvironment || MonitorEnvironment.Production);
   const [checkCertExpiry, setCheckCertExpiry] = useState(existingMonitor?.checkCertExpiry ?? true);
-  const [ignoreTLS, setIgnoreTLS] = useState(existingMonitor?.ignoreTlsSsl ?? false);
-  const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>(() => {
-    if (existingMonitor?.monitorHttp?.monitorHttpMethod) {
-      switch (existingMonitor.monitorHttp.monitorHttpMethod) {
-        case HttpMethod.Get:
-          return 'GET';
-        case HttpMethod.Post:
-          return 'POST';
-        case HttpMethod.Put:
-          return 'PUT';
-        default:
-          return 'GET';
-      }
-    }
-    return 'GET';
-  });
-  const [maxRedirects, setMaxRedirects] = useState(existingMonitor?.maxRedirects?.toString() || '3');
-  const [timeout, setTimeout] = useState(existingMonitor?.timeout?.toString() || '30');
+  const [ignoreTLS, setIgnoreTLS] = useState((existingMonitor as any)?.ignoreTlsSsl ?? false);
+  const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>('GET');
+  const [maxRedirects, setMaxRedirects] = useState((existingMonitor as any)?.maxRedirects?.toString() ?? '3');
+  const [timeout, setTimeout] = useState((existingMonitor as any)?.timeout?.toString() ?? '30');
   const [body, setBody] = useState('');
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState(existingMonitor?.monitorGroup || 0);
+  const [selectedGroupId, setSelectedGroupId] = useState(0);
   const [regions, setRegions] = useState<number[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<number>(0);
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
   const [headerValue, setHeaderValue] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [clusterName, setClusterName] = useState('');
   const [kubeConfig, setKubeConfig] = useState<File | null>(null);
 
@@ -115,7 +100,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
         const groups = await monitorService.getMonitorGroupListByUser();
         setGroups(groups);
         if (groups.length > 0) {
-          setSelectedGroupId(groups[0].id);
+          setSelectedGroupId(existingMonitor?.monitorGroup || groups[0].id);
         }
       } catch (error) {
         console.error('Failed to fetch monitor groups:', error);
@@ -123,7 +108,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     };
 
     fetchGroups();
-  }, []);
+  }, [existingMonitor]);
 
   useEffect(() => {
     const fetchRegions = async () => {

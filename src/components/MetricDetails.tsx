@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
-  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2 
+  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2,
+  Bot
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
@@ -17,6 +18,16 @@ import {
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
 import { MetricsList } from './MetricsList';
+import { aiService, msalInstance } from '../services/aiService';
+import MarkdownIt from 'markdown-it';
+import { monitoringHttp } from '../services/httpClient';
+
+// Initialize markdown-it
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
+  linkify: true
+});
 
 interface MetricDetailsProps {
   metric: Monitor | null;
@@ -36,6 +47,19 @@ const TIME_PERIODS: TimePeriod[] = [
   { label: '3 Months', days: 90 },
   { label: '6 Months', days: 180 }
 ];
+
+// Add MonitorAlert interface
+interface MonitorAlert {
+  id: number;
+  monitorId: number;
+  timeStamp: string;
+  status: boolean;
+  message: string;
+  monitorName: string;
+  environment: number;
+  urlToCheck: string;
+  periodOffline: number;
+}
 
 const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeStamp: string }[] }) => {
   const userTimeZone = localStorage.getItem('userTimezone') || 
@@ -82,7 +106,7 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                       minute: '2-digit',
                       second: '2-digit',
                       hour12: false
-                    }).format(new Date(point.timeStamp))}
+                    }).format(new Date(timeString))}
                   </div>
                   <div>Status: {point.status ? 'Online' : 'Offline'}</div>
                 </div>
@@ -150,6 +174,218 @@ const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
         </div>
       </div>
       <span className="mt-1.5 text-xs dark:text-gray-400 text-gray-600">{label}</span>
+    </div>
+  );
+};
+
+// Add the AiResponse component
+const AiResponse = ({ group, metric }: { group?: MonitorGroup; metric?: Monitor | null }) => {
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
+
+  // Function to fetch alerts data
+  const fetchAlerts = async (groupId: number) => {
+    try {
+      const response = await monitoringHttp.get(`/api/MonitorAlert/monitorAlertsByMonitorGroup/${groupId}/180?environment=6`);
+      setAlerts(response.data);
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+      toast.error('Failed to fetch alert history', { position: 'bottom-right' });
+    }
+  };
+
+  // Fetch alerts when group changes
+  useEffect(() => {
+    if (group?.id) {
+      fetchAlerts(group.id);
+    }
+  }, [group?.id]);
+
+  const generateAnalysisPrompt = () => {
+    if (group) {
+      // Get alerts statistics - only consider failed alerts
+      const failedAlerts = alerts.filter(a => !a.status);
+      const totalFailedAlerts = failedAlerts.length;
+      
+      // Group failed alerts by monitor to see which monitors are problematic
+      const failuresByMonitor = failedAlerts.reduce((acc, alert) => {
+        acc[alert.monitorName] = (acc[alert.monitorName] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Get the top 3 most problematic monitors
+      const topProblematicMonitors = Object.entries(failuresByMonitor)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3);
+      
+      return `Please analyze and generate some bullet points for these monitoring metrics for the group "${group.name}":
+- 1 Hour Uptime: ${group.avgUptime1Hr}%
+- 24 Hours Uptime: ${group.avgUptime24Hrs}%
+- 7 Days Uptime: ${group.avgUptime7Days}%
+- 30 Days Uptime: ${group.avgUptime30Days}%
+- 3 Months Uptime: ${group.avgUptime3Months}%
+- 6 Months Uptime: ${group.avgUptime6Months}%
+Total Monitors: ${group.monitors.length}
+Online Monitors: ${group.monitors.filter(m => m.status).length}
+Offline Monitors: ${group.monitors.filter(m => !m.status).length}
+
+Alert Statistics (Last 180 days):
+- Total Failed Alerts: ${totalFailedAlerts}
+${topProblematicMonitors.map(([name, count]) => `- ${name}: ${count} failures`).join('\n')}
+
+Please provide a concise analysis of the group's performance and alert history, focusing on:
+1. Overall uptime trends
+2. The monitors with the most failures
+3. Any concerning patterns in the failures
+4. Recommendations for improving reliability`;
+    }
+    
+    if (metric) {
+      // Filter alerts for this specific monitor - only consider failures
+      const failedAlerts = alerts.filter(a => !a.status && a.monitorId === metric.id);
+      const totalFailedAlerts = failedAlerts.length;
+      
+      // Group failures by error message to see patterns
+      const failuresByMessage = failedAlerts.reduce((acc, alert) => {
+        acc[alert.message] = (acc[alert.message] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Get the top 3 most common error messages
+      const topErrorMessages = Object.entries(failuresByMessage)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3);
+
+      return `Please analyze these monitoring metrics for "${metric.name}" (${metric.monitorTypeId === 1 ? 'HTTP' : 'TCP'} monitor):
+- 1 Hour Uptime: ${metric.monitorStatusDashboard.uptime1Hr}%
+- 24 Hours Uptime: ${metric.monitorStatusDashboard.uptime24Hrs}%
+- 7 Days Uptime: ${metric.monitorStatusDashboard.uptime7Days}%
+- 30 Days Uptime: ${metric.monitorStatusDashboard.uptime30Days}%
+- 3 Months Uptime: ${metric.monitorStatusDashboard.uptime3Months}%
+- 6 Months Uptime: ${metric.monitorStatusDashboard.uptime6Months}%
+Current Status: ${metric.status ? 'Online' : 'Offline'}
+Current Response Time: ${metric.monitorStatusDashboard.responseTime}ms
+
+Alert Statistics (Last 180 days):
+- Total Failed Alerts: ${totalFailedAlerts}
+${topErrorMessages.map(([message, count]) => `- ${message}: ${count} occurrences`).join('\n')}
+
+Please provide a concise analysis of the monitor's performance and alert history, focusing on:
+1. Overall uptime trends
+2. The most common error messages and their frequency
+3. Any concerning patterns in the failures
+4. Recommendations for improving reliability`;
+    }
+
+    return '';
+  };
+
+  const startAnalysis = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      setMessages('');
+      
+      const response = await aiService.getNewConversationId();
+      setConversationId(response.conversation_id);
+      
+      if (response.conversation_id && (group || metric)) {
+        setIsAnalyzing(true);
+        const prompt = generateAnalysisPrompt();
+        await aiService.chat(response.conversation_id, prompt, (message) => {
+          if (message.output.type === 'text') {
+            setMessages(prev => prev + message.output.content);
+          }
+        });
+        setHasAnalyzed(true);
+
+        // Delete the conversation after receiving the response
+        try {
+          await aiService.deleteConversation(response.conversation_id);
+        } catch (deleteError) {
+          console.error('Failed to delete conversation:', deleteError);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize conversation:', error);
+      if (error instanceof Error && error.message.includes('Please sign in first')) {
+        setError('Please sign in to use AI features');
+        try {
+          await msalInstance.loginRedirect();
+        } catch (loginError) {
+          console.error('Failed to initiate login:', loginError);
+        }
+      } else {
+        setError('Failed to initialize AI conversation');
+      }
+    } finally {
+      setIsLoading(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Reset state when group or metric changes
+  useEffect(() => {
+    setMessages('');
+    setError(null);
+    setHasAnalyzed(false);
+    setIsAnalyzing(false);
+    setIsLoading(false);
+  }, [group, metric]);
+
+  if (isLoading || isAnalyzing) {
+    return (
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+          AI Analysis - Powered by Abby
+        </h2>
+        <div className="flex items-center gap-3 text-sm dark:text-gray-400 text-gray-600">
+          <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          {isAnalyzing ? 'Analyzing metrics...' : 'Initializing...'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+      <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+        AI Analysis - Powered by Abby
+      </h2>
+      {error ? (
+        <div className="text-center dark:text-gray-400 text-gray-600">
+          {error}
+        </div>
+      ) : hasAnalyzed ? (
+        <div>
+          <div 
+            className="prose prose-sm dark:prose-invert max-w-none p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900 [&>ul]:mb-4 [&>ul]:mt-2 [&>ul>li]:mb-1 [&>p]:mb-4 [&>h3]:mb-2 [&>h4]:mb-2"
+            dangerouslySetInnerHTML={{ __html: md.render(messages) }}
+          />
+          <button
+            onClick={startAnalysis}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
+          >
+            <Loader2 className="w-4 h-4" />
+            Analyze Again
+          </button>
+        </div>
+      ) : (
+        <div className="text-center">
+          <button
+            onClick={startAnalysis}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
+          >
+            <Bot className="w-4 h-4" />
+            Analyze with Abby
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -250,6 +486,9 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             ))}
           </div>
         </div>
+
+        {/* AI Response Component */}
+        <AiResponse group={group} metric={metric} />
       </div>
     );
   }
@@ -674,14 +913,14 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <XAxis 
               dataKey="timeStamp" 
               tickFormatter={(time) => {
-                const date = new Date(time);
-                return new Intl.DateTimeFormat('default', {
+                const localTime = convertUTCToLocalTime(time);
+                return new Date(localTime).toLocaleString('default', {
                   month: 'short',
                   day: '2-digit',
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: false
-                }).format(date);
+                });
               }}
               angle={-45}
               textAnchor="end"
@@ -693,8 +932,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <YAxis />
             <Tooltip
               labelFormatter={(label) => {
-                const date = new Date(label as string);
-                return new Intl.DateTimeFormat('default', {
+                const localTime = convertUTCToLocalTime(label as string);
+                return new Date(localTime).toLocaleString('default', {
                   year: 'numeric',
                   month: 'short',
                   day: '2-digit',
@@ -702,7 +941,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
                   minute: '2-digit',
                   second: '2-digit',
                   hour12: false
-                }).format(date);
+                });
               }}
               formatter={(value, name, props) => {
                 if (value === 0) {
@@ -778,7 +1017,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             try {
               updatedMonitor.id = metric.id;
               updatedMonitor.monitorId = metric.id;
-          //    updatedMonitor.monitorRegion = metric.monitorRegion;
+              console.log(updatedMonitor.monitorRegion);
               const success = metric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);
