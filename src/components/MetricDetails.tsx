@@ -4,7 +4,7 @@ import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
   Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2,
-  Bot
+  Bot, RefreshCw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
@@ -391,7 +391,6 @@ Please provide a concise analysis of the monitor's performance and alert history
 };
 
 export function MetricDetails({ metric, group }: MetricDetailsProps) {
-  // Move all hooks to the top level
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPauseLoading, setIsPauseLoading] = useState(false);
@@ -403,6 +402,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[1]);
   const [historyData, setHistoryData] = useState<MonitorHistoryData[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Load history data when metric or period changes
   useEffect(() => {
@@ -424,6 +425,44 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       setIsLoadingHistory(false);
     }
   };
+
+  // Function to refresh all data
+  const refreshData = async () => {
+    if (!metric) return;
+    
+    try {
+      setIsRefreshing(true);
+      // Refresh monitor history data
+      await loadHistoryData(selectedPeriod);
+      
+      // Refresh monitor details
+      await monitorService.getDashboardGroups(metric.monitorEnvironment);
+      // Force a re-render by updating the URL without redirecting
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+      toast.error('Failed to refresh data', { position: 'bottom-right' });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Auto-refresh effect
+  useEffect(() => {
+    let intervalId: number;
+
+    if (autoRefresh && metric) {
+      intervalId = window.setInterval(() => {
+        refreshData();
+      }, 30000); // Refresh every 30 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [autoRefresh, metric, selectedPeriod]);
 
   // Early return for group view
   if (!metric && group) {
@@ -672,24 +711,22 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <h1 className="text-2xl font-bold dark:text-white text-gray-900">{metric.name}</h1>
-          <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            {metric.monitorTypeId === 3 ? (
-              <>
-                <Network className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
-                <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                  {`${metric.monitorTcp?.IP}:${metric.monitorTcp?.port}`}
-                </span>
-              </>
-            ) : (
-              <>
-                <Globe className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
-                <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                  {metric.urlToCheck || 'No URL specified'}
-                </span>
-              </>
-            )}
-          </div>
+          <h1 className="text-2xl font-bold dark:text-white text-gray-900">{metric?.name || group?.name}</h1>
+          {metric?.monitorTypeId === 3 ? (
+            <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Network className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
+                {`${metric.monitorTcp?.IP}:${metric.monitorTcp?.port}`}
+              </span>
+            </div>
+          ) : metric && (
+            <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Globe className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
+                {metric.urlToCheck || 'No URL specified'}
+              </span>
+            </div>
+          )}
         </div>
         
         {/* Action Buttons */}
@@ -746,17 +783,6 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           </button>
 
           <button
-            onClick={() => {/* TODO: Implement chart functionality */}}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                     transition-colors duration-200"
-          >
-            <BarChart className="w-4 h-4" />
-            Chart
-          </button>
-
-          <button
             onClick={() => setShowCloneConfirm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
@@ -776,6 +802,33 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           >
             <Trash2 className="w-4 h-4" />
             Delete
+          </button>
+
+          {/* Add Refresh button */}
+          <button
+            onClick={refreshData}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
+                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                     transition-colors duration-200"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+
+          {/* Add Auto-refresh toggle */}
+          <button
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                     border transition-colors duration-200 ${
+                       autoRefresh
+                         ? 'bg-green-500 text-white hover:bg-green-600 border-green-600'
+                         : 'dark:bg-gray-800 bg-white border-gray-200 dark:border-gray-700 dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                     }`}
+          >
+            <Clock className="w-4 h-4" />
+            {autoRefresh ? 'Auto-refresh On' : 'Auto-refresh Off'}
           </button>
         </div>
       </div>
