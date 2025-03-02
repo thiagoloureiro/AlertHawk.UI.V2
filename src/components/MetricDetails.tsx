@@ -106,7 +106,7 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                       minute: '2-digit',
                       second: '2-digit',
                       hour12: false
-                    }).format(new Date(point.timeStamp))}
+                    }).format(new Date(timeString))}
                   </div>
                   <div>Status: {point.status ? 'Online' : 'Offline'}</div>
                 </div>
@@ -913,14 +913,14 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <XAxis 
               dataKey="timeStamp" 
               tickFormatter={(time) => {
-                const date = new Date(time);
-                return new Intl.DateTimeFormat('default', {
+                const localTime = convertUTCToLocalTime(time);
+                return new Date(localTime).toLocaleString('default', {
                   month: 'short',
                   day: '2-digit',
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: false
-                }).format(date);
+                });
               }}
               angle={-45}
               textAnchor="end"
@@ -932,8 +932,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <YAxis />
             <Tooltip
               labelFormatter={(label) => {
-                const date = new Date(label as string);
-                return new Intl.DateTimeFormat('default', {
+                const localTime = convertUTCToLocalTime(label as string);
+                return new Date(localTime).toLocaleString('default', {
                   year: 'numeric',
                   month: 'short',
                   day: '2-digit',
@@ -941,7 +941,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
                   minute: '2-digit',
                   second: '2-digit',
                   hour12: false
-                }).format(date);
+                });
               }}
               formatter={(value, name, props) => {
                 if (value === 0) {
