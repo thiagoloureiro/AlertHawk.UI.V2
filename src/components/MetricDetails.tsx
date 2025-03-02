@@ -3,7 +3,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceA
 import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
-  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2 
+  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2,
+  Bot
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
@@ -378,10 +379,10 @@ Please provide a concise analysis of the monitor's performance and alert history
         <div className="text-center">
           <button
             onClick={startAnalysis}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
           >
-            <Loader2 className="w-4 h-4" />
-            Start AI Analysis
+            <Bot className="w-4 h-4" />
+            Analyze with Abby
           </button>
         </div>
       )}
