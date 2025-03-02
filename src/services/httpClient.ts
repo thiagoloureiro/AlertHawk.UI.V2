@@ -88,6 +88,22 @@ class HttpClient {
               // Store the new token
               localStorage.setItem('authToken', tokenResponse.accessToken);
               
+              // Fetch and store user info
+              try {
+                const userEmail = currentAccounts[0].username;
+                const userResponse = await this.axiosInstance.get(
+                  `${import.meta.env.VITE_APP_AUTH_API_URL}api/user/${userEmail}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${tokenResponse.accessToken}`
+                    }
+                  }
+                );
+                localStorage.setItem('userInfo', JSON.stringify(userResponse.data));
+              } catch (error) {
+                console.error('Failed to fetch user info:', error);
+              }
+              
               // Retry the failed request with the new token
               const config = error.config;
               if (config) {

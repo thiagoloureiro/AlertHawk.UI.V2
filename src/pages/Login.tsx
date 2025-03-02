@@ -153,9 +153,28 @@ export function Login({ onLogin }: LoginProps) {
           password: password
         }
       );
-      console.log(response.data.token);
+      
       // Store the token in localStorage
       localStorage.setItem('authToken', response.data.token);
+
+      try {
+        // Fetch user info using the new token
+        const userResponse = await axios.get<UserInfo>(
+          `${import.meta.env.VITE_APP_AUTH_API_URL}api/user/${email}`,
+          {
+            headers: {
+              Authorization: `Bearer ${response.data.token}`
+            }
+          }
+        );
+
+        // Store user info in localStorage
+        localStorage.setItem('userInfo', JSON.stringify(userResponse.data));
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        // Even if user info fetch fails, we can still proceed with login
+        // The httpClient interceptor will handle re-fetching user info later
+      }
       
       // Handle successful login
       onLogin();
