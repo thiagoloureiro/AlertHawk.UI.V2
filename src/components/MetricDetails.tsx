@@ -763,8 +763,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           <Link 
             to={`/monitor/${metric.id}/alerts`}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                     bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800
+                     text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40
                      transition-colors duration-200"
           >
             <Bell className="w-4 h-4" />
