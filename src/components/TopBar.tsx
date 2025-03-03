@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles } from 'lucide-react';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
+import { WhatsNewModal } from './WhatsNewModal';
 
 interface TopBarProps {
   isDarkTheme: boolean;
@@ -18,6 +19,7 @@ interface UserInfo {
 export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
   const { accounts, instance } = useMsal();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   
@@ -130,6 +132,16 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
                 </div>
               )}
               <button
+                onClick={() => {
+                  setShowWhatsNew(true);
+                  setShowUserMenu(false);
+                }}
+                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                What's New
+              </button>
+              <button
                 onClick={handleLogout}
                 className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 flex items-center gap-2"
               >
@@ -140,6 +152,8 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
           )}
         </div>
       </div>
+
+      {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
     </div>
   );
 }
