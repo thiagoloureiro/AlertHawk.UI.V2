@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Sun, Moon, LogOut } from 'lucide-react';
+import { Sun, Moon, LogOut } from 'lucide-react';
 import { useMsal } from "@azure/msal-react";
+import { msalService } from '../services/msalService';
 
 interface TopBarProps {
   isDarkTheme: boolean;
@@ -17,6 +18,7 @@ interface UserInfo {
 export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
   const { accounts, instance } = useMsal();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   
   const userInfo: UserInfo | null = (() => {
@@ -42,6 +44,14 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
       window.location.href = '/login';
     }
   };
+
+  useEffect(() => {
+    async function fetchUserPhoto() {
+      const photo = await msalService.getUserPhoto();
+      setUserPhoto(photo);
+    }
+    fetchUserPhoto();
+  }, []);
 
   // Add click outside handler
   useEffect(() => {
@@ -95,8 +105,12 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
             onClick={() => setShowUserMenu(!showUserMenu)} 
             className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white">
-              {displayName.charAt(0).toUpperCase()}
+            <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white overflow-hidden">
+              {userPhoto ? (
+                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                displayName.charAt(0).toUpperCase()
+              )}
             </div>
             <div className="text-left">
               <div className="text-sm font-medium dark:text-white text-gray-900">
