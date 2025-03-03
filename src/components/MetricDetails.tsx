@@ -62,13 +62,43 @@ interface MonitorAlert {
 }
 
 const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeStamp: string }[] }) => {
+  console.log('StatusTimeline - Received historyData:', historyData);
   const userTimeZone = localStorage.getItem('userTimezone') || 
     Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   // Sort chronologically (older to newer) but don't limit the points
   const timelineData = [...historyData]
-    .filter(point => point.timeStamp)
-    .sort((a, b) => new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime());
+    .filter(point => {
+      try {
+        if (!point.timeStamp) {
+          console.warn('Found point without timestamp:', point);
+          return false;
+        }
+        // Validate timestamp
+        new Date(point.timeStamp);
+        return true;
+      } catch (error) {
+        console.error('Error validating point in StatusTimeline:', {
+          error,
+          point
+        });
+        return false;
+      }
+    })
+    .sort((a, b) => {
+      try {
+        return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
+      } catch (error) {
+        console.error('Error sorting points in StatusTimeline:', {
+          error,
+          pointA: a,
+          pointB: b
+        });
+        return 0;
+      }
+    });
+
+  console.log('StatusTimeline - Processed timelineData:', timelineData);
 
   return (
     <div className="mb-4">
@@ -78,43 +108,51 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
       </div>
       <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
         {timelineData.map((point, index) => {
-          const timeString = convertUTCToLocalTime(point.timeStamp);
-          
-          return (
-            <div
-              key={index}
-              className="group relative flex-1"
-            >
+          try {
+            const timeString = convertUTCToLocalTime(point.timeStamp);
+            return (
               <div
-                className={cn(
-                  "w-full h-full rounded transition-colors",
-                  point.status
-                    ? "bg-green-500 dark:bg-green-400"
-                    : "bg-red-500 dark:bg-red-400"
-                )}
-              />
-              
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                  <div>
-                    {new Intl.DateTimeFormat('default', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }).format(new Date(timeString))}
+                key={index}
+                className="group relative flex-1"
+              >
+                <div
+                  className={cn(
+                    "w-full h-full rounded transition-colors",
+                    point.status
+                      ? "bg-green-500 dark:bg-green-400"
+                      : "bg-red-500 dark:bg-red-400"
+                  )}
+                />
+                
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                  <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                    <div>
+                      {new Intl.DateTimeFormat('default', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).format(new Date(timeString))}
+                    </div>
+                    <div>Status: {point.status ? 'Online' : 'Offline'}</div>
                   </div>
-                  <div>Status: {point.status ? 'Online' : 'Offline'}</div>
+                  {/* Arrow */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
                 </div>
-                {/* Arrow */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
               </div>
-            </div>
-          );
+            );
+          } catch (error) {
+            console.error('Error rendering timeline point:', {
+              error,
+              point,
+              index
+            });
+            return null;
+          }
         })}
       </div>
       {/* Timeline labels */}
@@ -416,11 +454,31 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     if (!metric) return;
     
     try {
+      console.log('Loading history data for period:', period);
       setIsLoadingHistory(true);
       const data = await monitorService.getMonitorHistory(metric.id, period.days);
-      setHistoryData(data);
+      console.log('Received history data:', data);
+      
+      // Validate timestamps before setting state
+      const validatedData = data.map(item => {
+        try {
+          // Try to create a Date object to validate the timestamp
+          new Date(item.timeStamp);
+          return item;
+        } catch (error) {
+          console.error('Invalid timestamp found:', {
+            timestamp: item.timeStamp,
+            item
+          });
+          return null;
+        }
+      }).filter(Boolean) as MonitorHistoryData[];
+
+      console.log('Validated history data:', validatedData);
+      setHistoryData(validatedData);
     } catch (error) {
       console.error('Failed to load history data:', error);
+      toast.error('Failed to load history data', { position: 'bottom-right' });
     } finally {
       setIsLoadingHistory(false);
     }
@@ -685,24 +743,39 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Add this function before the return statement
   const getOfflinePeriods = (data: MonitorHistoryData[]) => {
+    console.log('getOfflinePeriods - Input data:', data);
     const periods: { start: string; end: string; }[] = [];
     let currentPeriod: { start: string; end: string; } | null = null;
 
     data.forEach((point, index) => {
-      if (point.responseTime === 0 && !currentPeriod) {
-        currentPeriod = { start: point.timeStamp, end: point.timeStamp };
-      } else if (point.responseTime === 0 && currentPeriod) {
-        currentPeriod.end = point.timeStamp;
-      } else if (point.responseTime !== 0 && currentPeriod) {
-        periods.push(currentPeriod);
-        currentPeriod = null;
+      try {
+        if (point.responseTime === 0 && !currentPeriod) {
+          console.log('Starting new offline period at index:', index, 'timestamp:', point.timeStamp);
+          currentPeriod = { start: point.timeStamp, end: point.timeStamp };
+        } else if (point.responseTime === 0 && currentPeriod) {
+          console.log('Extending offline period at index:', index, 'timestamp:', point.timeStamp);
+          currentPeriod.end = point.timeStamp;
+        } else if (point.responseTime !== 0 && currentPeriod) {
+          console.log('Ending offline period at index:', index, 'timestamp:', point.timeStamp);
+          periods.push(currentPeriod);
+          currentPeriod = null;
+        }
+      } catch (error) {
+        console.error('Error processing point in getOfflinePeriods:', {
+          error,
+          point,
+          index,
+          currentPeriod
+        });
       }
     });
 
     if (currentPeriod) {
+      console.log('Adding final offline period:', currentPeriod);
       periods.push(currentPeriod);
     }
 
+    console.log('getOfflinePeriods - Output periods:', periods);
     return periods;
   };
 
