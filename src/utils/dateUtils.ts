@@ -1,6 +1,16 @@
 export const convertUTCToLocal = (utcTimestamp: string) => {
-  // Create Date object from UTC string and explicitly handle as UTC
-  const utcDate = new Date(utcTimestamp + 'Z'); // Append 'Z' to ensure UTC interpretation
+  // Check if the timestamp already ends with Z or has timezone offset
+  const isUTC = utcTimestamp.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(utcTimestamp);
+  
+  // Create Date object from UTC string
+  const utcDate = new Date(isUTC ? utcTimestamp : utcTimestamp + 'Z');
+  
+  // Validate the date
+  if (isNaN(utcDate.getTime())) {
+    console.error('Invalid date:', utcTimestamp);
+    return 'Invalid Date';
+  }
+
   const userTimeZone = localStorage.getItem('userTimezone') || 
     Intl.DateTimeFormat().resolvedOptions().timeZone;
   
@@ -17,7 +27,18 @@ export const convertUTCToLocal = (utcTimestamp: string) => {
 };
 
 export const convertUTCToLocalTime = (utcTimestamp: string) => {
-  const utcDate = new Date(utcTimestamp + 'Z'); // Ensure it's treated as UTC
+  // Check if the timestamp already ends with Z or has timezone offset
+  const isUTC = utcTimestamp.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(utcTimestamp);
+  
+  // Create Date object from UTC string
+  const utcDate = new Date(isUTC ? utcTimestamp : utcTimestamp + 'Z');
+  
+  // Validate the date
+  if (isNaN(utcDate.getTime())) {
+    console.error('Invalid date:', utcTimestamp);
+    return 'Invalid Date';
+  }
+
   const userTimeZone = localStorage.getItem('userTimezone') || 
     Intl.DateTimeFormat().resolvedOptions().timeZone;
 

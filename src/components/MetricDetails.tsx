@@ -951,9 +951,14 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         )}
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
-            data={[...historyData].sort((a, b) => 
-              new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime()
-            )}
+            data={[...historyData].sort((a, b) => {
+              try {
+                return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
+              } catch (error) {
+                console.error('Error sorting timestamps:', error);
+                return 0;
+              }
+            })}
           >
             {getOfflinePeriods(historyData).map((period, index) => (
               <ReferenceArea
@@ -966,14 +971,19 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <XAxis 
               dataKey="timeStamp" 
               tickFormatter={(time) => {
-                const localTime = convertUTCToLocalTime(time);
-                return new Date(localTime).toLocaleString('default', {
-                  month: 'short',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                });
+                try {
+                  const localTime = convertUTCToLocalTime(time);
+                  return new Date(localTime).toLocaleString('default', {
+                    month: 'short',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  });
+                } catch (error) {
+                  console.error('Error formatting tick:', error);
+                  return 'Invalid Date';
+                }
               }}
               angle={-45}
               textAnchor="end"
@@ -985,16 +995,21 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <YAxis />
             <Tooltip
               labelFormatter={(label) => {
-                const localTime = convertUTCToLocalTime(label as string);
-                return new Date(localTime).toLocaleString('default', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false
-                });
+                try {
+                  const localTime = convertUTCToLocalTime(label as string);
+                  return new Date(localTime).toLocaleString('default', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                  });
+                } catch (error) {
+                  console.error('Error formatting tooltip:', error);
+                  return 'Invalid Date';
+                }
               }}
               formatter={(value, name, props) => {
                 if (value === 0) {
