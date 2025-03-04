@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
-  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, BarChart, Loader2,
+  Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, Loader2,
   Bot, RefreshCw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -17,7 +17,6 @@ import {
   UpdateMonitorTcpPayload 
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
-import { MetricsList } from './MetricsList';
 import { aiService, msalInstance } from '../services/aiService';
 import MarkdownIt from 'markdown-it';
 import { monitoringHttp } from '../services/httpClient';
@@ -67,8 +66,35 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
 
   // Sort chronologically (older to newer) but don't limit the points
   const timelineData = [...historyData]
-    .filter(point => point.timeStamp)
-    .sort((a, b) => new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime());
+    .filter(point => {
+      try {
+        if (!point.timeStamp) {
+          console.warn('Found point without timestamp:', point);
+          return false;
+        }
+        // Validate timestamp
+        new Date(point.timeStamp);
+        return true;
+      } catch (error) {
+        console.error('Error validating point in StatusTimeline:', {
+          error,
+          point
+        });
+        return false;
+      }
+    })
+    .sort((a, b) => {
+      try {
+        return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
+      } catch (error) {
+        console.error('Error sorting points in StatusTimeline:', {
+          error,
+          pointA: a,
+          pointB: b
+        });
+        return 0;
+      }
+    });
 
   return (
     <div className="mb-4">
@@ -78,43 +104,93 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
       </div>
       <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
         {timelineData.map((point, index) => {
-          const timeString = convertUTCToLocalTime(point.timeStamp);
-          
-          return (
-            <div
-              key={index}
-              className="group relative flex-1"
-            >
+          try {
+            const timeString = convertUTCToLocalTime(point.timeStamp);
+            return (
               <div
-                className={cn(
-                  "w-full h-full rounded transition-colors",
-                  point.status
-                    ? "bg-green-500 dark:bg-green-400"
-                    : "bg-red-500 dark:bg-red-400"
-                )}
-              />
-              
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                  <div>
-                    {new Intl.DateTimeFormat('default', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }).format(new Date(timeString))}
+                key={index}
+                className="group relative flex-1"
+              >
+                <div
+                  className={cn(
+                    "w-full h-full rounded transition-colors",
+                    point.status
+                      ? "bg-green-500 dark:bg-green-400"
+                      : "bg-red-500 dark:bg-red-400"
+                  )}
+                />
+                
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                  <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                    <div>
+                      {(() => {
+                        try {
+                          // First try parsing the date directly
+                          let date = new Date(timeString);
+                          
+                          // If direct parsing fails, try different formats
+                          if (isNaN(date.getTime())) {
+                            const [datePart, timePart] = timeString.split(', ');
+                            const [part1, part2, year] = datePart.split('/');
+                            const [hours, minutes, seconds] = timePart.split(':');
+
+                            // Try both DD/MM and MM/DD formats
+                            const attempts = [
+                              // Try as DD/MM/YYYY
+                              `${year}-${part2.padStart(2, '0')}-${part1.padStart(2, '0')}T${hours}:${minutes}:${seconds}`,
+                              // Try as MM/DD/YYYY
+                              `${year}-${part1.padStart(2, '0')}-${part2.padStart(2, '0')}T${hours}:${minutes}:${seconds}`
+                            ];
+
+                            // Try each format until one works
+                            for (const attempt of attempts) {
+                              const testDate = new Date(attempt);
+                              if (!isNaN(testDate.getTime())) {
+                                date = testDate;
+                                break;
+                              }
+                            }
+                          }
+
+                          if (isNaN(date.getTime())) {
+                            console.warn('Invalid date:', timeString);
+                            return 'Invalid Date';
+                          }
+
+                          // Get user's locale
+                          const userLocale = navigator.language || 'en-US';
+                          
+                          return new Intl.DateTimeFormat(userLocale, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          }).format(date);
+                        } catch (error) {
+                          console.error('Error formatting date:', error);
+                          return 'Invalid Date';
+                        }
+                      })()}
+                    </div>
+                    <div>Status: {point.status ? 'Online' : 'Offline'}</div>
                   </div>
-                  <div>Status: {point.status ? 'Online' : 'Offline'}</div>
+                  {/* Arrow */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
                 </div>
-                {/* Arrow */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
               </div>
-            </div>
-          );
+            );
+          } catch (error) {
+            console.error('Error rendering timeline point:', {
+              error,
+              point,
+              index
+            });
+            return null;
+          }
         })}
       </div>
       {/* Timeline labels */}
@@ -151,31 +227,6 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
         label: 'Unknown'
       };
   }
-};
-
-const UptimeBlock = ({ label, value }: { label: string; value: number }) => {
-  const getColorClass = (uptime: number) => {
-    if (uptime >= 99) return "bg-green-500 dark:bg-green-400";
-    if (uptime >= 95) return "bg-yellow-500 dark:bg-yellow-400";
-    return "bg-red-500 dark:bg-red-400";
-  };
-
-  return (
-    <div className="flex flex-col items-center">
-      <div className="w-full h-[76px] dark:bg-gray-700 bg-gray-100 rounded-lg p-2 flex flex-col items-center justify-center">
-        <div className={`text-lg font-bold mb-1 ${value >= 95 ? 'dark:text-white text-gray-900' : 'text-red-600 dark:text-red-400'}`}>
-          {value.toFixed(2)}%
-        </div>
-        <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-          <div 
-            className={`h-full rounded-full transition-all duration-300 ${getColorClass(value)}`}
-            style={{ width: `${value}%` }}
-          />
-        </div>
-      </div>
-      <span className="mt-1.5 text-xs dark:text-gray-400 text-gray-600">{label}</span>
-    </div>
-  );
 };
 
 // Add the AiResponse component
@@ -292,9 +343,12 @@ Please provide a concise analysis of the monitor's performance and alert history
       setMessages('');
       
       const response = await aiService.getNewConversationId();
+      if (!response?.conversation_id) {
+        throw new Error('Failed to get conversation ID');
+      }
       setConversationId(response.conversation_id);
       
-      if (response.conversation_id && (group || metric)) {
+      if (group || metric) {
         setIsAnalyzing(true);
         const prompt = generateAnalysisPrompt();
         await aiService.chat(response.conversation_id, prompt, (message) => {
@@ -418,9 +472,25 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     try {
       setIsLoadingHistory(true);
       const data = await monitorService.getMonitorHistory(metric.id, period.days);
-      setHistoryData(data);
+      // Validate timestamps before setting state
+      const validatedData = data.map(item => {
+        try {
+          // Try to create a Date object to validate the timestamp
+          new Date(item.timeStamp);
+          return item;
+        } catch {
+          console.error('Invalid timestamp found:', {
+            timestamp: item.timeStamp,
+            item
+          });
+          return null;
+        }
+      }).filter(Boolean) as MonitorHistoryData[];
+
+      setHistoryData(validatedData);
     } catch (error) {
       console.error('Failed to load history data:', error);
+      toast.error('Failed to load history data', { position: 'bottom-right' });
     } finally {
       setIsLoadingHistory(false);
     }
@@ -543,47 +613,6 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     );
   }
 
-  // Rest of the existing MetricDetails component code for individual monitors
-  const typeInfo = getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused);
-
-  const uptimeMetrics = [
-    { label: '1 Hour', value: metric.monitorStatusDashboard.uptime1Hr },
-    { label: '24 Hours', value: metric.monitorStatusDashboard.uptime24Hrs },
-    { label: '7 Days', value: metric.monitorStatusDashboard.uptime7Days },
-    { label: '30 Days', value: metric.monitorStatusDashboard.uptime30Days },
-    { label: '3 Months', value: metric.monitorStatusDashboard.uptime3Months },
-    { label: '6 Months', value: metric.monitorStatusDashboard.uptime6Months },
-  ];
-
-  // Transform history data and find offline periods
-  const chartData = metric.monitorStatusDashboard.historyData
-    .slice()
-    .reverse()
-    .map((item, index) => ({
-      time: convertUTCToLocalTime(item.timeStamp),
-      responseTime: item.status ? item.responseTime : 0,
-      status: item.status,
-      index,
-      // Store original UTC time for reference if needed
-      utcTime: item.timeStamp
-    }));
-
-  // Find offline periods (consecutive offline points)
-  const offlinePeriods = chartData.reduce((periods: { start: number; end: number }[], point, index) => {
-    if (!point.status) {
-      const currentPeriod = periods.length > 0 ? periods[periods.length - 1] : null;
-      
-      if (currentPeriod && currentPeriod.end === index - 1) {
-        // Extend current period
-        currentPeriod.end = index;
-      } else {
-        // Start new period
-        periods.push({ start: index, end: index });
-      }
-    }
-    return periods;
-  }, []);
-
   // Add delete handler
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -689,13 +718,22 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     let currentPeriod: { start: string; end: string; } | null = null;
 
     data.forEach((point, index) => {
-      if (point.responseTime === 0 && !currentPeriod) {
-        currentPeriod = { start: point.timeStamp, end: point.timeStamp };
-      } else if (point.responseTime === 0 && currentPeriod) {
-        currentPeriod.end = point.timeStamp;
-      } else if (point.responseTime !== 0 && currentPeriod) {
-        periods.push(currentPeriod);
-        currentPeriod = null;
+      try {
+        if (point.responseTime === 0 && !currentPeriod) {
+          currentPeriod = { start: point.timeStamp, end: point.timeStamp };
+        } else if (point.responseTime === 0 && currentPeriod) {
+          currentPeriod.end = point.timeStamp;
+        } else if (point.responseTime !== 0 && currentPeriod) {
+          periods.push(currentPeriod);
+          currentPeriod = null;
+        }
+      } catch (error) {
+        console.error('Error processing point in getOfflinePeriods:', {
+          error,
+          point,
+          index,
+          currentPeriod
+        });
       }
     });
 
@@ -1011,7 +1049,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
                   return 'Invalid Date';
                 }
               }}
-              formatter={(value, name, props) => {
+              formatter={(value) => {
                 if (value === 0) {
                   return [<span style={{ color: '#EF4444' }}>Offline</span>, 'Status'];
                 }
@@ -1085,7 +1123,6 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             try {
               updatedMonitor.id = metric.id;
               updatedMonitor.monitorId = metric.id;
-              console.log(updatedMonitor.monitorRegion);
               const success = metric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);
