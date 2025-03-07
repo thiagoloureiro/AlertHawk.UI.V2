@@ -101,13 +101,14 @@ export function MonitorGroups() {
     try {
       setIsLoading(true);
       const groupList = await monitorService.getMonitorGroupListByUser();
-      setGroups(groupList);
-    } catch (err) {
-      console.error('Failed to fetch monitor groups:', err);
+      setGroups(groupList || []); // Ensure we always set an array, even if groupList is null/undefined
+    } catch (error: unknown) {
+      console.error('Failed to fetch monitor groups:', error);
       setNotification({
         type: 'error',
         message: 'Failed to load monitor groups'
       });
+      setGroups([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
