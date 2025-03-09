@@ -115,10 +115,28 @@ export interface TcpMonitorDetails {
 }
 
 export interface MonitorK8sPayload {
-  monitorId: number;
-  clusterName: string;
-  kubeConfig: string;
-  lastStatus: boolean;
+  Id: number;
+  MonitorId: number;
+  MonitorTypeId: number;
+  MonitorType: {
+    Id: number;
+    Name: string;
+  };
+  Name: string;
+  HeartBeatInterval: number;
+  Retries: number;
+  Status: boolean;
+  DaysToExpireCert: number;
+  Paused: boolean;
+  UrlToCheck: string;
+  CheckCertExpiry: boolean;
+  MonitorGroup: number;
+  MonitorRegion: number;
+  ClusterName: string;
+  KubeConfig: string;
+  LastStatus: boolean;
+  MonitorEnvironment: number;
+  Base64Content: string;
 }
 
 interface HistoryRetention {
@@ -304,6 +322,10 @@ export class MonitorService {
 
   async createMonitorK8s(payload: MonitorK8sPayload): Promise<void> {
     await monitoringHttp.post('/api/Monitor/createMonitorK8s', payload);
+  }
+
+  async updateMonitorK8s(payload: MonitorK8sPayload): Promise<void> {
+    await monitoringHttp.post('/api/Monitor/updateMonitorK8s', payload);
   }
 
   async getMonitorHistory(monitorId: number, days: number): Promise<MonitorHistoryPoint[]> {

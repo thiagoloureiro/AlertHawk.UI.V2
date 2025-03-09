@@ -4,7 +4,7 @@ import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
   Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, Loader2,
-  Bot, RefreshCw
+  Bot, RefreshCw, Server
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { convertUTCToLocalTime } from '../utils/dateUtils';
@@ -220,6 +220,11 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
       return {
         icon: <Network className={`w-5 h-5 ${statusColor}`} />,
         label: 'TCP'
+      };
+    case 4:
+      return {
+        icon: <Server className={`w-5 h-5 ${statusColor}`} />,
+        label: 'Kubernetes'
       };
     default:
       return {
@@ -765,6 +770,13 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
               <Network className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
               <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
                 {`${metric.monitorTcp?.IP}:${metric.monitorTcp?.port}`}
+              </span>
+            </div>
+          ) : metric?.monitorTypeId === 4 ? (
+            <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Server className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
+              <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
+                {metric.monitorK8s?.clusterName || 'No cluster specified'}
               </span>
             </div>
           ) : metric && (

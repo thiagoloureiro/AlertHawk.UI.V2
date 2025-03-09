@@ -153,10 +153,52 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
         heartBeatInterval: parseInt(interval),
         retries: parseInt(retries),
         status: true,
-        monitorTypeId: monitorType === 'tcp' ? 3 : 1,
       };
 
-      if (monitorType === 'tcp') {
+      if (monitorType === 'k8s') {
+        // Handle file reading and base64 conversion
+        let base64Content = '';
+        if (kubeConfig) {
+          const fileContent = await kubeConfig.text();
+          base64Content = btoa(fileContent);
+        } else if (existingKubeConfig && !isEditing) {
+          // Only require existing config for new monitors
+          base64Content = existingKubeConfig;
+        } else if (!isEditing) {
+          throw new Error('KubeConfig file is required for new monitors');
+        }
+
+        const k8sPayload: MonitorK8sPayload = {
+          Id: existingMonitor?.id || 0,
+          MonitorId: existingMonitor?.id || 0,
+          MonitorTypeId: 4,
+          MonitorType: {
+            Id: 4,
+            Name: "Kubernetes"
+          },
+          Name: name,
+          HeartBeatInterval: parseInt(interval),
+          Retries: parseInt(retries),
+          Status: true,
+          DaysToExpireCert: 30,
+          Paused: false,
+          UrlToCheck: "",
+          CheckCertExpiry: false,
+          MonitorGroup: selectedGroupId,
+          MonitorRegion: selectedRegion,
+          ClusterName: clusterName,
+          KubeConfig: base64Content || null,
+          LastStatus: true,
+          MonitorEnvironment: environment,
+          Base64Content: base64Content || null
+        };
+
+        if (isEditing && onUpdate) {
+          await monitorService.updateMonitorK8s(k8sPayload);
+        } else {
+          await monitorService.createMonitorK8s(k8sPayload);
+        }
+      } else if (monitorType === 'tcp') {
         const tcpPayload: UpdateMonitorTcpPayload = {
           ...basePayload,
           monitorId: existingMonitor?.id || 0,
@@ -168,7 +210,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           checkCertExpiry: false,
           daysToExpireCert: 0,
           paused: false,
-          part: 0
+          part: 0,
+          monitorTypeId: 3,
+          lastStatus: true
         };
         
         if (isEditing && onUpdate) {
@@ -192,7 +236,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           paused: false,
           responseStatusCode: 200,
           responseTime: 0,
-          lastStatus: true
+          lastStatus: true,
+          monitorTypeId: 1
         };
 
         if (isEditing && onUpdate) {
@@ -621,7 +666,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                                  file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold
                                  file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
                                  dark:file:bg-blue-900/20 dark:file:text-blue-400"
-                        required
+                        required={!isEditing}
                       />
                       {kubeConfig && (
                         <button
