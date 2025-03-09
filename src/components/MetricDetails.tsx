@@ -659,6 +659,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     try {
       let monitorData: Monitor;
       
+      console.log('Monitor Type ID:', metric.monitorTypeId);
+      
       if (metric.monitorTypeId === 3) {
         const tcpDetails = await monitorService.getMonitorTcpDetails(metric.id);
         monitorData = {
@@ -669,6 +671,12 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           },
           urlToCheck: '',  // Required by Monitor type but not used for TCP
           monitorStatusDashboard: metric.monitorStatusDashboard
+        };
+      } else if (metric.monitorTypeId === 4) {
+        // For now, just pass the basic monitor data
+        monitorData = {
+          ...metric,
+          monitorTypeId: 4, // Ensure the type is set correctly
         };
       } else {
         // Fetch HTTP monitor details
@@ -687,6 +695,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           monitorStatusDashboard: metric.monitorStatusDashboard
         };
       }
+      
+      console.log('Monitor Data being sent to modal:', monitorData);
       
       setMonitorToEdit(monitorData);
       setShowEditModal(true);

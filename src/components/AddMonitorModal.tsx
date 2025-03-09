@@ -55,9 +55,13 @@ enum HttpMethod {
 }
 
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
+  
   const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>(
-    existingMonitor?.monitorTypeId === 3 ? 'tcp' : 'http'
+    existingMonitor?.monitorTypeId === 3 ? 'tcp' : 
+    existingMonitor?.monitorTypeId === 4 ? 'k8s' : 'http'
   );
+  
+
   const [name, setName] = useState(existingMonitor?.name || '');
   const [url, setUrl] = useState(
     existingMonitor?.monitorTypeId === 3 
@@ -87,8 +91,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
   const [headerValue, setHeaderValue] = useState('');
-  const [clusterName, setClusterName] = useState('');
+  const [clusterName, setClusterName] = useState(existingMonitor?.monitorK8s?.clusterName || '');
   const [kubeConfig, setKubeConfig] = useState<File | null>(null);
+  const [existingKubeConfig, setExistingKubeConfig] = useState(existingMonitor?.monitorK8s?.kubeConfig || '');
 
   const sortedGroups = useMemo(() => {
     return [...groups].sort((a, b) => a.name.localeCompare(b.name));

@@ -285,6 +285,13 @@ export class MonitorService {
     return response.data;
   }
 
+  async getMonitorK8sDetails(monitorId: number): Promise<MonitorK8sPayload> {
+    const response = await monitoringHttp.get<MonitorK8sPayload>(
+      `/api/Monitor/getMonitorK8sByMonitorId/${monitorId}`
+    );
+    return response.data;
+  }
+
   async cloneMonitor(monitorId: number): Promise<boolean> {
     try {
       await monitoringHttp.post(`/api/Monitor/Clone/${monitorId}`);
@@ -327,16 +334,6 @@ export class MonitorService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch HTTP monitor details:', error);
-      throw error;
-    }
-  }
-
-  async getMonitorTcpDetails(monitorId: number) {
-    try {
-      const response = await monitoringHttp.get(`/api/Monitor/getMonitorTcpByMonitorId/${monitorId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch TCP monitor details:', error);
       throw error;
     }
   }

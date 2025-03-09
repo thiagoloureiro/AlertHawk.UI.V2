@@ -127,6 +127,10 @@ export interface Monitor {
   monitorStatusDashboard: MonitorStatusDashboard;
   checkCertExpiry: boolean;
   monitorTcp?: MonitorTcp;
+  monitorK8s?: {
+    clusterName: string;
+    kubeConfig: string;
+  };
 }
 
 export interface MonitorGroup {

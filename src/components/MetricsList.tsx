@@ -170,13 +170,25 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
           }
         };
         onSelectMetric(monitorWithTcp);
+      } else if (monitor.monitorTypeId === 4) {
+        // Fetch Kubernetes details
+        const k8sDetails = await monitorService.getMonitorK8sDetails(monitor.id);
+        // Create the monitor object with K8s details
+        const monitorWithK8s: Monitor = {
+          ...monitor,
+          monitorK8s: {
+            clusterName: k8sDetails.clusterName,
+            kubeConfig: k8sDetails.kubeConfig
+          }
+        };
+        onSelectMetric(monitorWithK8s);
       } else {
         onSelectMetric(monitor);
       }
     } catch (error) {
-      console.error('Failed to fetch TCP details:', error);
+      console.error('Failed to fetch monitor details:', error);
       toast.error('Failed to load monitor details', { position: 'bottom-right' });
-      // Still select the monitor even if TCP details fail to load
+      // Still select the monitor even if details fail to load
       onSelectMetric(monitor);
     }
   };
