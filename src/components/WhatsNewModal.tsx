@@ -13,9 +13,19 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Kubernetes Support (Beta)",
+    description: "New features and bug fixing",
+    date: "March 9th, 2025",
+    features: [
+      "Kubernetes Support (Beta)",
+      "Fixed issue when user from different region cannot see the monitor",
+      "Fixed issue when user without groups tries to load groups page"
+    ]
+  },
+  {
     title: "Enhanced Monitoring Dashboard",
     description: "We've completely revamped the monitoring dashboard with new features and improved visualization.",
-    date: "March 2025",
+    date: "March 1st, 2025",
     features: [
       "Real-time status updates with live indicators",
       "Advanced filtering and sorting capabilities",
@@ -27,7 +37,7 @@ const updates: Update[] = [
   {
     title: "New UI! - V2",
     description: "A completely redesigned UI.",
-    date: "February 2025",
+    date: "February 10th, 2025",
     features: [
       "Better user experience",
       "Improved charts and monitor details",
