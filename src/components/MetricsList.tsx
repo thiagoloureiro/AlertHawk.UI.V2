@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { MonitorGroup, Monitor } from '../types';
 import { 
   AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, 
-  Search, Plus, ChevronsDown, ChevronsUp 
+  Search, Plus, ChevronsDown, ChevronsUp, Server 
 } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
@@ -31,6 +31,11 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
       return {
         icon: <Network className={`w-4 h-4 ${statusColor}`} />,
         label: 'TCP'
+      };
+    case 4:
+      return {
+        icon: <Server className={`w-4 h-4 ${statusColor}`} />,
+        label: 'Kubernetes'
       };
     default:
       return {
