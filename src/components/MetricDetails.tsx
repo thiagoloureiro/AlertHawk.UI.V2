@@ -1002,96 +1002,98 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       {/* Status Timeline */}
       <StatusTimeline historyData={historyData} />
 
-      {/* Response Time Chart */}
-      <div className="h-64 mt-6 relative">
-        {isLoadingHistory && (
-          <div className="absolute inset-0 bg-gray-900/20 dark:bg-gray-900/40 flex items-center justify-center z-10 rounded-lg">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          </div>
-        )}
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
-            data={[...historyData].sort((a, b) => {
-              try {
-                return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
-              } catch (error) {
-                console.error('Error sorting timestamps:', error);
-                return 0;
-              }
-            })}
-          >
-            {getOfflinePeriods(historyData).map((period, index) => (
-              <ReferenceArea
-                key={index}
-                x1={period.start}
-                x2={period.end}
-                fill="#EF444460"
+      {/* Response Time Chart - Only show for HTTP monitors */}
+      {metric.monitorTypeId === 1 && (
+        <div className="h-64 mt-6 relative">
+          {isLoadingHistory && (
+            <div className="absolute inset-0 bg-gray-900/20 dark:bg-gray-900/40 flex items-center justify-center z-10 rounded-lg">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+          )}
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart 
+              data={[...historyData].sort((a, b) => {
+                try {
+                  return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
+                } catch (error) {
+                  console.error('Error sorting timestamps:', error);
+                  return 0;
+                }
+              })}
+            >
+              {getOfflinePeriods(historyData).map((period, index) => (
+                <ReferenceArea
+                  key={index}
+                  x1={period.start}
+                  x2={period.end}
+                  fill="#EF444460"
+                />
+              ))}
+              <XAxis 
+                dataKey="timeStamp" 
+                tickFormatter={(time) => {
+                  try {
+                    const localTime = convertUTCToLocalTime(time);
+                    return new Date(localTime).toLocaleString('default', {
+                      month: 'short',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    });
+                  } catch (error) {
+                    console.error('Error formatting tick:', error);
+                    return 'Invalid Date';
+                  }
+                }}
+                angle={-45}
+                textAnchor="end"
+                height={70}
+                tick={{ fontSize: 12 }}
+                interval="preserveStartEnd"
+                padding={{ left: 20, right: 20 }}
               />
-            ))}
-            <XAxis 
-              dataKey="timeStamp" 
-              tickFormatter={(time) => {
-                try {
-                  const localTime = convertUTCToLocalTime(time);
-                  return new Date(localTime).toLocaleString('default', {
-                    month: 'short',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                  });
-                } catch (error) {
-                  console.error('Error formatting tick:', error);
-                  return 'Invalid Date';
-                }
-              }}
-              angle={-45}
-              textAnchor="end"
-              height={70}
-              tick={{ fontSize: 12 }}
-              interval="preserveStartEnd"
-              padding={{ left: 20, right: 20 }}
-            />
-            <YAxis />
-            <Tooltip
-              labelFormatter={(label) => {
-                try {
-                  const localTime = convertUTCToLocalTime(label as string);
-                  return new Date(localTime).toLocaleString('default', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
-                  });
-                } catch (error) {
-                  console.error('Error formatting tooltip:', error);
-                  return 'Invalid Date';
-                }
-              }}
-              formatter={(value) => {
-                if (value === 0) {
-                  return [<span style={{ color: '#EF4444' }}>Offline</span>, 'Status'];
-                }
-                return [`${value}ms`, 'Response Time'];
-              }}
-              contentStyle={{ 
-                backgroundColor: '#1F2937',
-                color: '#fff'
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="responseTime"
-              stroke="#5CD4E2"
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+              <YAxis />
+              <Tooltip
+                labelFormatter={(label) => {
+                  try {
+                    const localTime = convertUTCToLocalTime(label as string);
+                    return new Date(localTime).toLocaleString('default', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    });
+                  } catch (error) {
+                    console.error('Error formatting tooltip:', error);
+                    return 'Invalid Date';
+                  }
+                }}
+                formatter={(value) => {
+                  if (value === 0) {
+                    return [<span style={{ color: '#EF4444' }}>Offline</span>, 'Status'];
+                  }
+                  return [`${value}ms`, 'Response Time'];
+                }}
+                contentStyle={{ 
+                  backgroundColor: '#1F2937',
+                  color: '#fff'
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="responseTime"
+                stroke="#5CD4E2"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
