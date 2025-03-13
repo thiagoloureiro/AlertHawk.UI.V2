@@ -1,3 +1,6 @@
+// @ts-expect-error - No type definitions for markdown-it
+import MarkdownIt from 'markdown-it';
+
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
@@ -7,7 +10,7 @@ import {
   Bot, RefreshCw, Server
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { convertUTCToLocalTime } from '../utils/dateUtils';
+import { getLocalDateFromUTC, formatCompactDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
@@ -18,7 +21,6 @@ import {
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
 import { aiService, msalInstance } from '../services/aiService';
-import MarkdownIt from 'markdown-it';
 import { monitoringHttp } from '../services/httpClient';
 
 // Initialize markdown-it
@@ -72,9 +74,8 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
           console.warn('Found point without timestamp:', point);
           return false;
         }
-        // Validate timestamp
-        new Date(point.timeStamp);
-        return true;
+        // Validate timestamp using our new utility
+        return getLocalDateFromUTC(point.timeStamp) !== null;
       } catch (error) {
         console.error('Error validating point in StatusTimeline:', {
           error,
@@ -85,7 +86,10 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
     })
     .sort((a, b) => {
       try {
-        return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
+        const dateA = getLocalDateFromUTC(a.timeStamp);
+        const dateB = getLocalDateFromUTC(b.timeStamp);
+        if (!dateA || !dateB) return 0;
+        return dateA.getTime() - dateB.getTime();
       } catch (error) {
         console.error('Error sorting points in StatusTimeline:', {
           error,
@@ -105,7 +109,6 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
       <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
         {timelineData.map((point, index) => {
           try {
-            const timeString = convertUTCToLocalTime(point.timeStamp);
             return (
               <div
                 key={index}
@@ -126,50 +129,10 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                     <div>
                       {(() => {
                         try {
-                          // First try parsing the date directly
-                          let date = new Date(timeString);
-                          
-                          // If direct parsing fails, try different formats
-                          if (isNaN(date.getTime())) {
-                            const [datePart, timePart] = timeString.split(', ');
-                            const [part1, part2, year] = datePart.split('/');
-                            const [hours, minutes, seconds] = timePart.split(':');
-
-                            // Try both DD/MM and MM/DD formats
-                            const attempts = [
-                              // Try as DD/MM/YYYY
-                              `${year}-${part2.padStart(2, '0')}-${part1.padStart(2, '0')}T${hours}:${minutes}:${seconds}`,
-                              // Try as MM/DD/YYYY
-                              `${year}-${part1.padStart(2, '0')}-${part2.padStart(2, '0')}T${hours}:${minutes}:${seconds}`
-                            ];
-
-                            // Try each format until one works
-                            for (const attempt of attempts) {
-                              const testDate = new Date(attempt);
-                              if (!isNaN(testDate.getTime())) {
-                                date = testDate;
-                                break;
-                              }
-                            }
-                          }
-
-                          if (isNaN(date.getTime())) {
-                            console.warn('Invalid date:', timeString);
-                            return 'Invalid Date';
-                          }
-
-                          // Get user's locale
-                          const userLocale = navigator.language || 'en-US';
-                          
-                          return new Intl.DateTimeFormat(userLocale, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false
-                          }).format(date);
+                          // Use our new utility functions
+                          const date = getLocalDateFromUTC(point.timeStamp);
+                          // Use the compact date formatter
+                          return formatCompactDate(date);
                         } catch (error) {
                           console.error('Error formatting date:', error);
                           return 'Invalid Date';
@@ -236,7 +199,6 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
 
 // Add the AiResponse component
 const AiResponse = ({ group, metric }: { group?: MonitorGroup; metric?: Monitor | null }) => {
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<string>('');
@@ -351,7 +313,6 @@ Please provide a concise analysis of the monitor's performance and alert history
       if (!response?.conversation_id) {
         throw new Error('Failed to get conversation ID');
       }
-      setConversationId(response.conversation_id);
       
       if (group || metric) {
         setIsAnalyzing(true);
@@ -1033,14 +994,10 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
                 dataKey="timeStamp" 
                 tickFormatter={(time) => {
                   try {
-                    const localTime = convertUTCToLocalTime(time);
-                    return new Date(localTime).toLocaleString('default', {
-                      month: 'short',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false
-                    });
+                    // Use our new utility functions
+                    const date = getLocalDateFromUTC(time);
+                    // Use the compact date formatter
+                    return formatCompactDate(date);
                   } catch (error) {
                     console.error('Error formatting tick:', error);
                     return 'Invalid Date';
@@ -1057,16 +1014,10 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
               <Tooltip
                 labelFormatter={(label) => {
                   try {
-                    const localTime = convertUTCToLocalTime(label as string);
-                    return new Date(localTime).toLocaleString('default', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    });
+                    // Use our new utility functions
+                    const date = getLocalDateFromUTC(label as string);
+                    // Use the compact date formatter
+                    return formatCompactDate(date);
                   } catch (error) {
                     console.error('Error formatting tooltip:', error);
                     return 'Invalid Date';
