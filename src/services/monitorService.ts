@@ -137,6 +137,23 @@ export interface MonitorK8sPayload {
   LastStatus: boolean;
   MonitorEnvironment: number;
   Base64Content: string;
+  monitorK8sNodes?: {
+    nodeName: string;
+    containerRuntimeProblem: boolean;
+    kernelDeadlock: boolean;
+    kubeletProblem: boolean;
+    frequentUnregisterNetDevice: boolean;
+    filesystemCorruptionProblem: boolean;
+    readonlyFilesystem: boolean;
+    frequentKubeletRestart: boolean;
+    vmEventScheduled: boolean;
+    frequentDockerRestart: boolean;
+    frequentContainerdRestart: boolean;
+    memoryPressure: boolean;
+    diskPressure: boolean;
+    pidPressure: boolean;
+    ready: boolean;
+  }[];
 }
 
 interface HistoryRetention {

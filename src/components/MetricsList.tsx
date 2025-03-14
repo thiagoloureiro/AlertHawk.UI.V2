@@ -182,8 +182,9 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
         const monitorWithK8s: Monitor = {
           ...monitor,
           monitorK8s: {
-            clusterName: k8sDetails.clusterName,
-            kubeConfig: k8sDetails.kubeConfig
+            clusterName: k8sDetails.ClusterName,
+            kubeConfig: k8sDetails.KubeConfig,
+            monitorK8sNodes: k8sDetails.monitorK8sNodes
           }
         };
         onSelectMetric(monitorWithK8s);

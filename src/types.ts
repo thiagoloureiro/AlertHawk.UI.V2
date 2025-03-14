@@ -112,6 +112,30 @@ export interface MonitorTcp {
   port: number;
 }
 
+export interface MonitorK8s {
+  clusterName: string;
+  kubeConfig: string;
+  monitorK8sNodes?: MonitorK8sNode[];
+}
+
+export interface MonitorK8sNode {
+  nodeName: string;
+  containerRuntimeProblem: boolean;
+  kernelDeadlock: boolean;
+  kubeletProblem: boolean;
+  frequentUnregisterNetDevice: boolean;
+  filesystemCorruptionProblem: boolean;
+  readonlyFilesystem: boolean;
+  frequentKubeletRestart: boolean;
+  vmEventScheduled: boolean;
+  frequentDockerRestart: boolean;
+  frequentContainerdRestart: boolean;
+  memoryPressure: boolean;
+  diskPressure: boolean;
+  pidPressure: boolean;
+  ready: boolean;
+}
+
 export interface Monitor {
   id: number;
   monitorTypeId: number;
@@ -127,10 +151,7 @@ export interface Monitor {
   monitorStatusDashboard: MonitorStatusDashboard;
   checkCertExpiry: boolean;
   monitorTcp?: MonitorTcp;
-  monitorK8s?: {
-    clusterName: string;
-    kubeConfig: string;
-  };
+  monitorK8s?: MonitorK8s;
 }
 
 export interface MonitorGroup {

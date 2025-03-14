@@ -3,11 +3,11 @@ import MarkdownIt from 'markdown-it';
 
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
-import { Monitor, MonitorGroup, MonitorHistoryData } from '../types';
+import { Monitor, MonitorGroup, MonitorHistoryData, MonitorK8sNode } from '../types';
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
   Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, Loader2,
-  Bot, RefreshCw, Server
+  Bot, RefreshCw, Server, Check, X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getLocalDateFromUTC, formatCompactDate } from '../utils/dateUtils';
@@ -410,6 +410,93 @@ Please provide a concise analysis of the monitor's performance and alert history
   );
 };
 
+// Add the KubernetesNodeInfo component
+const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
+  // Group node status items into categories
+  const statusGroups = [
+    {
+      title: 'Node Status',
+      items: [
+        { label: 'Ready', status: node.ready, positive: true },
+        { label: 'Memory Pressure', status: node.memoryPressure, positive: false },
+        { label: 'Disk Pressure', status: node.diskPressure, positive: false },
+        { label: 'PID Pressure', status: node.pidPressure, positive: false },
+      ]
+    },
+    {
+      title: 'Runtime Issues',
+      items: [
+        { label: 'Container Runtime', status: node.containerRuntimeProblem, positive: false },
+        { label: 'Kernel Deadlock', status: node.kernelDeadlock, positive: false },
+        { label: 'Kubelet Problem', status: node.kubeletProblem, positive: false },
+      ]
+    },
+    {
+      title: 'Filesystem Issues',
+      items: [
+        { label: 'Filesystem Corruption', status: node.filesystemCorruptionProblem, positive: false },
+        { label: 'Readonly Filesystem', status: node.readonlyFilesystem, positive: false },
+      ]
+    },
+    {
+      title: 'Restart Issues',
+      items: [
+        { label: 'Frequent Kubelet Restart', status: node.frequentKubeletRestart, positive: false },
+        { label: 'Frequent Docker Restart', status: node.frequentDockerRestart, positive: false },
+        { label: 'Frequent Containerd Restart', status: node.frequentContainerdRestart, positive: false },
+      ]
+    },
+    {
+      title: 'Network Issues',
+      items: [
+        { label: 'Frequent Unregister Net Device', status: node.frequentUnregisterNetDevice, positive: false },
+        { label: 'VM Event Scheduled', status: node.vmEventScheduled, positive: false },
+      ]
+    }
+  ];
+
+  return (
+    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+        Node: {node.nodeName}
+      </h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {statusGroups.map((group) => (
+          <div key={group.title} className="space-y-3">
+            <h4 className="text-md font-medium dark:text-gray-300 text-gray-700">
+              {group.title}
+            </h4>
+            <div className="space-y-2">
+              {group.items.map((item) => {
+                const isPositive = item.positive ? item.status : !item.status;
+                return (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-sm dark:text-gray-400 text-gray-600">
+                      {item.label}
+                    </span>
+                    <div className={`flex items-center ${
+                      isPositive 
+                        ? 'text-green-500 dark:text-green-400' 
+                        : 'text-red-500 dark:text-red-400'
+                    }`}>
+                      {isPositive ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export function MetricDetails({ metric, group }: MetricDetailsProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -424,13 +511,55 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [k8sDetails, setK8sDetails] = useState<{
+    monitorId: number;
+    clusterName: string;
+    kubeConfig: string;
+    lastStatus: boolean;
+    monitorK8sNodes: MonitorK8sNode[];
+    id: number;
+    monitorTypeId: number;
+    name: string;
+    heartBeatInterval: number;
+    retries: number;
+    status: boolean;
+    daysToExpireCert: number;
+    paused: boolean;
+    monitorRegion: number;
+    monitorEnvironment: number;
+    checkCertExpiry: boolean;
+    monitorGroup: number;
+  } | null>(null);
+  const [isLoadingK8s, setIsLoadingK8s] = useState(false);
 
   // Load history data when metric or period changes
   useEffect(() => {
     if (metric) {
       loadHistoryData(selectedPeriod);
+      
+      // Load Kubernetes details if this is a Kubernetes monitor
+      if (metric.monitorTypeId === 4) {
+        loadK8sDetails();
+      }
     }
   }, [selectedPeriod, metric?.id]);
+
+  // Add function to load Kubernetes details
+  const loadK8sDetails = async () => {
+    if (!metric || metric.monitorTypeId !== 4) return;
+    
+    try {
+      setIsLoadingK8s(true);
+      const response = await monitoringHttp.get(`/api/Monitor/getMonitorK8sByMonitorId/${metric.id}`);
+      console.log('Kubernetes details:', response.data);
+      setK8sDetails(response.data);
+    } catch (error) {
+      console.error('Failed to load Kubernetes details:', error);
+      toast.error('Failed to load Kubernetes details', { position: 'bottom-right' });
+    } finally {
+      setIsLoadingK8s(false);
+    }
+  };
 
   const loadHistoryData = async (period: TimePeriod) => {
     if (!metric) return;
@@ -470,6 +599,11 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       setIsRefreshing(true);
       // Refresh monitor history data
       await loadHistoryData(selectedPeriod);
+      
+      // Refresh Kubernetes details if applicable
+      if (metric.monitorTypeId === 4) {
+        await loadK8sDetails();
+      }
       
       // Refresh monitor details
       await monitorService.getDashboardGroups(metric.monitorEnvironment);
@@ -563,7 +697,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         </div>
 
         {/* AI Response Component */}
-        <AiResponse group={group} metric={metric} />
+        <AiResponse group={group} metric={null} />
       </div>
     );
   }
@@ -639,10 +773,16 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           monitorStatusDashboard: metric.monitorStatusDashboard
         };
       } else if (metric.monitorTypeId === 4) {
-        // For now, just pass the basic monitor data
+        // Fetch Kubernetes monitor details
+        const k8sDetails = await monitorService.getMonitorK8sDetails(metric.id);
         monitorData = {
           ...metric,
-          monitorTypeId: 4, // Ensure the type is set correctly
+          monitorTypeId: 4,
+          monitorK8s: {
+            clusterName: k8sDetails.ClusterName,
+            kubeConfig: k8sDetails.KubeConfig,
+            monitorK8sNodes: k8sDetails.monitorK8sNodes
+          }
         };
       } else {
         // Fetch HTTP monitor details
@@ -718,6 +858,30 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     }
 
     return periods;
+  };
+
+  // Add this before the return statement, after the getOfflinePeriods function
+  const renderK8sNodes = () => {
+    if (!k8sDetails || !k8sDetails.monitorK8sNodes || k8sDetails.monitorK8sNodes.length === 0) {
+      return (
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center justify-center p-4">
+            <span className="text-gray-500 dark:text-gray-400">No Kubernetes nodes found</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+          Kubernetes Nodes for {k8sDetails.clusterName}
+        </h2>
+        {k8sDetails.monitorK8sNodes.map((node: MonitorK8sNode, index: number) => (
+          <KubernetesNodeInfo key={index} node={node} />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -1045,6 +1209,23 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Kubernetes Nodes - Only show for Kubernetes monitors */}
+      {metric.monitorTypeId === 4 && (
+        <div className="mt-6 relative">
+          {isLoadingK8s ? (
+            <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500 mr-2" />
+              <span className="text-gray-600 dark:text-gray-300">Loading Kubernetes data...</span>
+            </div>
+          ) : (
+            renderK8sNodes()
+          )}
+        </div>
+      )}
+
+      {/* AI Response Component - Only show for groups, not for individual monitors */}
+      {group && !metric && <AiResponse group={group} metric={null} />}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
