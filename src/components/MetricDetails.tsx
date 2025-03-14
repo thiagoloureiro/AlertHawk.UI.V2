@@ -552,7 +552,31 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       setIsLoadingK8s(true);
       const response = await monitoringHttp.get(`/api/Monitor/getMonitorK8sByMonitorId/${metric.id}`);
       console.log('Kubernetes details:', response.data);
-      setK8sDetails(response.data);
+      console.log('Cluster name from API:', response.data.clusterName || response.data.ClusterName);
+      
+      // Normalize the response data to ensure consistent property names
+      const normalizedData = {
+        ...response.data,
+        monitorId: response.data.monitorId || response.data.MonitorId,
+        clusterName: response.data.clusterName || response.data.ClusterName,
+        kubeConfig: response.data.kubeConfig || response.data.KubeConfig,
+        lastStatus: response.data.lastStatus || response.data.LastStatus,
+        monitorK8sNodes: response.data.monitorK8sNodes || [],
+        id: response.data.id || response.data.Id,
+        monitorTypeId: response.data.monitorTypeId || response.data.MonitorTypeId,
+        name: response.data.name || response.data.Name,
+        heartBeatInterval: response.data.heartBeatInterval || response.data.HeartBeatInterval,
+        retries: response.data.retries || response.data.Retries,
+        status: response.data.status || response.data.Status,
+        daysToExpireCert: response.data.daysToExpireCert || response.data.DaysToExpireCert,
+        paused: response.data.paused || response.data.Paused,
+        monitorRegion: response.data.monitorRegion || response.data.MonitorRegion,
+        monitorEnvironment: response.data.monitorEnvironment || response.data.MonitorEnvironment,
+        checkCertExpiry: response.data.checkCertExpiry || response.data.CheckCertExpiry,
+        monitorGroup: response.data.monitorGroup || response.data.MonitorGroup
+      };
+      
+      setK8sDetails(normalizedData);
     } catch (error) {
       console.error('Failed to load Kubernetes details:', error);
       toast.error('Failed to load Kubernetes details', { position: 'bottom-right' });
@@ -901,7 +925,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <Server className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
               <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {metric.monitorK8s?.clusterName || 'No cluster specified'}
+                {k8sDetails?.clusterName || metric.monitorK8s?.clusterName || 'No cluster specified'}
               </span>
             </div>
           ) : metric && (
