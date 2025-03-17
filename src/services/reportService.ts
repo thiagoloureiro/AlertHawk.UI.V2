@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://monitoring.alerthawk.net';
+const API_URL = import.meta.env.VITE_APP_MONITORING_API_URL;
 const API_KEY = 'apikey';
 
 const reportHttp = axios.create({
