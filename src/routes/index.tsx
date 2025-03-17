@@ -8,11 +8,17 @@ import { NotificationManagement } from '../pages/NotificationManagement';
 import { UserManagement } from '../pages/UserManagement';
 import { Administration } from '../pages/Administration';
 import { Settings } from '../pages/Settings';
+import { StatusDashboard } from '../pages/StatusDashboard';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/status" element={<StatusDashboard />} />
+      <Route path="/status/:monitorId/:hours" element={<StatusDashboard />} />
+
+      {/* Protected Routes */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/dashboard/:monitorId" element={<MonitorDetails />} />

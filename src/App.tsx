@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AppRoutes } from './routes';
 import { Login } from './pages/Login';
@@ -14,7 +14,7 @@ interface UserInfo {
   isAdmin: boolean;
 }
 
-export default function App() {
+function AppContent() {
   const { accounts } = useMsal();
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('authToken') !== null;
@@ -30,6 +30,9 @@ export default function App() {
     if (saved === 'dark') return true;
     return true; // default to dark theme
   });
+
+  const location = useLocation();
+  const isStatusPage = location.pathname.startsWith('/status');
 
   // Effect to check and fetch user info if needed
   useEffect(() => {
@@ -88,17 +91,34 @@ export default function App() {
     setIsAuthenticated(true);
   };
 
+  // If it's the status page, render without authentication or layout
+  if (isStatusPage) {
+    return (
+      <div className={isDarkTheme ? 'dark' : ''}>
+        <AppRoutes />
+      </div>
+    );
+  }
+
+  // For login page
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
 
+  // For protected routes
+  return (
+    <div className={isDarkTheme ? 'dark' : ''}>
+      <Layout isDarkTheme={isDarkTheme} onThemeToggle={() => setIsDarkTheme(!isDarkTheme)}>
+        <AppRoutes />
+      </Layout>
+    </div>
+  );
+}
+
+export default function App() {
   return (
     <BrowserRouter>
-      <div className={`${isDarkTheme ? 'dark' : ''}`}>
-        <Layout isDarkTheme={isDarkTheme} onThemeToggle={() => setIsDarkTheme(!isDarkTheme)}>
-          <AppRoutes />
-        </Layout>
-      </div>
+      <AppContent />
       <Toaster 
         position="bottom-right" 
         toastOptions={{
