@@ -16,6 +16,7 @@ interface UptimeReport {
   totalOnlineMinutes: number;
   totalOfflineMinutes: number;
   uptimePercentage: number;
+  monitorStatus: boolean;
 }
 
 const reportService = {

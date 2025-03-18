@@ -9,6 +9,7 @@ interface UptimeReport {
   totalOnlineMinutes: number;
   totalOfflineMinutes: number;
   uptimePercentage: number;
+  monitorStatus: boolean;
 }
 
 const formatMinutes = (minutes: number): string => {
@@ -22,10 +23,8 @@ const formatMinutes = (minutes: number): string => {
   return `${hours}h ${remainingMinutes}m`;
 };
 
-const getStatusColor = (percentage: number): string => {
-  if (percentage >= 99) return 'text-green-500 dark:text-green-400';
-  if (percentage >= 95) return 'text-yellow-500 dark:text-yellow-400';
-  return 'text-red-500 dark:text-red-400';
+const getStatusColor = (status: boolean): string => {
+  return status ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400';
 };
 
 export function StatusDashboard() {
@@ -113,7 +112,7 @@ export function StatusDashboard() {
               <div>
                 <p className="text-sm dark:text-gray-400 text-gray-600">Healthy Services</p>
                 <p className="text-2xl font-bold dark:text-white text-gray-900">
-                  {uptimeData.filter(service => service.uptimePercentage >= 99).length}
+                  {uptimeData.filter(service => service.monitorStatus).length}
                 </p>
               </div>
             </div>
@@ -143,8 +142,8 @@ export function StatusDashboard() {
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 dark:bg-gray-700 bg-gray-100 rounded-lg ${getStatusColor(service.uptimePercentage)}`}>
-                    {service.uptimePercentage >= 99 ? (
+                  <div className={`p-2 dark:bg-gray-700 bg-gray-100 rounded-lg ${getStatusColor(service.monitorStatus)}`}>
+                    {service.monitorStatus ? (
                       <CheckCircle className="w-5 h-5" />
                     ) : (
                       <XCircle className="w-5 h-5" />
@@ -154,8 +153,8 @@ export function StatusDashboard() {
                     <h3 className="font-semibold dark:text-white text-gray-900">
                       {service.monitorName}
                     </h3>
-                    <p className={`text-sm ${getStatusColor(service.uptimePercentage)}`}>
-                      {service.uptimePercentage.toFixed(2)}% uptime
+                    <p className={`text-sm ${getStatusColor(service.monitorStatus)}`}>
+                      {service.monitorStatus ? 'Healthy' : 'Unhealthy'}
                     </p>
                   </div>
                 </div>
