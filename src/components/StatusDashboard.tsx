@@ -187,12 +187,6 @@ export function StatusDashboard() {
 
       {/* Footer */}
       <div className="mt-12 text-center">
-        <a 
-          href="https://alerthawk.net" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-        >
           <img 
             src="/assets/logo.png" 
             alt="AlertHawk Logo" 
