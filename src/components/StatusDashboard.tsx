@@ -193,7 +193,6 @@ export function StatusDashboard() {
             className="h-6 w-auto"
           />
           <span className="text-sm font-medium">Powered by AlertHawk</span>
-        </a>
       </div>
     </div>
   );
