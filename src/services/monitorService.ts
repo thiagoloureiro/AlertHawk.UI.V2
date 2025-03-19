@@ -146,7 +146,6 @@ export interface MonitorK8sPayload {
     filesystemCorruptionProblem: boolean;
     readonlyFilesystem: boolean;
     frequentKubeletRestart: boolean;
-    vmEventScheduled: boolean;
     frequentDockerRestart: boolean;
     frequentContainerdRestart: boolean;
     memoryPressure: boolean;

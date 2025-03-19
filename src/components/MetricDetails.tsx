@@ -445,13 +445,6 @@ const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
         { label: 'Frequent Docker Restart', status: node.frequentDockerRestart, positive: false },
         { label: 'Frequent Containerd Restart', status: node.frequentContainerdRestart, positive: false },
       ]
-    },
-    {
-      title: 'Network Issues',
-      items: [
-        { label: 'Frequent Unregister Net Device', status: node.frequentUnregisterNetDevice, positive: false },
-        { label: 'VM Event Scheduled', status: node.vmEventScheduled, positive: false },
-      ]
     }
   ];
 

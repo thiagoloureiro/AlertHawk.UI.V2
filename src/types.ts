@@ -127,7 +127,6 @@ export interface MonitorK8sNode {
   filesystemCorruptionProblem: boolean;
   readonlyFilesystem: boolean;
   frequentKubeletRestart: boolean;
-  vmEventScheduled: boolean;
   frequentDockerRestart: boolean;
   frequentContainerdRestart: boolean;
   memoryPressure: boolean;
