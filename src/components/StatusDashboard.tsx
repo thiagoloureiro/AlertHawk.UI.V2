@@ -186,13 +186,17 @@ export function StatusDashboard() {
       </div>
 
       {/* Footer */}
-      <div className="mt-12 text-center">
+      <div className="mt-12 py-6 border-t dark:border-gray-700 border-gray-200">
+        <div className="flex flex-col items-center gap-2">
           <img 
             src="/assets/logo.png" 
             alt="AlertHawk Logo" 
-            className="h-6 w-auto"
+            className="h-8 w-auto"
           />
-          <span className="text-sm font-medium">Powered by AlertHawk</span>
+          <span className="text-sm font-medium dark:text-gray-400 text-gray-600">
+            Powered by AlertHawk
+          </span>
+        </div>
       </div>
     </div>
   );
