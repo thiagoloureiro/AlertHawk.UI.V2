@@ -10,35 +10,35 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@azure/msal-browser": "^4.7.0",
-    "@azure/msal-react": "^3.0.6",
+    "@azure/msal-browser": "^4.8.0",
+    "@azure/msal-react": "^3.0.7",
     "@types/react-router-dom": "^5.3.3",
-    "axios": "^1.8.3",
-    "lucide-react": "^0.482.0",
+    "axios": "^1.8.4",
+    "lucide-react": "^0.483.0",
     "markdown-it": "^14.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.2",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.3.0",
+    "react-router-dom": "^7.4.0",
     "recharts": "^2.15.1",
-    "@sentry/react": "^9.5.0"
+    "@sentry/react": "^9.8.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.22.0",
+    "@eslint/js": "^9.23.0",
     "@tailwindcss/typography": "^0.5.16",
-    "@types/react": "^19.0.10",
+    "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
-    "eslint": "^9.22.0",
+    "eslint": "^9.23.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.26.1",
+    "typescript-eslint": "^8.27.0",
     "vite": "^6.2.2"
   }
 }
