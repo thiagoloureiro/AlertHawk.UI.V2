@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { MonitorGroup, Monitor } from '../types';
 import { 
   AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, 
-  Search, Plus, ChevronsDown, ChevronsUp, Server 
+  Search, Plus, ChevronsDown, ChevronsUp, Server, Filter
 } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
+import { GroupFilterModal } from './GroupFilterModal';
 import { toast } from 'react-hot-toast';
 
 interface MetricsListProps {
@@ -76,6 +77,8 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
   const [areAllCollapsed, setAreAllCollapsed] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [showGroupFilterModal, setShowGroupFilterModal] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
   const sortedGroups = useMemo(() => {
     return [...filteredGroups].sort((a, b) => a.name.localeCompare(b.name));
@@ -99,21 +102,23 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     fetchGroups();
   }, [selectedEnvironment]);
 
-  // Filter monitors based on search term and status
+  // Filter monitors based on search term, status, and selected groups
   useEffect(() => {
-    const filtered = groups.map(group => ({
-      ...group,
-      monitors: group.monitors.filter(monitor => {
-        const matchesSearch = monitor.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' 
-          ? true 
-          : statusFilter === 'online' ? monitor.status : !monitor.status;
-        return matchesSearch && matchesStatus;
-      })
-    })).filter(group => group.monitors.length > 0); // Only show groups with matching monitors
+    const filtered = groups
+      .filter(group => selectedGroups.length === 0 || selectedGroups.includes(group.id.toString()))
+      .map(group => ({
+        ...group,
+        monitors: group.monitors.filter(monitor => {
+          const matchesSearch = monitor.name.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesStatus = statusFilter === 'all' 
+            ? true 
+            : statusFilter === 'online' ? monitor.status : !monitor.status;
+          return matchesSearch && matchesStatus;
+        })
+      })).filter(group => group.monitors.length > 0); // Only show groups with matching monitors
 
     setFilteredGroups(filtered);
-  }, [groups, searchTerm, statusFilter]);
+  }, [groups, searchTerm, statusFilter, selectedGroups]);
 
   // Separate toggle collapse function
   const toggleCollapse = (e: React.MouseEvent, groupId: string) => {
@@ -234,7 +239,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
             <Search className="absolute left-3 top-2.5 w-5 h-5 dark:text-gray-400 text-gray-500" />
             <input
               type="text"
-              placeholder="Search monitors..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
@@ -242,12 +247,22 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
             />
           </div>
           <button
+            onClick={() => setShowGroupFilterModal(true)}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200
+                     ${selectedGroups.length > 0 
+                       ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                       : 'dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+          >
+            <Filter className="w-4 h-4" />
+            {selectedGroups.length > 0 ? `${selectedGroups.length} selected` : 'Filter Groups'}
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
-                     flex items-center gap-2 transition-colors duration-200"
+            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
+                     flex items-center gap-1.5 transition-colors duration-200"
           >
             <Plus className="w-4 h-4" />
-            Add New
+            Add
           </button>
         </div>
       </div>
@@ -479,7 +494,16 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
         />
       )}
 
-  
+      {/* Group Filter Modal */}
+      {showGroupFilterModal && (
+        <GroupFilterModal
+          groups={groups}
+          selectedGroups={selectedGroups}
+          onClose={() => setShowGroupFilterModal(false)}
+          onApply={setSelectedGroups}
+        />
+      )}
+
     </div>
   );
 }
