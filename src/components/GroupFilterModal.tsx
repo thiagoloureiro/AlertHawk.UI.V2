@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MonitorGroup } from '../types';
 import { X, CheckSquare, Square } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -13,6 +13,11 @@ interface GroupFilterModalProps {
 export function GroupFilterModal({ groups, selectedGroups, onClose, onApply }: GroupFilterModalProps) {
   const [tempSelectedGroups, setTempSelectedGroups] = useState<string[]>(selectedGroups);
   const [showError, setShowError] = useState(false);
+
+  // Sort groups alphabetically
+  const sortedGroups = useMemo(() => {
+    return [...groups].sort((a, b) => a.name.localeCompare(b.name));
+  }, [groups]);
 
   const handleToggleGroup = (groupId: string) => {
     setTempSelectedGroups((prev: string[]) => 
@@ -106,7 +111,7 @@ export function GroupFilterModal({ groups, selectedGroups, onClose, onApply }: G
 
           {/* Groups List */}
           <div className="space-y-1 max-h-[400px] overflow-y-auto pr-2">
-            {groups.map(group => (
+            {sortedGroups.map(group => (
               <label
                 key={group.id}
                 className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 

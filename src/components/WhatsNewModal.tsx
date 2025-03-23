@@ -13,6 +13,18 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Enhanced Group Filtering",
+    description: "New filtering capabilities and improvements to the monitoring interface.",
+    date: "March 19th, 2025",
+    features: [
+      "Added group filtering with multi-select support",
+      "Improved search functionality",
+      "Added Select All/Unselect All options for groups",
+      "Fixed various UI/UX issues in the monitoring dashboard",
+      "Improved button layouts and responsiveness"
+    ]
+  },
+  {
     title: "Kubernetes Support (Beta)",
     description: "New features and bug fixing",
     date: "March 9th, 2025",
