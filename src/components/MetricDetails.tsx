@@ -116,7 +116,7 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
               >
                 <div
                   className={cn(
-                    "w-full h-full rounded transition-colors",
+                    "w-full h-full rounded-sm transition-colors",
                     point.status
                       ? "bg-green-500 dark:bg-green-400"
                       : "bg-red-500 dark:bg-red-400"
@@ -125,7 +125,7 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                 
                 {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                  <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                  <div className="bg-gray-900 text-white text-xs rounded-sm py-1 px-2 whitespace-nowrap">
                     <div>
                       {(() => {
                         try {
@@ -360,7 +360,7 @@ Please provide a concise analysis of the monitor's performance and alert history
 
   if (isLoading || isAnalyzing) {
     return (
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
         <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
           AI Analysis - Powered by Abby
         </h2>
@@ -373,7 +373,7 @@ Please provide a concise analysis of the monitor's performance and alert history
   }
 
   return (
-    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
       <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
         AI Analysis - Powered by Abby
       </h2>
@@ -449,7 +449,7 @@ const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
   ];
 
   return (
-    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
       <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
         Node: {node.nodeName}
       </h3>
@@ -674,7 +674,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           ].map((period) => (
             <div
               key={period.label}
-              className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4"
+              className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4"
             >
               <div className="text-sm font-medium mb-1 dark:text-gray-300 text-gray-700">
                 {period.label}
@@ -695,7 +695,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         </div>
 
         {/* Group Status Summary */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
           <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
             Group Status Summary
           </h2>
@@ -881,7 +881,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   const renderK8sNodes = () => {
     if (!k8sDetails || !k8sDetails.monitorK8sNodes || k8sDetails.monitorK8sNodes.length === 0) {
       return (
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
           <div className="flex items-center justify-center p-4">
             <span className="text-gray-500 dark:text-gray-400">No Kubernetes nodes found</span>
           </div>
@@ -1037,7 +1037,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
               <Activity className={`w-5 h-5 ${
@@ -1064,7 +1064,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         </div>
 
         {/* Type Card */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
               {getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused).icon}
@@ -1079,7 +1079,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         </div>
 
         {/* Response Time Card */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
               <Clock className="w-5 h-5 dark:text-yellow-400 text-yellow-500" />
@@ -1095,7 +1095,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
         {/* SSL Certificate Card */}
         {metric.checkCertExpiry && (
-          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-4">
+          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
                 <CheckCircle className="w-5 h-5 dark:text-purple-400 text-purple-500" />
@@ -1231,7 +1231,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       {metric.monitorTypeId === 4 && (
         <div className="mt-6 relative">
           {isLoadingK8s ? (
-            <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 flex items-center justify-center">
+            <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-blue-500 mr-2" />
               <span className="text-gray-600 dark:text-gray-300">Loading Kubernetes data...</span>
             </div>

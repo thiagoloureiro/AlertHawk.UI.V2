@@ -30,7 +30,7 @@ function DeleteConfirmation({ group, onConfirm, onCancel, isDeleting }: DeleteCo
           {group.monitorCount > 0 && (
             <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 
                           text-yellow-800 dark:text-yellow-200 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium mb-1">Warning: Group has active monitors</p>
                 <p className="text-sm">
@@ -299,7 +299,7 @@ export function MonitorGroups() {
           </div>
         )}
         
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -307,7 +307,7 @@ export function MonitorGroups() {
                   <th
                     onClick={() => handleSort('name')}
                     className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 cursor-pointer
-                             hover:dark:bg-gray-600 hover:bg-gray-100 transition-colors duration-200"
+                             dark:hover:bg-gray-600 hover:bg-gray-100 transition-colors duration-200"
                   >
                     <div className="flex items-center gap-2">
                       Name

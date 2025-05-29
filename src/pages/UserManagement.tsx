@@ -176,7 +176,7 @@ export function UserManagement() {
       )}
 
       <div className="flex flex-col h-[calc(100vh-280px)]"> {/* Fixed height container */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm overflow-hidden flex-1">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs overflow-hidden flex-1">
           <div className="overflow-y-auto h-full">
             <table className="w-full">
               <thead className="sticky top-0 z-10">

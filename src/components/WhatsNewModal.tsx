@@ -89,7 +89,7 @@ export function WhatsNewModal({ onClose }: WhatsNewModalProps) {
                   <ul className="space-y-2 mt-4">
                     {update.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                         <span className="text-gray-600 dark:text-gray-300">{feature}</span>
                       </li>
                     ))}

@@ -356,7 +356,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                   {/* Collapse/Expand button */}
                   <button
                     onClick={(e) => toggleCollapse(e, group.id.toString())}
-                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    className="p-1 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   >
                     {collapsedGroups[group.id.toString()] ? (
                       <ChevronDown className="w-5 h-5 text-gray-400" />

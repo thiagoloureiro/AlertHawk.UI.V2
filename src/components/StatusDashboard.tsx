@@ -90,7 +90,7 @@ export function StatusDashboard() {
 
         {/* Overall Status */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
                 <Activity className="w-6 h-6 text-blue-500" />
@@ -104,7 +104,7 @@ export function StatusDashboard() {
             </div>
           </div>
 
-          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-500" />
@@ -118,7 +118,7 @@ export function StatusDashboard() {
             </div>
           </div>
 
-          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
                 <Clock className="w-6 h-6 text-purple-500" />
@@ -138,7 +138,7 @@ export function StatusDashboard() {
           {uptimeData.map((service) => (
             <div
               key={service.monitorName}
-              className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6"
+              className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">

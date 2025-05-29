@@ -93,7 +93,7 @@ export function MonitorAgents() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
               <Server className="w-6 h-6 dark:text-blue-400 text-blue-500" />
@@ -105,7 +105,7 @@ export function MonitorAgents() {
           </div>
         </div>
 
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
               <Globe className="w-6 h-6 dark:text-green-400 text-green-500" />
@@ -117,7 +117,7 @@ export function MonitorAgents() {
           </div>
         </div>
 
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 dark:bg-gray-700 bg-gray-100 rounded-lg">
               <Info className="w-6 h-6 dark:text-purple-400 text-purple-500" />
@@ -136,7 +136,7 @@ export function MonitorAgents() {
       </div>
 
       {/* Agents List */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm">
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs">
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 border-gray-200">
           <h2 className="text-lg font-medium dark:text-white text-gray-900">Agent List</h2>
         </div>

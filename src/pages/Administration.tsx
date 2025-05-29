@@ -117,7 +117,7 @@ export function Administration() {
       </div>
 
       {/* Backup Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Backup</h2>
         
         <div className="space-y-6">
@@ -160,7 +160,7 @@ export function Administration() {
       </div>
 
       {/* Monitor History Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mb-6">
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Monitor History</h2>
         
         <div className="space-y-4">
@@ -220,7 +220,7 @@ export function Administration() {
             <div className="mb-6">
               <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 
                             text-yellow-800 dark:text-yellow-200 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium mb-1">Warning: All existing data will be lost</p>
                   <p className="text-sm">

@@ -160,7 +160,7 @@ export function MonitorAlerts() {
                 </div>
               )}
               
-              <table className="w-full dark:bg-gray-800 bg-white rounded-lg shadow-sm">
+              <table className="w-full dark:bg-gray-800 bg-white rounded-lg shadow-xs">
                 <thead>
                   <tr className="dark:bg-gray-700 bg-gray-50">
                     {tableHeaders.map(({ label, key }) => (
@@ -168,7 +168,7 @@ export function MonitorAlerts() {
                         key={key}
                         onClick={() => handleSort(key)}
                         className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 cursor-pointer
-                                 hover:dark:bg-gray-600 hover:bg-gray-100 transition-colors duration-200"
+                                 dark:hover:bg-gray-600 hover:bg-gray-100 transition-colors duration-200"
                       >
                         <div className="flex items-center gap-2">
                           {label}

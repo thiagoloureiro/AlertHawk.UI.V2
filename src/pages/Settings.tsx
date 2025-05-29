@@ -41,7 +41,7 @@ export function Settings() {
       </div>
 
       <div className="max-w-2xl">
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
           <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Time Settings</h2>
           
           <div className="space-y-4">
@@ -116,7 +116,7 @@ export function Settings() {
         </div>
 
         {/* App Version Section */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-sm p-6 mt-6">
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mt-6">
           <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">About</h2>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
