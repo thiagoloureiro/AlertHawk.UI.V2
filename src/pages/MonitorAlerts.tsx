@@ -80,17 +80,19 @@ export function MonitorAlerts() {
 
   // Sort alerts
   const handleSort = (key: keyof AlertIncident) => {
+    if (key !== 'timeStamp') return; // Only allow sorting by timestamp
+    
     setSortConfig(current => ({
       key,
       direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
     }));
 
     const sorted = [...filteredAlerts].sort((a, b) => {
-      const aValue = a[key].toString().toLowerCase();
-      const bValue = b[key].toString().toLowerCase();
+      const aValue = new Date(a.timeStamp).getTime();
+      const bValue = new Date(b.timeStamp).getTime();
       return sortConfig.direction === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+        ? aValue - bValue
+        : bValue - aValue;
     });
     setFilteredAlerts(sorted);
   };
@@ -170,13 +172,14 @@ export function MonitorAlerts() {
                     {tableHeaders.map(({ label, key }) => (
                       <th
                         key={key}
-                        onClick={() => handleSort(key)}
-                        className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700 cursor-pointer
-                                 dark:hover:bg-gray-600 hover:bg-gray-100 transition-colors duration-200"
+                        onClick={() => key === 'timeStamp' ? handleSort(key) : undefined}
+                        className={`px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700
+                                 ${key === 'timeStamp' ? 'cursor-pointer dark:hover:bg-gray-600 hover:bg-gray-100' : ''}
+                                 transition-colors duration-200`}
                       >
                         <div className="flex items-center gap-2">
                           {label}
-                          {sortConfig.key === key && (
+                          {key === 'timeStamp' && sortConfig.key === key && (
                             sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                           )}
                         </div>
