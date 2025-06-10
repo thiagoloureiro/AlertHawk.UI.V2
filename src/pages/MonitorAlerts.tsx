@@ -35,8 +35,8 @@ export function MonitorAlerts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(25);
   const [sortConfig, setSortConfig] = useState<{ key: keyof AlertIncident; direction: 'asc' | 'desc' }>({
-    key: 'monitorName',
-    direction: 'asc'
+    key: 'timeStamp',
+    direction: 'desc'
   });
 
   useEffect(() => {
@@ -47,7 +47,11 @@ export function MonitorAlerts() {
         const days = parseInt(selectedPeriod, 10);
         const data = await monitorService.getMonitorAlerts(id, days);
         setAlerts(data);
-        setFilteredAlerts(data);
+        // Sort the alerts by timestamp in descending order when first loaded
+        const sorted = [...data].sort((a, b) => {
+          return new Date(b.timeStamp).getTime() - new Date(a.timeStamp).getTime();
+        });
+        setFilteredAlerts(sorted);
       } catch (error) {
         console.error('Failed to fetch alerts:', error);
         toast.error('Failed to fetch alerts', { position: 'bottom-right' });
