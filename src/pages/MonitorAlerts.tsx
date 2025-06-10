@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Search, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Loader2, AlertCircle } from 'lucide-react';
 import { AlertIncident, getEnvironmentName } from '../types';
 import { convertUTCToLocal } from '../utils/dateUtils';
 import { useParams } from 'react-router-dom';
@@ -12,6 +12,16 @@ const timePeriods = [
   { value: '30', label: 'Last 30 Days' },
   { value: '60', label: 'Last 60 Days' },
   { value: '90', label: 'Last 90 Days' }
+];
+
+const environmentOptions = [
+  { value: '0', label: 'All Environments' },
+  { value: '1', label: 'Development' },
+  { value: '2', label: 'Staging' },
+  { value: '3', label: 'QA' },
+  { value: '4', label: 'Testing' },
+  { value: '5', label: 'PreProd' },
+  { value: '6', label: 'Production' }
 ];
 
 const recordsPerPageOptions = [10, 25, 50, 100];
@@ -31,13 +41,10 @@ export function MonitorAlerts() {
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('7');
+  const [selectedEnvironment, setSelectedEnvironment] = useState('0');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(25);
-  const [sortConfig, setSortConfig] = useState<{ key: keyof AlertIncident; direction: 'asc' | 'desc' }>({
-    key: 'timeStamp',
-    direction: 'desc'
-  });
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -46,11 +53,11 @@ export function MonitorAlerts() {
         const id = monitorId ? parseInt(monitorId, 10) : 0;
         const days = parseInt(selectedPeriod, 10);
         const data = await monitorService.getMonitorAlerts(id, days);
-        setAlerts(data);
-        // Sort the alerts by timestamp in descending order when first loaded
+        // Sort the alerts by timestamp in descending order
         const sorted = [...data].sort((a, b) => {
           return new Date(b.timeStamp).getTime() - new Date(a.timeStamp).getTime();
         });
+        setAlerts(sorted);
         setFilteredAlerts(sorted);
       } catch (error) {
         console.error('Failed to fetch alerts:', error);
@@ -63,39 +70,27 @@ export function MonitorAlerts() {
     fetchAlerts();
   }, [monitorId, selectedPeriod]);
 
-  // Filter alerts based on search term
+  // Filter alerts based on search term and environment
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredAlerts(alerts);
-    } else {
+    let filtered = alerts;
+
+    // Apply environment filter
+    if (selectedEnvironment !== '0') {
+      filtered = filtered.filter(alert => alert.environment === parseInt(selectedEnvironment, 10));
+    }
+
+    // Apply search filter
+    if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const filtered = alerts.filter(alert =>
+      filtered = filtered.filter(alert =>
         alert.monitorName.toLowerCase().includes(searchLower) ||
         alert.message.toLowerCase().includes(searchLower) ||
         alert.urlToCheck.toLowerCase().includes(searchLower)
       );
-      setFilteredAlerts(filtered);
     }
-  }, [searchTerm, alerts]);
 
-  // Sort alerts
-  const handleSort = (key: keyof AlertIncident) => {
-    if (key !== 'timeStamp') return; // Only allow sorting by timestamp
-    
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
-    }));
-
-    const sorted = [...filteredAlerts].sort((a, b) => {
-      const aValue = new Date(a.timeStamp).getTime();
-      const bValue = new Date(b.timeStamp).getTime();
-      return sortConfig.direction === 'asc' 
-        ? aValue - bValue
-        : bValue - aValue;
-    });
-    setFilteredAlerts(sorted);
-  };
+    setFilteredAlerts(filtered);
+  }, [searchTerm, alerts, selectedEnvironment]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAlerts.length / recordsPerPage);
@@ -125,6 +120,23 @@ export function MonitorAlerts() {
             >
               {timePeriods.map(period => (
                 <option key={period.value} value={period.value}>{period.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-1">
+              Environment
+            </label>
+            <select
+              value={selectedEnvironment}
+              onChange={e => setSelectedEnvironment(e.target.value)}
+              className="w-full rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 
+                       dark:text-white text-gray-900 p-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                       transition-colors duration-200"
+            >
+              {environmentOptions.map(env => (
+                <option key={env.value} value={env.value}>{env.label}</option>
               ))}
             </select>
           </div>
@@ -172,17 +184,9 @@ export function MonitorAlerts() {
                     {tableHeaders.map(({ label, key }) => (
                       <th
                         key={key}
-                        onClick={() => key === 'timeStamp' ? handleSort(key) : undefined}
-                        className={`px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700
-                                 ${key === 'timeStamp' ? 'cursor-pointer dark:hover:bg-gray-600 hover:bg-gray-100' : ''}
-                                 transition-colors duration-200`}
+                        className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700"
                       >
-                        <div className="flex items-center gap-2">
-                          {label}
-                          {key === 'timeStamp' && sortConfig.key === key && (
-                            sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                          )}
-                        </div>
+                        {label}
                       </th>
                     ))}
                   </tr>
