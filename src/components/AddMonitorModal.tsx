@@ -77,7 +77,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [timeout, setTimeout] = useState((existingMonitor as any)?.timeout?.toString() ?? '30');
   const [body, setBody] = useState('');
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState(0);
+  const [selectedGroupId, setSelectedGroupId] = useState(
+    isEditing && existingMonitor?.monitorGroup ? existingMonitor.monitorGroup : 0
+  );
   const [regions, setRegions] = useState<number[]>([]);
   const [selectedRegion, setSelectedRegion] = useState(existingMonitor?.monitorRegion || 0);
   const [headers, setHeaders] = useState<Header[]>([]);
@@ -97,7 +99,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       try {
         const groups = await monitorService.getMonitorGroupListByUser();
         setGroups(groups);
-        if (groups.length > 0 && !isEditing) {
+        if (isEditing && existingMonitor?.monitorGroup) {
+          setSelectedGroupId(existingMonitor.monitorGroup);
+        } else if (groups.length > 0 && !isEditing) {
           setSelectedGroupId(groups[0].id);
         }
       } catch (error) {
