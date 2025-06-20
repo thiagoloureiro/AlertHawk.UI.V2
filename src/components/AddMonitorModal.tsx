@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Globe, Network, Plus, Loader2, Server } from 'lucide-react';
-import { cn } from '../lib/utils';
 import { Select, Switch, Textarea } from './ui';
 import monitorService, { MonitorRegion } from '../services/monitorService';
-import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload, CreateMonitorHttpPayload, CreateMonitorTcpPayload } from '../services/monitorService';
-import type { Monitor, MonitorAgent } from '../types';
+import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
+import type { Monitor } from '../types';
 
 interface AddMonitorModalProps {
   onClose: () => void;
@@ -48,12 +47,6 @@ interface MonitorK8sPayload {
   timeout: number;
 }
 
-enum HttpMethod {
-  Get = 1,
-  Post = 2,
-  Put = 3
-}
-
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
   
   const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>(
@@ -78,7 +71,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [environment, setEnvironment] = useState(existingMonitor?.monitorEnvironment || MonitorEnvironment.Production);
   const [checkCertExpiry, setCheckCertExpiry] = useState(existingMonitor?.checkCertExpiry ?? true);
-  const [ignoreTLS, setIgnoreTLS] = useState((existingMonitor as any)?.ignoreTlsSsl ?? false);
+  const [ignoreTLS, setIgnoreTLS] = useState(existingMonitor && 'ignoreTlsSsl' in existingMonitor ? (existingMonitor as any).ignoreTlsSsl : false);
   const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>('GET');
   const [maxRedirects, setMaxRedirects] = useState((existingMonitor as any)?.maxRedirects?.toString() ?? '3');
   const [timeout, setTimeout] = useState((existingMonitor as any)?.timeout?.toString() ?? '30');
@@ -86,14 +79,14 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(0);
   const [regions, setRegions] = useState<number[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<number>(0);
+  const [selectedRegion, setSelectedRegion] = useState(existingMonitor?.monitorRegion || 0);
   const [headers, setHeaders] = useState<Header[]>([]);
   const [showHeaderForm, setShowHeaderForm] = useState(false);
   const [headerName, setHeaderName] = useState('');
   const [headerValue, setHeaderValue] = useState('');
   const [clusterName, setClusterName] = useState(existingMonitor?.monitorK8s?.clusterName || '');
   const [kubeConfig, setKubeConfig] = useState<File | null>(null);
-  const [existingKubeConfig, setExistingKubeConfig] = useState(existingMonitor?.monitorK8s?.kubeConfig || '');
+  const [existingKubeConfig] = useState(existingMonitor?.monitorK8s?.kubeConfig || '');
 
   const sortedGroups = useMemo(() => {
     return [...groups].sort((a, b) => a.name.localeCompare(b.name));
@@ -104,8 +97,8 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       try {
         const groups = await monitorService.getMonitorGroupListByUser();
         setGroups(groups);
-        if (groups.length > 0) {
-          setSelectedGroupId(existingMonitor?.monitorGroup || groups[0].id);
+        if (groups.length > 0 && !isEditing) {
+          setSelectedGroupId(groups[0].id);
         }
       } catch (error) {
         console.error('Failed to fetch monitor groups:', error);
@@ -113,7 +106,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     };
 
     fetchGroups();
-  }, [existingMonitor]);
+  }, [existingMonitor, isEditing]);
 
   useEffect(() => {
     const fetchRegions = async () => {
@@ -140,6 +133,27 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       setBody('');
     }
   }, [httpMethod]);
+
+  // Helper to extract monitorHttpMethod from Monitor
+  function getMonitorHttpMethod(monitor: Monitor | undefined): number | undefined {
+    if (!monitor) return undefined;
+    // @ts-expect-error: monitorHttpMethod may be present on some monitor objects
+    if ('monitorHttpMethod' in monitor && typeof (monitor as any).monitorHttpMethod !== 'undefined') return (monitor as any).monitorHttpMethod;
+    return undefined;
+  }
+
+  // Set httpMethod from existingMonitor when editing an HTTP monitor
+  useEffect(() => {
+    if (
+      existingMonitor &&
+      (existingMonitor.monitorTypeId === 1 || existingMonitor.monitorTypeId === undefined)
+    ) {
+      const methodNum = getMonitorHttpMethod(existingMonitor);
+      if (methodNum === 2) setHttpMethod('POST');
+      else if (methodNum === 3) setHttpMethod('PUT');
+      else if (methodNum === 1) setHttpMethod('GET');
+    }
+  }, [existingMonitor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,7 +182,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           throw new Error('KubeConfig file is required for new monitors');
         }
 
-        const k8sPayload: MonitorK8sPayload = {
+        const k8sPayload = {
           Id: existingMonitor?.id || 0,
           MonitorId: existingMonitor?.id || 0,
           MonitorTypeId: 4,
@@ -187,10 +201,10 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           MonitorGroup: selectedGroupId,
           MonitorRegion: selectedRegion,
           ClusterName: clusterName,
-          KubeConfig: base64Content || null,
+          KubeConfig: base64Content || '',
           LastStatus: true,
           MonitorEnvironment: environment,
-          Base64Content: base64Content || null
+          Base64Content: base64Content || '',
         };
 
         if (isEditing && onUpdate) {
