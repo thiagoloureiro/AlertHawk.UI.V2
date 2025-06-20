@@ -10,12 +10,12 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@azure/msal-browser": "^4.13.1",
-    "@azure/msal-react": "^3.0.12",
+    "@azure/msal-browser": "^4.13.2",
+    "@azure/msal-react": "^3.0.13",
     "@sentry/react": "^9.30.0",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.10.0",
-    "lucide-react": "^0.516.0",
+    "lucide-react": "^0.518.0",
     "markdown-it": "^14.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

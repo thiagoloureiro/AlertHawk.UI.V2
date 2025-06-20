@@ -442,6 +442,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
                 className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
                        dark:text-white focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter password"
+                required
               />
             </div>
 
