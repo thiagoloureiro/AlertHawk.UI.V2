@@ -12,7 +12,7 @@
   "dependencies": {
     "@azure/msal-browser": "^4.13.2",
     "@azure/msal-react": "^3.0.13",
-    "@sentry/react": "^9.30.0",
+    "@sentry/react": "^9.31.0",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.10.0",
     "lucide-react": "^0.522.0",
@@ -38,7 +38,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.34.1",
+    "typescript-eslint": "^8.35.0",
     "vite": "^6.3.5"
   }
 }
