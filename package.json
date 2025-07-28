@@ -17,7 +17,7 @@
     "axios": "^1.11.0",
     "lucide-react": "^0.525.0",
     "markdown-it": "^14.1.0",
-    "react": "^19.1.0",
+    "react": "^19.1.1",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-markdown": "^10.1.0",
