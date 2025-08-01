@@ -13,6 +13,18 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Certificate Expiration Warnings",
+    description: "New proactive monitoring feature to alert users about expiring SSL certificates.",
+    date: "August 1st, 2025",
+    features: [
+      "Automatic detection of monitors with certificates expiring in less than 300 days",
+      "Smart filtering to only show HTTP monitors (monitorTypeId = 1)",
+      "Visual indicators with color-coded urgency levels",
+      "User preference option to dismiss warnings permanently",
+      "Responsive modal design with dark mode support"
+    ]
+  },
+  {
     title: "Enhanced Group Filtering",
     description: "New filtering capabilities and improvements to the monitoring interface.",
     date: "March 19th, 2025",
