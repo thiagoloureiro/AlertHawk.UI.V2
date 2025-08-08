@@ -15,6 +15,26 @@ const getStoredEnvironment = (): number => {
   }
 };
 
+// Helper function to get environment info
+const getEnvironmentInfo = (environmentId: number) => {
+  switch (environmentId) {
+    case 1:
+      return { name: 'DEV', bgColor: 'bg-blue-500/20 dark:bg-blue-600/20', textColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-500/30 dark:border-blue-400/30' };
+    case 2:
+      return { name: 'STG', bgColor: 'bg-yellow-500/20 dark:bg-yellow-600/20', textColor: 'text-yellow-600 dark:text-yellow-400', borderColor: 'border-yellow-500/30 dark:border-yellow-400/30' };
+    case 3:
+      return { name: 'QA', bgColor: 'bg-purple-500/20 dark:bg-purple-600/20', textColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-500/30 dark:border-purple-400/30' };
+    case 4:
+      return { name: 'TEST', bgColor: 'bg-orange-500/20 dark:bg-orange-600/20', textColor: 'text-orange-600 dark:text-orange-400', borderColor: 'border-orange-500/30 dark:border-orange-400/30' };
+    case 5:
+      return { name: 'PRE', bgColor: 'bg-indigo-500/20 dark:bg-indigo-600/20', textColor: 'text-indigo-600 dark:text-indigo-400', borderColor: 'border-indigo-500/30 dark:border-indigo-400/30' };
+    case 6:
+      return { name: 'PROD', bgColor: 'bg-green-500/20 dark:bg-green-600/20', textColor: 'text-green-600 dark:text-green-400', borderColor: 'border-green-500/30 dark:border-green-400/30' };
+    default:
+      return { name: 'UNK', bgColor: 'bg-gray-500/20 dark:bg-gray-600/20', textColor: 'text-gray-600 dark:text-gray-400', borderColor: 'border-gray-500/30 dark:border-gray-400/30' };
+  }
+};
+
 interface TopBarProps {
   isDarkTheme: boolean;
   onThemeToggle: () => void;
@@ -143,15 +163,25 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
     <div className="h-16 px-4 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between
                     dark:bg-gray-900 bg-white transition-colors duration-200">
       {/* Logo and App Name */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <img 
           src="../assets/logo.png" 
           alt="AlertHawk Logo" 
           className="w-8 h-8 object-contain"
         />
-        <span className="text-2xl font-semibold dark:text-white text-gray-900">
-          AlertHawk
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-semibold dark:text-white text-gray-900">
+            AlertHawk
+          </span>
+          {(() => {
+            const envInfo = getEnvironmentInfo(selectedEnvironment);
+            return (
+              <div className={`px-2 py-1 rounded-md text-xs font-semibold border ${envInfo.bgColor} ${envInfo.textColor} ${envInfo.borderColor}`}>
+                {envInfo.name}
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Monitor Status */}
