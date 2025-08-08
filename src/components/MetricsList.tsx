@@ -63,6 +63,25 @@ const getMonitorCounts = (monitors: Monitor[]) => {
   );
 };
 
+// Helper function to get environment from localStorage
+const getStoredEnvironment = (): number => {
+  try {
+    const stored = localStorage.getItem('selectedEnvironment');
+    return stored ? parseInt(stored, 10) : 6; // Default to Production (6)
+  } catch {
+    return 6; // Default to Production (6) if localStorage fails
+  }
+};
+
+// Helper function to set environment in localStorage
+const setStoredEnvironment = (environment: number): void => {
+  try {
+    localStorage.setItem('selectedEnvironment', environment.toString());
+  } catch (error) {
+    console.warn('Failed to save environment to localStorage:', error);
+  }
+};
+
 export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps) {
   const [groups, setGroups] = useState<MonitorGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<MonitorGroup[]>([]);
@@ -71,7 +90,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
-  const [selectedEnvironment, setSelectedEnvironment] = useState<number>(6); // Default to Production (6)
+  const [selectedEnvironment, setSelectedEnvironment] = useState<number>(getStoredEnvironment());
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
@@ -83,6 +102,11 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const sortedGroups = useMemo(() => {
     return [...filteredGroups].sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredGroups]);
+
+  // Save environment to localStorage whenever it changes
+  useEffect(() => {
+    setStoredEnvironment(selectedEnvironment);
+  }, [selectedEnvironment]);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -150,6 +174,11 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     { id: 5, name: 'PreProd' },
     { id: 6, name: 'Production' }
   ];
+
+  // Handle environment change
+  const handleEnvironmentChange = (environmentId: number) => {
+    setSelectedEnvironment(environmentId);
+  };
 
   // Update the toggle function
   const handleToggleAll = () => {
@@ -273,7 +302,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
           {/* Environment Dropdown */}
           <select
             value={selectedEnvironment}
-            onChange={(e) => setSelectedEnvironment(Number(e.target.value))}
+            onChange={(e) => handleEnvironmentChange(Number(e.target.value))}
             className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
                      dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                      focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
