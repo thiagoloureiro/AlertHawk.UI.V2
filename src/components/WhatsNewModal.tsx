@@ -13,6 +13,18 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Environment Selection Persistence",
+    description: "Enhanced environment selection with persistent storage and real-time updates across components.",
+    date: "August 8th, 2025",
+    features: [
+      "Environment selection is now saved to localStorage and persists across page refreshes",
+      "TopBar monitor status automatically updates when environment changes",
+      "Real-time synchronization between MetricsList and TopBar components",
+      "Default environment set to Production when no selection is stored",
+      "Improved user experience with consistent environment state across the application"
+    ]
+  },
+  {
     title: "Certificate Expiration Warnings",
     description: "New proactive monitoring feature to alert users about expiring SSL certificates.",
     date: "August 1st, 2025",
