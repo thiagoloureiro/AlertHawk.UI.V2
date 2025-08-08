@@ -4,7 +4,16 @@ import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
 import { WhatsNewModal } from './WhatsNewModal';
 import monitorService from '../services/monitorService';
-import { MonitorGroup } from '../types';
+
+// Helper function to get environment from localStorage
+const getStoredEnvironment = (): number => {
+  try {
+    const stored = localStorage.getItem('selectedEnvironment');
+    return stored ? parseInt(stored, 10) : 6; // Default to Production (6)
+  } catch {
+    return 6; // Default to Production (6) if localStorage fails
+  }
+};
 
 interface TopBarProps {
   isDarkTheme: boolean;
@@ -31,6 +40,7 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [monitorStatus, setMonitorStatus] = useState<MonitorStatus>({ online: 0, offline: 0, paused: 0 });
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<number>(getStoredEnvironment());
   const menuRef = useRef<HTMLDivElement>(null);
   
   const userInfo: UserInfo | null = (() => {
@@ -41,11 +51,30 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
   const displayName = userInfo?.username || accounts[0]?.name || 'User';
   const email = userInfo?.email || accounts[0]?.username || '';
 
+  // Poll for environment changes in localStorage
+  useEffect(() => {
+    let currentEnvironment = getStoredEnvironment();
+    setSelectedEnvironment(currentEnvironment);
+
+    const checkEnvironmentChange = () => {
+      const newEnvironment = getStoredEnvironment();
+      if (newEnvironment !== currentEnvironment) {
+        currentEnvironment = newEnvironment;
+        setSelectedEnvironment(newEnvironment);
+      }
+    };
+
+    // Check every 100ms for environment changes
+    const interval = setInterval(checkEnvironmentChange, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     async function fetchMonitorStatus() {
       try {
         setIsLoadingStatus(true);
-        const groups = await monitorService.getDashboardGroups(6); // Production environment
+        const groups = await monitorService.getDashboardGroups(selectedEnvironment);
         const status = groups.reduce((acc, group) => {
           group.monitors.forEach(monitor => {
             if (monitor.paused) {
@@ -70,7 +99,7 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchMonitorStatus, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedEnvironment]);
 
   const handleLogout = async () => {
     const hasMsalAccount = accounts.length > 0;
