@@ -29,7 +29,7 @@ export function Dashboard() {
         // Get all monitor groups for the current environment (default to Production - 6)
         const groups = await monitorService.getDashboardGroups(6);
         
-        // Find monitors with certificates expiring in less than 300 days and monitorTypeId = 1
+        // Find monitors with certificates expiring in less than 30 days and monitorTypeId = 1
         const expiring = groups.flatMap((group: MonitorGroup) => 
           group.monitors.filter((monitor: Monitor) => 
             monitor.monitorTypeId === 1 && 

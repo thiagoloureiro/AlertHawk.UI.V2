@@ -31,7 +31,7 @@ export function CertificateExpirationModal({
                 Certificate Expiration Warning
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {monitors.length} monitor{monitors.length !== 1 ? 's' : ''} with certificates expiring in less than 300 days
+                {monitors.length} monitor{monitors.length !== 1 ? 's' : ''} with certificates expiring in less than 30 days
               </p>
             </div>
           </div>

@@ -29,7 +29,7 @@ const updates: Update[] = [
     description: "New proactive monitoring feature to alert users about expiring SSL certificates.",
     date: "August 1st, 2025",
     features: [
-      "Automatic detection of monitors with certificates expiring in less than 300 days",
+      "Automatic detection of monitors with certificates expiring in less than 30 days",
       "Smart filtering to only show HTTP monitors (monitorTypeId = 1)",
       "Visual indicators with color-coded urgency levels",
       "User preference option to dismiss warnings permanently",
