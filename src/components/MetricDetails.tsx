@@ -135,7 +135,7 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
         </div>
       </div>
       
-      <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px overflow-hidden">
+      <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px overflow-hidden">
         {timelineData.map((point, index) => {
           try {
             return (
