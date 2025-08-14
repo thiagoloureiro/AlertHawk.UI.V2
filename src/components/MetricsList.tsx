@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { MonitorGroup, Monitor } from '../types';
 import { 
   AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, 
-  Search, Plus, ChevronsDown, ChevronsUp, Server, Filter
+  Search, Plus, ChevronsDown, ChevronsUp, Server, Filter, Clock, 
+  Activity, Shield, AlertTriangle, CheckCircle, XCircle, Pause
 } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
@@ -45,6 +46,172 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
       };
   }
 };
+
+// Enhanced status indicator component
+const StatusIndicator = ({ status, paused, responseTime, uptime }: { 
+  status: boolean; 
+  paused: boolean; 
+  responseTime: number; 
+  uptime: number;
+}) => {
+  if (paused) {
+    return (
+      <div className="flex items-center gap-2">
+        <Pause className="w-4 h-4 text-gray-400" />
+        <span className="text-sm text-gray-500 dark:text-gray-400">Paused</span>
+      </div>
+    );
+  }
+
+  const isHealthy = status && uptime >= 99.5;
+  const isWarning = status && uptime >= 95 && uptime < 99.5;
+  const isCritical = !status || uptime < 95;
+
+  let statusColor = 'text-green-500';
+  let bgColor = 'bg-green-100 dark:bg-green-900/20';
+  let icon = <CheckCircle className="w-4 h-4" />;
+  let label = 'Online';
+
+  if (isWarning) {
+    statusColor = 'text-yellow-500';
+    bgColor = 'bg-yellow-100 dark:bg-yellow-900/20';
+    icon = <AlertTriangle className="w-4 h-4" />;
+    label = 'Warning';
+  } else if (isCritical) {
+    statusColor = 'text-red-500';
+    bgColor = 'bg-red-100 dark:bg-red-900/20';
+    icon = <XCircle className="w-4 h-4" />;
+    label = 'Offline';
+  }
+
+  return (
+    <div className={`flex items-center gap-2 px-2 py-1 rounded-full ${bgColor}`}>
+      <div className={statusColor}>{icon}</div>
+      <span className={`text-sm font-medium ${statusColor}`}>{label}</span>
+    </div>
+  );
+};
+
+// Uptime trend visualization component
+const UptimeTrend = ({ uptime24Hrs, uptime7Days, uptime30Days }: {
+  uptime24Hrs: number;
+  uptime7Days: number;
+  uptime30Days: number;
+}) => {
+  const getUptimeColor = (uptime: number) => {
+    if (uptime >= 99.5) return 'bg-green-500';
+    if (uptime >= 95) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 dark:text-gray-400 w-6">24h:</span>
+        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full ${getUptimeColor(uptime24Hrs)}`}
+            style={{ width: `${Math.min(uptime24Hrs, 100)}%` }}
+          ></div>
+        </div>
+        <span className="text-xs font-medium w-12 text-right dark:text-white text-gray-900">{uptime24Hrs.toFixed(1)}%</span>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 dark:text-gray-400 w-6">7d:</span>
+        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full ${getUptimeColor(uptime7Days)}`}
+            style={{ width: `${Math.min(uptime7Days, 100)}%` }}
+          ></div>
+        </div>
+        <span className="text-xs font-medium w-12 text-right dark:text-white text-gray-900">{uptime7Days.toFixed(1)}%</span>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 dark:text-gray-400 w-6">30d:</span>
+        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full ${getUptimeColor(uptime30Days)}`}
+            style={{ width: `${Math.min(uptime30Days, 100)}%` }}
+          ></div>
+        </div>
+        <span className="text-xs font-medium w-12 text-right dark:text-white text-gray-900">{uptime30Days.toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+};
+
+// Response time indicator component
+const ResponseTimeIndicator = ({ responseTime }: { responseTime: number }) => {
+  const getResponseTimeColor = (time: number) => {
+    if (time < 200) return 'text-green-600 dark:text-green-400';
+    if (time < 500) return 'text-yellow-600 dark:text-yellow-400';
+    if (time < 1000) return 'text-orange-600 dark:text-orange-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
+  const getResponseTimeLabel = (time: number) => {
+    if (time < 200) return 'Excellent';
+    if (time < 500) return 'Good';
+    if (time < 1000) return 'Fair';
+    return 'Poor';
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <Activity className={`w-4 h-4 ${getResponseTimeColor(responseTime)}`} />
+      <div className="flex flex-col">
+        <span className={`text-sm font-medium ${getResponseTimeColor(responseTime)}`}>
+          {responseTime.toFixed(0)}ms
+        </span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {getResponseTimeLabel(responseTime)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// Certificate warning component
+const CertificateWarning = ({ checkCertExpiry, daysToExpire, monitorTypeId }: {
+  checkCertExpiry: boolean;
+  daysToExpire: number;
+  monitorTypeId: number;
+}) => {
+  if (monitorTypeId !== 1 || !checkCertExpiry) return null;
+
+  if (daysToExpire <= 0) {
+    return (
+      <div className="flex items-center gap-2 px-2 py-1 bg-red-100 dark:bg-red-900/20 rounded-full">
+        <AlertTriangle className="w-4 h-4 text-red-500" />
+        <span className="text-xs font-medium text-red-600 dark:text-red-400">Certificate Expired</span>
+      </div>
+    );
+  }
+
+  if (daysToExpire <= 30) {
+    return (
+      <div className="flex items-center gap-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/20 rounded-full">
+        <Clock className="w-4 h-4 text-yellow-500" />
+        <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
+          Cert expires in {daysToExpire} days
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-2 py-1 bg-green-100 dark:bg-green-900/20 rounded-full">
+      <Shield className="w-4 h-4 text-green-500" />
+      <span className="text-xs font-medium text-green-600 dark:text-green-400">
+        Cert valid ({daysToExpire} days)
+      </span>
+    </div>
+  );
+};
+
+
 
 // Update the monitor counts function to include paused
 const getMonitorCounts = (monitors: Monitor[]) => {
@@ -374,14 +541,14 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
           const { online, offline, paused } = getMonitorCounts(group.monitors);
           
           return (
-            <div key={group.id} className="space-y-2">
+            <div key={group.id} className="space-y-3">
               <div
-                className={`flex items-center justify-between p-4 rounded-lg 
+                className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200
                          ${selectedGroup === group.id.toString() 
-                           ? 'bg-blue-50 dark:bg-blue-900/20' 
-                           : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60'}`}
+                           ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                           : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60 border-gray-200 dark:border-gray-700'}`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {/* Collapse/Expand button */}
                   <button
                     onClick={(e) => toggleCollapse(e, group.id.toString())}
@@ -399,17 +566,17 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                     onClick={() => handleGroupSelect(group)}
                     className="flex-1 cursor-pointer"
                   >
-                    <h2 className="text-lg font-medium dark:text-white text-gray-900">{group.name}</h2>
+                    <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-1">{group.name}</h2>
                     <div className="text-sm dark:text-gray-400 text-gray-600">
                       Avg Uptime (24h): {group.avgUptime24Hrs.toFixed(2)}%
                     </div>
                   </div>
                 </div>
                 
-                {/* Status indicators - also clickable for group selection */}
+                {/* Enhanced status indicators - also clickable for group selection */}
                 <div 
                   onClick={() => handleGroupSelect(group)}
-                  className="text-sm flex flex-col gap-1 cursor-pointer"
+                  className="text-sm flex flex-col gap-2 cursor-pointer"
                 >
                   <div className="flex items-center gap-2 justify-start">
                     <span className="h-2 w-2 rounded-full bg-green-500"></span>
@@ -429,7 +596,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
               </div>
               
               {!collapsedGroups[group.id.toString()] && (
-                <div className="space-y-2 ml-7">
+                <div className="space-y-3 ml-7">
                   {group.monitors.map(monitor => {
                     const { icon, label } = getMonitorTypeInfo(
                       monitor.monitorTypeId, 
@@ -441,29 +608,77 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                       <div
                         key={monitor.id}
                         onClick={() => handleMonitorSelect(monitor)}
-                        className={`p-4 rounded-lg cursor-pointer transition-colors duration-200
+                        className={`p-4 rounded-lg cursor-pointer transition-all duration-200 border
                                  ${selectedMetric?.id === monitor.id 
-                                   ? 'bg-blue-50 dark:bg-blue-900/20' 
-                                   : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60'}`}
+                                   ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                                   : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60 border-gray-200 dark:border-gray-700'}`}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-4">
+                          {/* Monitor type icon */}
                           <div className="mt-1">{icon}</div>
                           
-                          <div className="flex-1">
-                            <h3 className="font-medium dark:text-white text-gray-900">
-                              {monitor.name}
-                            </h3>
-                            <div className="text-sm dark:text-gray-400 text-gray-600">
-                              {label}
+                          {/* Main monitor information */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-medium dark:text-white text-gray-900 truncate">
+                                {monitor.name}
+                              </h3>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMonitorToEdit(monitor);
+                                    setShowEditModal(true);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                  title="Edit monitor"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <StatusIndicator 
+                                  status={monitor.status} 
+                                  paused={monitor.paused}
+                                  responseTime={monitor.monitorStatusDashboard.responseTime}
+                                  uptime={monitor.monitorStatusDashboard.uptime24Hrs}
+                                />
+                              </div>
                             </div>
                             
-                            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                              <div className="dark:text-gray-400 text-gray-600">
-                                Response: {monitor.monitorStatusDashboard.responseTime.toFixed(0)}ms
+                            <div className="text-sm dark:text-gray-400 text-gray-600 mb-3">
+                              {label} • {monitor.heartBeatInterval}min interval
+                            </div>
+                            
+                            {/* Enhanced metrics grid */}
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                              {/* Response Time */}
+                              <div className="flex flex-col">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">Response Time</span>
+                                <ResponseTimeIndicator responseTime={monitor.monitorStatusDashboard.responseTime} />
                               </div>
-                              <div className="dark:text-gray-400 text-gray-600">
-                                Uptime 24h: {monitor.monitorStatusDashboard.uptime24Hrs.toFixed(2)}%
+                              
+                              {/* Uptime Trend */}
+                              <div className="flex flex-col">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">Uptime Trend</span>
+                                <UptimeTrend 
+                                  uptime24Hrs={monitor.monitorStatusDashboard.uptime24Hrs}
+                                  uptime7Days={monitor.monitorStatusDashboard.uptime7Days}
+                                  uptime30Days={monitor.monitorStatusDashboard.uptime30Days}
+                                />
                               </div>
+                              
+                              {/* Certificate Status */}
+                              <div className="flex flex-col">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">Certificate</span>
+                                <CertificateWarning 
+                                  checkCertExpiry={monitor.checkCertExpiry}
+                                  daysToExpire={monitor.daysToExpireCert}
+                                  monitorTypeId={monitor.monitorTypeId}
+                                />
+                              </div>
+                              
+
                             </div>
                           </div>
                         </div>
@@ -505,13 +720,34 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
           onAdd={async () => {}} // Not used in edit mode
           onUpdate={async (updatedMonitor) => {
             try {
-              const success = await monitorService.updateMonitorHttp(updatedMonitor);
-              if (success) {
+              if (monitorToEdit.monitorTypeId === 3) {
+                // TCP monitor update
+                const success = await monitorService.updateMonitorTcp(updatedMonitor as any);
+                if (success) {
+                  toast.success('Monitor updated successfully', { position: 'bottom-right' });
+                  setShowEditModal(false);
+                  // Refresh the list
+                  const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
+                  setGroups(updatedGroups);
+                }
+              } else if (monitorToEdit.monitorTypeId === 4) {
+                // Kubernetes monitor update
+                await monitorService.updateMonitorK8s(updatedMonitor as any);
                 toast.success('Monitor updated successfully', { position: 'bottom-right' });
                 setShowEditModal(false);
                 // Refresh the list
                 const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
                 setGroups(updatedGroups);
+              } else {
+                // HTTP monitor update
+                const success = await monitorService.updateMonitorHttp(updatedMonitor as any);
+                if (success) {
+                  toast.success('Monitor updated successfully', { position: 'bottom-right' });
+                  setShowEditModal(false);
+                  // Refresh the list
+                  const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
+                  setGroups(updatedGroups);
+                }
               }
             } catch (error) {
               console.error('Failed to update monitor:', error);
