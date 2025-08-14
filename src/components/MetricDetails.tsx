@@ -135,7 +135,7 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
         </div>
       </div>
       
-      <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px overflow-hidden">
+      <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
         {timelineData.map((point, index) => {
           try {
             return (
@@ -152,10 +152,10 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                   )}
                 />
                 
-                {/* Enhanced Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block z-50">
-                  <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap shadow-lg border border-gray-700">
-                    <div className="font-medium mb-1">
+                {/* Enhanced Tooltip with Details */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[9999] pointer-events-none">
+                  <div className="bg-gray-900 text-white text-xs rounded-lg py-3 px-4 whitespace-nowrap shadow-lg border border-gray-700 min-w-[200px]">
+                    <div className="font-medium mb-2 text-center border-b border-gray-700 pb-2">
                       {(() => {
                         try {
                           const date = getLocalDateFromUTC(point.timeStamp);
@@ -166,15 +166,62 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                         }
                       })()}
                     </div>
-                    <div className={`flex items-center gap-2 ${
-                      point.status ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {point.status ? (
-                        <CheckCircle className="w-3 h-3" />
-                      ) : (
-                        <X className="w-3 h-3" />
-                      )}
-                      {point.status ? 'Online' : 'Offline'}
+                    
+                    <div className="space-y-2">
+                      {/* Status */}
+                      <div className={`flex items-center justify-between ${
+                        point.status ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        <span className="font-medium">Status:</span>
+                        <div className="flex items-center gap-2">
+                          {point.status ? (
+                            <CheckCircle className="w-3 h-3" />
+                          ) : (
+                            <X className="w-3 h-3" />
+                          )}
+                          <span>{point.status ? 'Online' : 'Offline'}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Response Time */}
+                      <div className="flex items-center justify-between text-gray-300">
+                        <span>Response Time:</span>
+                        <span className="font-medium">
+                          {point.status ? 'Available' : 'N/A'}
+                        </span>
+                      </div>
+                      
+                      {/* Check Type */}
+                      <div className="flex items-center justify-between text-gray-300">
+                        <span>Check Type:</span>
+                        <span className="font-medium">Heartbeat</span>
+                      </div>
+                      
+                      {/* Time Ago */}
+                      <div className="flex items-center justify-between text-gray-300">
+                        <span>Time Ago:</span>
+                        <span className="font-medium">
+                          {(() => {
+                            try {
+                              const now = new Date();
+                              const checkTime = getLocalDateFromUTC(point.timeStamp);
+                              if (!checkTime) return 'Unknown';
+                              
+                              const diffMs = now.getTime() - checkTime.getTime();
+                              const diffMins = Math.floor(diffMs / (1000 * 60));
+                              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                              
+                              if (diffMins < 60) {
+                                return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+                              } else {
+                                return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                              }
+                            } catch (error) {
+                              return 'Unknown';
+                            }
+                          })()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   {/* Arrow */}

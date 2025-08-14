@@ -608,7 +608,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                       <div
                         key={monitor.id}
                         onClick={() => handleMonitorSelect(monitor)}
-                        className={`p-4 rounded-lg cursor-pointer transition-all duration-200 border
+                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border
                                  ${selectedMetric?.id === monitor.id 
                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
                                    : 'dark:bg-gray-800/40 bg-gray-50/80 hover:bg-gray-100 dark:hover:bg-gray-800/60 border-gray-200 dark:border-gray-700'}`}
@@ -619,34 +619,19 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                           
                           {/* Main monitor information */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-start justify-between mb-1.5">
                               <h3 className="font-medium dark:text-white text-gray-900 truncate">
                                 {monitor.name}
                               </h3>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMonitorToEdit(monitor);
-                                    setShowEditModal(true);
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                                  title="Edit monitor"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
-                                <StatusIndicator 
-                                  status={monitor.status} 
-                                  paused={monitor.paused}
-                                  responseTime={monitor.monitorStatusDashboard.responseTime}
-                                  uptime={monitor.monitorStatusDashboard.uptime24Hrs}
-                                />
-                              </div>
+                              <StatusIndicator 
+                                status={monitor.status} 
+                                paused={monitor.paused}
+                                responseTime={monitor.monitorStatusDashboard.responseTime}
+                                uptime={monitor.monitorStatusDashboard.uptime24Hrs}
+                              />
                             </div>
                             
-                            <div className="text-sm dark:text-gray-400 text-gray-600 mb-3">
+                            <div className="text-xs dark:text-gray-400 text-gray-600 mb-2">
                               {label} • {monitor.heartBeatInterval}min interval
                             </div>
                             
