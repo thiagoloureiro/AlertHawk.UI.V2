@@ -100,38 +100,65 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
       }
     });
 
+  // Calculate statistics
+  const totalChecks = timelineData.length;
+  const onlineChecks = timelineData.filter(p => p.status).length;
+  const offlineChecks = totalChecks - onlineChecks;
+  const uptimePercentage = totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0;
+
   return (
-    <div className="mb-4">
-      <div className="flex justify-between text-sm dark:text-gray-400 text-gray-600 mb-2">
-        <span>Status Timeline ({userTimeZone})</span>
-        <span>{timelineData.length} checks</span>
+    <div className="dark:bg-gray-800 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+            <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold dark:text-white text-gray-900">Status Timeline</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{userTimeZone}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-gray-600 dark:text-gray-400">{onlineChecks} online</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-gray-600 dark:text-gray-400">{offlineChecks} offline</span>
+          </div>
+          <div className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {uptimePercentage.toFixed(1)}% uptime
+            </span>
+          </div>
+        </div>
       </div>
-      <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
+      
+      <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px overflow-hidden">
         {timelineData.map((point, index) => {
           try {
             return (
               <div
                 key={index}
-                className="group relative flex-1"
+                className="group relative flex-1 min-w-[2px]"
               >
                 <div
                   className={cn(
-                    "w-full h-full rounded-sm transition-colors",
+                    "w-full h-full rounded-sm transition-all duration-200 hover:scale-y-110",
                     point.status
-                      ? "bg-green-500 dark:bg-green-400"
-                      : "bg-red-500 dark:bg-red-400"
+                      ? "bg-green-500 dark:bg-green-400 hover:bg-green-600 dark:hover:bg-green-300"
+                      : "bg-red-500 dark:bg-red-400 hover:bg-red-600 dark:hover:bg-red-300"
                   )}
                 />
                 
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                  <div className="bg-gray-900 text-white text-xs rounded-sm py-1 px-2 whitespace-nowrap">
-                    <div>
+                {/* Enhanced Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block z-50">
+                  <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap shadow-lg border border-gray-700">
+                    <div className="font-medium mb-1">
                       {(() => {
                         try {
-                          // Use our new utility functions
                           const date = getLocalDateFromUTC(point.timeStamp);
-                          // Use the compact date formatter
                           return formatCompactDate(date);
                         } catch (error) {
                           console.error('Error formatting date:', error);
@@ -139,7 +166,16 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
                         }
                       })()}
                     </div>
-                    <div>Status: {point.status ? 'Online' : 'Offline'}</div>
+                    <div className={`flex items-center gap-2 ${
+                      point.status ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {point.status ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <X className="w-3 h-3" />
+                      )}
+                      {point.status ? 'Online' : 'Offline'}
+                    </div>
                   </div>
                   {/* Arrow */}
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
@@ -156,8 +192,9 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
           }
         })}
       </div>
+      
       {/* Timeline labels */}
-      <div className="flex justify-between text-xs dark:text-gray-400 text-gray-600 mt-1">
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">
         <span>1 hour ago</span>
         <span>Now</span>
       </div>
@@ -1111,34 +1148,74 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         )}
       </div>
 
-      {/* Metrics Boxes */}
+      {/* Enhanced Uptime Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        {TIME_PERIODS.map((period) => (
-          <button
-            key={period.label}
-            onClick={() => setSelectedPeriod(period)}
-            className={`p-4 rounded-lg ${
-              selectedPeriod === period
-                ? 'bg-blue-500 text-white'
-                : 'dark:bg-gray-700 bg-white hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'
-            } transition-colors duration-200`}
-          >
-            <div className="text-sm font-medium mb-1">{period.label}</div>
-            <div className="text-2xl font-bold">
-              {period.label === '1 Hour'
-                ? metric.monitorStatusDashboard.uptime1Hr
-                : period.label === '24 Hours'
-                ? metric.monitorStatusDashboard.uptime24Hrs
-                : period.label === '7 Days'
-                ? metric.monitorStatusDashboard.uptime7Days
-                : period.label === '30 Days'
-                ? metric.monitorStatusDashboard.uptime30Days
-                : period.label === '3 Months'
-                ? metric.monitorStatusDashboard.uptime3Months
-                : metric.monitorStatusDashboard.uptime6Months}%
-            </div>
-          </button>
-        ))}
+        {TIME_PERIODS.map((period) => {
+          const uptimeValue = period.label === '1 Hour'
+            ? metric.monitorStatusDashboard.uptime1Hr
+            : period.label === '24 Hours'
+            ? metric.monitorStatusDashboard.uptime24Hrs
+            : period.label === '7 Days'
+            ? metric.monitorStatusDashboard.uptime7Days
+            : period.label === '30 Days'
+            ? metric.monitorStatusDashboard.uptime30Days
+            : period.label === '3 Months'
+            ? metric.monitorStatusDashboard.uptime3Months
+            : metric.monitorStatusDashboard.uptime6Months;
+          
+          const isSelected = selectedPeriod === period;
+          const getUptimeColor = (value: number) => {
+            if (value >= 99.5) return 'text-green-600 dark:text-green-400';
+            if (value >= 95) return 'text-yellow-600 dark:text-yellow-400';
+            return 'text-red-600 dark:text-red-400';
+          };
+          
+          const getUptimeStatus = (value: number) => {
+            if (value >= 99.5) return 'Excellent';
+            if (value >= 95) return 'Good';
+            if (value >= 90) return 'Fair';
+            return 'Poor';
+          };
+
+          return (
+            <button
+              key={period.label}
+              onClick={() => setSelectedPeriod(period)}
+              className={`group p-3 rounded-xl border-2 transition-all duration-200 hover:scale-105 ${
+                isSelected
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className={`p-1 rounded-lg ${
+                  isSelected 
+                    ? 'bg-blue-100 dark:bg-blue-800' 
+                    : 'bg-gray-100 dark:bg-gray-700'
+                }`}>
+                  <Clock className={`w-3.5 h-3.5 ${
+                    isSelected 
+                      ? 'text-blue-600 dark:text-blue-300' 
+                      : 'text-gray-600 dark:text-gray-300'
+                  }`} />
+                </div>
+                <span className={`text-xs font-medium ${
+                  isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'
+                }`}>
+                  {period.label}
+                </span>
+              </div>
+              
+              <div className={`text-xl font-bold mb-0.5 ${getUptimeColor(uptimeValue)}`}>
+                {uptimeValue.toFixed(2)}%
+              </div>
+              
+              <div className={`text-xs font-medium ${getUptimeColor(uptimeValue)}`}>
+                {getUptimeStatus(uptimeValue)}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Status Timeline */}
