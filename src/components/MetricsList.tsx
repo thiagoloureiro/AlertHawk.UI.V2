@@ -63,33 +63,22 @@ const StatusIndicator = ({ status, paused, responseTime, uptime }: {
     );
   }
 
-  const isHealthy = status && uptime >= 99.5;
-  const isWarning = status && uptime >= 95 && uptime < 99.5;
-  const isCritical = !status || uptime < 95;
-
-  let statusColor = 'text-green-500';
-  let bgColor = 'bg-green-100 dark:bg-green-900/20';
-  let icon = <CheckCircle className="w-4 h-4" />;
-  let label = 'Online';
-
-  if (isWarning) {
-    statusColor = 'text-yellow-500';
-    bgColor = 'bg-yellow-100 dark:bg-yellow-900/20';
-    icon = <AlertTriangle className="w-4 h-4" />;
-    label = 'Warning';
-  } else if (isCritical) {
-    statusColor = 'text-red-500';
-    bgColor = 'bg-red-100 dark:bg-red-900/20';
-    icon = <XCircle className="w-4 h-4" />;
-    label = 'Offline';
+  // Simple online/offline based on actual monitor status
+  if (status) {
+    return (
+      <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/20">
+        <CheckCircle className="w-4 h-4 text-green-500" />
+        <span className="text-sm font-medium text-green-500">Online</span>
+      </div>
+    );
+  } else {
+    return (
+      <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/20">
+        <XCircle className="w-4 h-4 text-red-500" />
+        <span className="text-sm font-medium text-red-500">Offline</span>
+      </div>
+    );
   }
-
-  return (
-    <div className={`flex items-center gap-2 px-2 py-1 rounded-full ${bgColor}`}>
-      <div className={statusColor}>{icon}</div>
-      <span className={`text-sm font-medium ${statusColor}`}>{label}</span>
-    </div>
-  );
 };
 
 // Uptime trend visualization component
