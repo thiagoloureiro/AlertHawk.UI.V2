@@ -15,7 +15,7 @@
     "@sentry/react": "^10.5.0",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.11.0",
-    "lucide-react": "^0.540.0",
+    "lucide-react": "^0.541.0",
     "markdown-it": "^14.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
