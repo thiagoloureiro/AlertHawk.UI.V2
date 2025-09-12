@@ -31,6 +31,8 @@ export interface CreateMonitorHttpPayload {
   retries: number;
   status: boolean;
   monitorTypeId: number;
+  HttpResponseCodeFrom: number;
+  HttpResponseCodeTo: number;
 }
 
 export interface CreateMonitorTcpPayload {
@@ -70,6 +72,8 @@ export interface UpdateMonitorHttpPayload {
   monitorEnvironment: number;
   checkCertExpiry: boolean;
   monitorGroup: number;
+  HttpResponseCodeFrom: number;
+  HttpResponseCodeTo: number;
 }
 
 export interface UpdateMonitorTcpPayload {

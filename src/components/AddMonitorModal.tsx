@@ -75,7 +75,13 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>('GET');
   const [maxRedirects, setMaxRedirects] = useState((existingMonitor as any)?.maxRedirects?.toString() ?? '3');
   const [timeout, setTimeout] = useState((existingMonitor as any)?.timeout?.toString() ?? '30');
-  const [body, setBody] = useState('');
+  const [httpResponseCodeFrom, setHttpResponseCodeFrom] = useState(
+    (existingMonitor as any)?.httpResponseCodeFrom?.toString() ?? '200'
+  );
+  const [httpResponseCodeTo, setHttpResponseCodeTo] = useState(
+    (existingMonitor as any)?.httpResponseCodeTo?.toString() ?? '299'
+  );
+  const [body, setBody] = useState((existingMonitor as any)?.body || '');
   const [groups, setGroups] = useState<{ id: number; name: string }[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(
     isEditing && existingMonitor?.monitorGroup ? existingMonitor.monitorGroup : 0
@@ -156,6 +162,19 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
       if (methodNum === 2) setHttpMethod('POST');
       else if (methodNum === 3) setHttpMethod('PUT');
       else if (methodNum === 1) setHttpMethod('GET');
+    }
+  }, [existingMonitor]);
+
+  // Update HTTP response code fields when existingMonitor changes (e.g., when HTTP details are fetched)
+  useEffect(() => {
+    if (existingMonitor && (existingMonitor as any)?.httpResponseCodeFrom !== undefined) {
+      setHttpResponseCodeFrom((existingMonitor as any).httpResponseCodeFrom.toString());
+    }
+    if (existingMonitor && (existingMonitor as any)?.httpResponseCodeTo !== undefined) {
+      setHttpResponseCodeTo((existingMonitor as any).httpResponseCodeTo.toString());
+    }
+    if (existingMonitor && (existingMonitor as any)?.body !== undefined) {
+      setBody((existingMonitor as any).body);
     }
   }, [existingMonitor]);
 
@@ -255,7 +274,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           responseStatusCode: 200,
           responseTime: 0,
           lastStatus: true,
-          monitorTypeId: 1
+          monitorTypeId: 1,
+          HttpResponseCodeFrom: parseInt(httpResponseCodeFrom),
+          HttpResponseCodeTo: parseInt(httpResponseCodeTo)
         };
 
         if (isEditing && onUpdate) {
@@ -525,6 +546,47 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                                dark:text-white focus:ring-2 focus:ring-blue-500"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium dark:text-gray-300 mb-2">
+                      Expected HTTP Response Code Range
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                          From
+                        </label>
+                        <input
+                          type="number"
+                          value={httpResponseCodeFrom}
+                          onChange={(e) => setHttpResponseCodeFrom(e.target.value)}
+                          min="100"
+                          max="599"
+                          className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                                   dark:text-white focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                          To
+                        </label>
+                        <input
+                          type="number"
+                          value={httpResponseCodeTo}
+                          onChange={(e) => setHttpResponseCodeTo(e.target.value)}
+                          min="100"
+                          max="599"
+                          className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                                   dark:text-white focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs dark:text-gray-400 text-gray-600">
+                      The monitor will consider the HTTP request successful if the response code falls within this range (e.g., 200-299 for successful responses)
+                    </p>
                   </div>
 
                   <div>

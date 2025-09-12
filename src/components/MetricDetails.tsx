@@ -899,7 +899,10 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             body: httpDetails.body
           },
           urlToCheck: httpDetails.urlToCheck,
-          monitorStatusDashboard: metric.monitorStatusDashboard
+          monitorStatusDashboard: metric.monitorStatusDashboard,
+          // Include HTTP response code fields for editing
+          httpResponseCodeFrom: httpDetails.httpResponseCodeFrom,
+          httpResponseCodeTo: httpDetails.httpResponseCodeTo
         };
       }
       
