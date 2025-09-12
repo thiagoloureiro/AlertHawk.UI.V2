@@ -13,6 +13,19 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "HTTP Response Code Range Configuration",
+    description: "Enhanced HTTP monitor configuration with customizable response code range validation for more precise monitoring control.",
+    date: "September 12th, 2025",
+    features: [
+      "Added configurable HTTP response code range fields (From/To) for HTTP monitors",
+      "Default range set to 200-299 for standard successful responses",
+      "Real-time form validation with proper min/max constraints (100-599)",
+      "Seamless integration with existing monitor creation and editing workflows",
+      "Improved monitor accuracy by allowing custom success criteria beyond standard HTTP codes",
+      "Enhanced editing experience with proper field population from existing monitor data"
+    ]
+  },
+  {
     title: "Environment Selection Persistence",
     description: "Enhanced environment selection with persistent storage and real-time updates across components.",
     date: "August 8th, 2025",
