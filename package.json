@@ -12,7 +12,7 @@
   "dependencies": {
     "@azure/msal-browser": "^4.23.0",
     "@azure/msal-react": "^3.0.19",
-    "@sentry/react": "^10.14.0",
+    "@sentry/react": "^10.15.0",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.12.2",
     "lucide-react": "^0.544.0",
@@ -21,13 +21,13 @@
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.9.1",
+    "react-router-dom": "^7.9.2",
     "recharts": "^3.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@tailwindcss/postcss": "^4.1.13",
-    "@tailwindcss/typography": "^0.5.18",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.3",
