@@ -66,6 +66,7 @@ export interface MonitorAgent {
   location: string;
   version: string;
   status: 'running' | 'stopped' | 'error';
+  monitorRegion: number;
 }
 
 export type NotificationType = 'ms-teams' | 'slack' | 'telegram' | 'push' | 'email' | 'webhook';
@@ -135,6 +136,17 @@ export interface MonitorK8sNode {
   ready: boolean;
 }
 
+export interface MonitorHttpHeaders {
+  monitorId: number;
+  cacheControl?: string;
+  strictTransportSecurity?: string;
+  permissionsPolicy?: string;
+  xFrameOptions?: string;
+  xContentTypeOptions?: string;
+  referrerPolicy?: string;
+  contentSecurityPolicy?: string;
+}
+
 export interface Monitor {
   id: number;
   monitorTypeId: number;
@@ -147,6 +159,7 @@ export interface Monitor {
   urlToCheck: string;
   monitorRegion: number;
   monitorEnvironment: number;
+  monitorGroup: number;
   monitorStatusDashboard: MonitorStatusDashboard;
   checkCertExpiry: boolean;
   monitorTcp?: MonitorTcp;
