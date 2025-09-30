@@ -7,7 +7,7 @@ import { Monitor, MonitorGroup, MonitorHistoryData, MonitorK8sNode } from '../ty
 import { 
   Clock, Activity, CheckCircle, Globe, Network, 
   Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, Loader2,
-  Bot, RefreshCw, Server, Check, X
+  Bot, RefreshCw, Server, Check, X, Shield
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getLocalDateFromUTC, formatCompactDate } from '../utils/dateUtils';
@@ -20,6 +20,7 @@ import {
   UpdateMonitorTcpPayload 
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
+import { SecurityHeadersModal } from './SecurityHeadersModal';
 import { aiService, msalInstance } from '../services/aiService';
 import { monitoringHttp } from '../services/httpClient';
 
@@ -581,6 +582,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [monitorToEdit, setMonitorToEdit] = useState<Monitor | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSecurityHeaders, setShowSecurityHeaders] = useState(false);
   const [showCloneConfirm, setShowCloneConfirm] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[1]);
@@ -1071,6 +1073,24 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             Notifications
           </button>
 
+          {metric?.monitorTypeId === 1 && (
+            <button
+              onClick={() => setShowSecurityHeaders(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                       dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
+                       dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                       transition-colors duration-200 relative"
+            >
+              <Shield className="w-4 h-4" />
+              Security Headers
+              <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 
+                            text-yellow-800 dark:text-yellow-500 text-xs rounded-full border border-yellow-300 
+                            dark:border-yellow-700/50">
+                Beta
+              </span>
+            </button>
+          )}
+
           <button
             onClick={() => setShowCloneConfirm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
@@ -1446,6 +1466,19 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         <NotificationListModal
           monitorId={metric.id}
           onClose={() => setShowNotifications(false)}
+        />
+      )}
+
+      {showSecurityHeaders && metric && (
+        <SecurityHeadersModal
+          monitorId={metric.id}
+          monitorName={metric.name}
+          onClose={() => setShowSecurityHeaders(false)}
+          onEditMonitor={() => {
+            setShowSecurityHeaders(false);
+            setShowEditModal(true);
+            setMonitorToEdit(metric);
+          }}
         />
       )}
 

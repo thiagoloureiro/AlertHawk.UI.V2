@@ -33,19 +33,6 @@ const monitorTypes = [
   { id: 'k8s', label: 'Kubernetes', icon: Server }
 ];
 
-interface MonitorK8sPayload {
-  monitorId: number;
-  clusterName: string;
-  kubeConfig: string;
-  lastStatus: boolean;
-  name: string;
-  monitorGroup: number;
-  monitorRegion: number;
-  monitorEnvironment: number;
-  heartBeatInterval: number;
-  retries: number;
-  timeout: number;
-}
 
 export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
   
@@ -72,6 +59,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   const [environment, setEnvironment] = useState(existingMonitor?.monitorEnvironment || MonitorEnvironment.Production);
   const [checkCertExpiry, setCheckCertExpiry] = useState(existingMonitor?.checkCertExpiry ?? true);
   const [ignoreTLS, setIgnoreTLS] = useState(existingMonitor && 'ignoreTlsSsl' in existingMonitor ? (existingMonitor as any).ignoreTlsSsl : false);
+  const [checkMonitorHttpHeaders, setCheckMonitorHttpHeaders] = useState(
+    existingMonitor && 'checkMonitorHttpHeaders' in existingMonitor ? (existingMonitor as any).checkMonitorHttpHeaders : false
+  );
   const [httpMethod, setHttpMethod] = useState<'GET' | 'POST' | 'PUT'>('GET');
   const [maxRedirects, setMaxRedirects] = useState((existingMonitor as any)?.maxRedirects?.toString() ?? '3');
   const [timeout, setTimeout] = useState((existingMonitor as any)?.timeout?.toString() ?? '30');
@@ -147,7 +137,6 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
   // Helper to extract monitorHttpMethod from Monitor
   function getMonitorHttpMethod(monitor: Monitor | undefined): number | undefined {
     if (!monitor) return undefined;
-    // @ts-expect-error: monitorHttpMethod may be present on some monitor objects
     if ('monitorHttpMethod' in monitor && typeof (monitor as any).monitorHttpMethod !== 'undefined') return (monitor as any).monitorHttpMethod;
     return undefined;
   }
@@ -175,6 +164,9 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     }
     if (existingMonitor && (existingMonitor as any)?.body !== undefined) {
       setBody((existingMonitor as any).body);
+    }
+    if (existingMonitor && (existingMonitor as any)?.checkMonitorHttpHeaders !== undefined) {
+      setCheckMonitorHttpHeaders((existingMonitor as any).checkMonitorHttpHeaders);
     }
   }, [existingMonitor]);
 
@@ -269,6 +261,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           monitorHttpMethod: httpMethod === 'POST' ? 2 : httpMethod === 'PUT' ? 3 : 1,
           body,
           checkCertExpiry,
+          checkMonitorHttpHeaders,
           daysToExpireCert: 0,
           paused: false,
           responseStatusCode: 200,
@@ -516,6 +509,16 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
                     <Switch
                       checked={ignoreTLS}
                       onCheckedChange={(checked) => setIgnoreTLS(checked)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                      Check Security Headers
+                    </label>
+                    <Switch
+                      checked={checkMonitorHttpHeaders}
+                      onCheckedChange={(checked) => setCheckMonitorHttpHeaders(checked)}
                     />
                   </div>
 

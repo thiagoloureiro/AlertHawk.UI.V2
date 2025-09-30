@@ -1,5 +1,5 @@
 import { monitoringHttp } from './httpClient';
-import { MonitorGroup, MonitorAgent } from '../types';
+import { MonitorGroup, MonitorAgent, MonitorHttpHeaders } from '../types';
 
 export enum MonitorRegion {
   Europe = 1,
@@ -33,6 +33,7 @@ export interface CreateMonitorHttpPayload {
   monitorTypeId: number;
   HttpResponseCodeFrom: number;
   HttpResponseCodeTo: number;
+  checkMonitorHttpHeaders: boolean;
 }
 
 export interface CreateMonitorTcpPayload {
@@ -74,6 +75,7 @@ export interface UpdateMonitorHttpPayload {
   monitorGroup: number;
   HttpResponseCodeFrom: number;
   HttpResponseCodeTo: number;
+  checkMonitorHttpHeaders: boolean;
 }
 
 export interface UpdateMonitorTcpPayload {
@@ -376,6 +378,16 @@ export class MonitorService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch HTTP monitor details:', error);
+      throw error;
+    }
+  }
+
+  async getMonitorSecurityHeaders(monitorId: number): Promise<MonitorHttpHeaders> {
+    try {
+      const response = await monitoringHttp.get<MonitorHttpHeaders>(`/api/MonitorHistory/GetMonitorSecurityHeaders/${monitorId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch security headers:', error);
       throw error;
     }
   }
