@@ -7,6 +7,7 @@ interface SecurityHeadersModalProps {
   onClose: () => void;
   monitorId: number;
   monitorName: string;
+  onEditMonitor?: () => void;
 }
 
 interface SecurityHeader {
@@ -114,7 +115,7 @@ function getImportanceColor(importance: string) {
   }
 }
 
-export function SecurityHeadersModal({ onClose, monitorId, monitorName }: SecurityHeadersModalProps) {
+export function SecurityHeadersModal({ onClose, monitorId, monitorName, onEditMonitor }: SecurityHeadersModalProps) {
   const [headers, setHeaders] = useState<SecurityHeader[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +126,15 @@ export function SecurityHeadersModal({ onClose, monitorId, monitorName }: Securi
         setLoading(true);
         setError(null);
         const data = await monitorService.getMonitorSecurityHeaders(monitorId);
-        console.log('Security headers data from API:', data);
+        
+        // Check if security headers monitoring is enabled
+        const hasAnyHeaders = Object.values(data).some(value => value && typeof value === 'string' && value.trim() !== '');
+        
+        if (!hasAnyHeaders) {
+          setError('Security headers monitoring is not enabled for this monitor. Please enable "Check Security Headers" in the monitor settings to analyze security headers.');
+          setHeaders([]);
+          return;
+        }
         
         const securityHeaders: SecurityHeader[] = SECURITY_HEADERS.map(header => {
           // Map header names to API response property names
@@ -149,7 +158,6 @@ export function SecurityHeadersModal({ onClose, monitorId, monitorName }: Securi
           };
         });
         
-        console.log('Mapped security headers:', securityHeaders);
         setHeaders(securityHeaders);
       } catch (err) {
         console.error('Failed to fetch security headers:', err);
@@ -202,12 +210,25 @@ export function SecurityHeadersModal({ onClose, monitorId, monitorName }: Securi
               <div className="text-center">
                 <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                 <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Retry
-                </button>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Retry
+                  </button>
+                  {onEditMonitor && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onEditMonitor();
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Edit Monitor
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
