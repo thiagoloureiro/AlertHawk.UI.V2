@@ -9,6 +9,7 @@ import { UserManagement } from '../pages/UserManagement';
 import { Administration } from '../pages/Administration';
 import { Settings } from '../pages/Settings';
 import { StatusDashboard } from '../pages/StatusDashboard';
+import { SSLCertificateMonitor } from '../pages/SSLCertificateMonitor';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export function AppRoutes() {
@@ -23,6 +24,7 @@ export function AppRoutes() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/dashboard/:monitorId" element={<MonitorDetails />} />
       <Route path="/alerts" element={<MonitorAlerts />} />
+      <Route path="/ssl-certificates" element={<SSLCertificateMonitor />} />
       <Route path="/groups" element={<MonitorGroups />} />
       <Route path="/agents" element={<MonitorAgents />} />
       <Route path="/notifications" element={<NotificationManagement />} />

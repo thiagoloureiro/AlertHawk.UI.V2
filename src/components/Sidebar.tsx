@@ -9,7 +9,8 @@ import {
   UserCircle,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
@@ -27,6 +28,7 @@ const baseMenuItems: MenuItem[] = [
   { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
   { id: '2', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '3', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
+  { id: '4', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
   { id: '5', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
   { id: '6', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
 ];
@@ -50,6 +52,7 @@ const iconMap: Record<string, React.ElementType> = {
   Users,
   UserCircle,
   Settings,
+  Shield,
 };
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
