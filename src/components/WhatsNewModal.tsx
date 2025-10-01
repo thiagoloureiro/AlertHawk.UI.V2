@@ -13,6 +13,21 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "SSL Certificate Monitor",
+    description: "New dedicated page for monitoring SSL certificate expiration status across all environments with advanced filtering and sorting capabilities.",
+    date: "December 15th, 2024",
+    features: [
+      "Dedicated SSL Certificate Monitor page accessible from the sidebar",
+      "Environment selector to view certificates across Development, Staging, QA, Testing, PreProd, and Production",
+      "Smart filtering to show only active HTTP monitors with certificate monitoring enabled",
+      "Color-coded status indicators: Critical (≤7 days), Warning (8-30 days), Healthy (>30 days)",
+      "Sortable table columns for Status, Monitor Name, URL, and Days to Expire",
+      "One-click URL opening to visit monitored sites directly",
+      "Dark theme support with responsive design",
+      "Automatic exclusion of paused monitors and monitors without certificate monitoring"
+    ]
+  },
+  {
     title: "HTTP Response Code Range Configuration",
     description: "Enhanced HTTP monitor configuration with customizable response code range validation for more precise monitoring control.",
     date: "September 12th, 2025",
