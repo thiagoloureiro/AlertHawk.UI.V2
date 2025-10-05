@@ -6,6 +6,7 @@ import {
 import type { MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';
 import { toast } from 'react-hot-toast';
+import { LoadingSpinner } from '../components/ui';
 
 interface DeleteConfirmationProps {
   group: MonitorGroup;
@@ -58,7 +59,7 @@ function DeleteConfirmation({ group, onConfirm, onCancel, isDeleting }: DeleteCo
                      disabled:opacity-50 flex items-center gap-2"
           >
             {isDeleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LoadingSpinner size="sm" />
             ) : (
               <Trash2 className="w-4 h-4" />
             )}
@@ -295,7 +296,7 @@ export function MonitorGroups() {
         {isLoading && (
           <div className="absolute inset-0 bg-gray-900/10 dark:bg-gray-900/50 
                         flex items-center justify-center z-10">
-            <Loader2 className="w-8 h-8 animate-spin dark:text-blue-400 text-blue-600" />
+            <LoadingSpinner size="lg" />
           </div>
         )}
         
@@ -442,7 +443,7 @@ export function MonitorGroups() {
                            disabled:opacity-50 flex items-center gap-2"
                 >
                   {isLoading || isAdding ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                   ) : (
                     <Plus className="w-4 h-4" />
                   )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Monitor, MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';
 import { Shield, AlertTriangle, CheckCircle, Clock, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 
 type SortField = 'name' | 'url' | 'daysToExpire' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -168,8 +169,7 @@ export function SSLCertificateMonitor() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600 dark:text-gray-300">Loading SSL certificates...</span>
+        <LoadingSpinner size="lg" text="Loading SSL certificates..." />
       </div>
     );
   }

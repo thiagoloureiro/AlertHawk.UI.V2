@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Loader2, AlertCircle } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 import { AlertIncident, getEnvironmentName } from '../types';
 import { convertUTCToLocal } from '../utils/dateUtils';
 import { useParams } from 'react-router-dom';
@@ -102,10 +103,7 @@ export function MonitorAlerts() {
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin dark:text-blue-400 text-blue-600" />
-          <p className="text-lg dark:text-gray-300 text-gray-700">Loading alerts...</p>
-        </div>
+        <LoadingSpinner size="xl" text="Loading alerts..." />
       </div>
     );
   }
@@ -181,7 +179,7 @@ export function MonitorAlerts() {
             <div className="relative flex-1 overflow-auto">
               {isLoading && (
                 <div className="absolute inset-0 bg-gray-900/10 dark:bg-gray-900/50 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin dark:text-blue-400 text-blue-600" />
+                  <LoadingSpinner size="lg" />
                 </div>
               )}
               

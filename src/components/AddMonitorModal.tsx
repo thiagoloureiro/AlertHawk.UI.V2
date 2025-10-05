@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Globe, Network, Plus, Loader2, Server } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import { Select, Switch, Textarea } from './ui';
 import monitorService, { MonitorRegion } from '../services/monitorService';
 import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
@@ -789,7 +790,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                     {isEditing ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (

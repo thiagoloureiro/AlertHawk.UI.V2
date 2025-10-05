@@ -9,6 +9,7 @@ import {
   Pause, Play, Edit, Bell, MessageSquare, Trash2, Copy, Loader2,
   Bot, RefreshCw, Server, Check, X, Shield
 } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import { cn } from '../lib/utils';
 import { getLocalDateFromUTC, formatCompactDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
@@ -450,7 +451,7 @@ Please provide a concise analysis of the monitor's performance and alert history
           AI Analysis - Powered by Abby
         </h2>
         <div className="flex items-center gap-3 text-sm dark:text-gray-400 text-gray-600">
-          <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          <LoadingSpinner size="sm" />
           {isAnalyzing ? 'Analyzing metrics...' : 'Initializing...'}
         </div>
       </div>
@@ -1031,7 +1032,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
                      transition-colors duration-200"
           >
             {isPauseLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LoadingSpinner size="sm" />
             ) : metric.paused ? (
               <Play className="w-4 h-4" />
             ) : (
@@ -1296,7 +1297,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         <div className="h-64 mt-6 relative">
           {isLoadingHistory && (
             <div className="absolute inset-0 bg-gray-900/20 dark:bg-gray-900/40 flex items-center justify-center z-10 rounded-lg">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <LoadingSpinner size="lg" />
             </div>
           )}
           <ResponsiveContainer width="100%" height="100%">
@@ -1379,8 +1380,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         <div className="mt-6 relative">
           {isLoadingK8s ? (
             <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500 mr-2" />
-              <span className="text-gray-600 dark:text-gray-300">Loading Kubernetes data...</span>
+              <LoadingSpinner size="lg" text="Loading Kubernetes data..." />
             </div>
           ) : (
             renderK8sNodes()
@@ -1419,7 +1419,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                     Deleting...
                   </>
                 ) : (
@@ -1510,7 +1510,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
               >
                 {isCloning ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                     Cloning...
                   </>
                 ) : (

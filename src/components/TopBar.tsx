@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sun, Moon, LogOut, Sparkles, Activity, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
 import { WhatsNewModal } from './WhatsNewModal';
@@ -187,12 +188,7 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
       {/* Monitor Status */}
       <div className="flex items-center gap-6">
         {isLoadingStatus ? (
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-5 h-5 text-gray-500 dark:text-gray-400 animate-spin" />
-            <span className="text-sm font-medium dark:text-white text-gray-900">
-              Loading status...
-            </span>
-          </div>
+          <LoadingSpinner size="sm" text="Loading status..." />
         ) : (
           <>
             <div className="flex items-center gap-2">

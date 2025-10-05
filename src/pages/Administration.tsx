@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Download, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 import monitorService from '../services/monitorService';
 import { toast } from 'react-hot-toast';
 
@@ -101,10 +102,7 @@ export function Administration() {
   if (isLoading) {
     return (
       <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Loading settings...
-        </div>
+        <LoadingSpinner text="Loading settings..." />
       </div>
     );
   }
@@ -132,7 +130,7 @@ export function Administration() {
                        text-white transition-colors duration-200 disabled:opacity-50"
             >
               {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <LoadingSpinner size="sm" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
@@ -187,7 +185,7 @@ export function Administration() {
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <LoadingSpinner size="sm" />
                   Saving...
                 </>
               ) : (
@@ -263,7 +261,7 @@ export function Administration() {
                          flex items-center gap-2"
               >
                 {isImporting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <LoadingSpinner size="sm" />
                 ) : (
                   <AlertTriangle className="w-4 h-4" />
                 )}
@@ -303,7 +301,7 @@ export function Administration() {
                          disabled:opacity-50 flex items-center gap-2"
               >
                 {isClearing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <LoadingSpinner size="sm" />
                 ) : (
                   <AlertTriangle className="w-4 h-4" />
                 )}

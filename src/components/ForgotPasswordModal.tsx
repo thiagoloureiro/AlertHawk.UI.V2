@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import { authHttp } from '../services/httpClient';
 
 interface ForgotPasswordModalProps {
@@ -112,7 +113,7 @@ export function ForgotPasswordModal({ onClose }: ForgotPasswordModalProps) {
                        flex items-center justify-center"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <LoadingSpinner size="sm" />
               ) : (
                 'Reset Password'
               )}
