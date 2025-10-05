@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, PieChart, Activity, AlertTriangle, Gauge, TrendingUp, Users, Shield, X } from 'lucide-react';
+import { BarChart3, PieChart, Activity, AlertTriangle, Gauge, TrendingUp, Users, Shield, X, Square } from 'lucide-react';
 
 interface WidgetLibraryProps {
   onAddWidget: (type: string) => void;
@@ -41,6 +41,13 @@ const widgetTypes = [
     description: 'SSL certificate expiration and status',
     icon: Shield,
     category: 'Security'
+  },
+  {
+    id: 'status-blocks',
+    name: 'Status Blocks',
+    description: 'Visual blocks showing ONLINE/OFFLINE/PAUSED counts',
+    icon: Square,
+    category: 'Status'
   }
 ];
 

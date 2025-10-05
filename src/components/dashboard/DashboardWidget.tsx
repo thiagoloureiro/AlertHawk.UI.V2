@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { X, Edit3, Activity, AlertTriangle, Gauge, Shield, Users } from 'lucide-react';
+import { X, Edit3, Activity, AlertTriangle, Gauge, Shield, Users, Square } from 'lucide-react';
 import { DashboardData, DashboardWidget as DashboardWidgetType } from '../../pages/DashboardBuilder';
 import { AlertTimeline } from './AlertTimeline';
 import { MetricCard } from './MetricCard';
 import { GroupStatusGrid } from './GroupStatusGrid';
 import { MonitorStatusGrid } from './MonitorStatusGrid';
 import { SSLStatusWidget } from './SSLStatusWidget';
+import { StatusBlocks } from './StatusBlocks';
 
 interface DashboardWidgetProps {
   widget: DashboardWidgetType;
@@ -21,6 +22,7 @@ const widgetIcons = {
   'group-summary': Users,
   'monitor-status': Activity,
   'ssl-status': Shield,
+  'status-blocks': Square,
   // Legacy widget types
   metric: Gauge,
   status: Activity,
@@ -90,6 +92,14 @@ export function DashboardWidget({ widget, data, isPreviewMode, onUpdate, onDelet
       case 'ssl-status':
         return (
           <SSLStatusWidget
+            data={data.monitorGroups}
+            config={widget.config}
+            onConfigChange={handleConfigChange}
+          />
+        );
+      case 'status-blocks':
+        return (
+          <StatusBlocks
             data={data.monitorGroups}
             config={widget.config}
             onConfigChange={handleConfigChange}
