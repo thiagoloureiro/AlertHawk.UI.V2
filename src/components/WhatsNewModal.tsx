@@ -13,9 +13,28 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Dashboard Builder & Custom Widgets",
+    description: "Revolutionary dashboard builder with drag-and-drop widgets, real-time data visualization, and customizable monitoring dashboards.",
+    date: "October 4th, 2025",
+    features: [
+      "Interactive Dashboard Builder accessible from the sidebar with drag-and-drop functionality",
+      "Customizable widget library with 6 widget types: Uptime Summary, Alert Timeline, Group Summary, Monitor Status, SSL Status, and Status Blocks",
+      "Real-time data integration with monitor groups and alert data sources",
+      "Widget configuration with settings panels for each widget type",
+      "Save and load dashboard functionality with local storage persistence",
+      "URL-based dashboard sharing with unique dashboard IDs",
+      "Auto-refresh settings with configurable intervals (10s, 20s, 30s, 1min, 5min)",
+      "Widget limit of 15 widgets per dashboard for optimal performance",
+      "Responsive grid layout with fixed widget heights and internal scrolling",
+      "Dark theme support with consistent styling across all widgets",
+      "Widget renaming with pencil icon and keyboard shortcuts (Enter to save)",
+      "Preview mode for clean dashboard viewing without edit controls"
+    ]
+  },
+  {
     title: "SSL Certificate Monitor",
     description: "New dedicated page for monitoring SSL certificate expiration status across all environments with advanced filtering and sorting capabilities.",
-    date: "December 15th, 2024",
+    date: "September 27th, 2025",
     features: [
       "Dedicated SSL Certificate Monitor page accessible from the sidebar",
       "Environment selector to view certificates across Development, Staging, QA, Testing, PreProd, and Production",
