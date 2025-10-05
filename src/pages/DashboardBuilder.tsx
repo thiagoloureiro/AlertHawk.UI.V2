@@ -104,6 +104,12 @@ export function DashboardBuilder() {
   }, [refreshInterval]);
 
   const handleAddWidget = (widgetType: string) => {
+    // Check widget limit
+    if (widgets.length >= 15) {
+      alert('Maximum of 15 widgets allowed per dashboard');
+      return;
+    }
+
     const newWidget: DashboardWidget = {
       id: `widget-${Date.now()}`,
       type: widgetType as any,
@@ -201,6 +207,11 @@ export function DashboardBuilder() {
           </div>
           
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <BarChart3 className="w-4 h-4" />
+              Widgets: {widgets.length}/15
+            </div>
+            
             {refreshInterval && (
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <RefreshCw className="w-4 h-4" />
@@ -257,7 +268,11 @@ export function DashboardBuilder() {
         {/* Widget Library Sidebar */}
         {!isPreviewMode && (
           <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4">
-            <WidgetLibrary onAddWidget={handleAddWidget} />
+            <WidgetLibrary 
+              onAddWidget={handleAddWidget} 
+              currentWidgetCount={widgets.length}
+              maxWidgets={15}
+            />
           </div>
         )}
 
@@ -277,10 +292,15 @@ export function DashboardBuilder() {
                 {!isPreviewMode && (
                   <button
                     onClick={() => setShowWidgetLibrary(true)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center gap-2"
+                    disabled={widgets.length >= 15}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                      widgets.length >= 15
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }`}
                   >
                     <Plus className="w-4 h-4" />
-                    Add Widget
+                    Add Widget {widgets.length >= 15 ? `(${widgets.length}/15)` : ''}
                   </button>
                 )}
               </div>
@@ -314,7 +334,12 @@ export function DashboardBuilder() {
       {showWidgetLibrary && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <WidgetLibrary onAddWidget={handleAddWidget} onClose={() => setShowWidgetLibrary(false)} />
+            <WidgetLibrary 
+              onAddWidget={handleAddWidget} 
+              onClose={() => setShowWidgetLibrary(false)}
+              currentWidgetCount={widgets.length}
+              maxWidgets={15}
+            />
           </div>
         </div>
       )}

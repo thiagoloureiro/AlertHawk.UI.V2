@@ -4,6 +4,8 @@ import { BarChart3, PieChart, Activity, AlertTriangle, Gauge, TrendingUp, Users,
 interface WidgetLibraryProps {
   onAddWidget: (type: string) => void;
   onClose?: () => void;
+  currentWidgetCount?: number;
+  maxWidgets?: number;
 }
 
 const widgetTypes = [
@@ -53,7 +55,7 @@ const widgetTypes = [
 
 const categories = ['Metrics', 'Alerts', 'Status', 'Security'];
 
-export function WidgetLibrary({ onAddWidget, onClose }: WidgetLibraryProps) {
+export function WidgetLibrary({ onAddWidget, onClose, currentWidgetCount = 0, maxWidgets = 15 }: WidgetLibraryProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -71,6 +73,21 @@ export function WidgetLibrary({ onAddWidget, onClose }: WidgetLibraryProps) {
 
       {/* Widget List */}
       <div className="flex-1 overflow-y-auto p-4">
+        {/* Widget Limit Message */}
+        {currentWidgetCount >= maxWidgets && (
+          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Maximum of {maxWidgets} widgets reached
+              </span>
+            </div>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+              Delete a widget to add a new one
+            </p>
+          </div>
+        )}
+        
         {categories.map((category) => (
           <div key={category} className="mb-6">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
