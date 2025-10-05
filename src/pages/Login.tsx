@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from '../auth/msalConfig';
 import axios from 'axios';
@@ -303,7 +304,7 @@ export function Login({ onLogin }: LoginProps) {
                      disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+              <LoadingSpinner size="sm" />
             ) : (
               'Next Step'
             )}
@@ -346,7 +347,7 @@ export function Login({ onLogin }: LoginProps) {
                    disabled:cursor-not-allowed transition-all duration-200"
         >
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <LoadingSpinner size="sm" />
           ) : (
             <>
               <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">

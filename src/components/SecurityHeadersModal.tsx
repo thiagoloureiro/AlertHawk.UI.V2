@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import { MonitorHttpHeaders } from '../types';
 import monitorService from '../services/monitorService';
 
@@ -200,10 +201,7 @@ export function SecurityHeadersModal({ onClose, monitorId, monitorName, onEditMo
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center p-12">
-              <div className="text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">Loading security headers...</p>
-              </div>
+              <LoadingSpinner size="lg" text="Loading security headers..." />
             </div>
           ) : error ? (
             <div className="flex items-center justify-center p-12">

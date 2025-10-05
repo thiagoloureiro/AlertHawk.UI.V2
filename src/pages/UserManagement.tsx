@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, AlertCircle, Check, Loader2, Edit, Trash2, X, Users } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 import userService, { UserListItem, UserGroup } from '../services/userService';
 import monitorService, { MonitorGroup } from '../services/monitorService';
 import { toast } from 'react-hot-toast';
@@ -119,10 +120,7 @@ export function UserManagement() {
 
   if (isLoading) return (
     <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
-      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        Loading users...
-      </div>
+      <LoadingSpinner text="Loading users..." />
     </div>
   );
 
@@ -222,7 +220,7 @@ export function UserManagement() {
                         />
                         <span className="flex items-center gap-2">
                           {isUpdatingRole === user.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                            <LoadingSpinner size="sm" />
                           ) : null}
                           <span className={`text-sm font-medium ${
                             user.isAdmin 
@@ -352,7 +350,7 @@ export function UserManagement() {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                     Deleting...
                   </>
                 ) : (
@@ -389,7 +387,7 @@ export function UserManagement() {
 
             {isLoadingGroups ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                <LoadingSpinner size="lg" />
               </div>
             ) : (
               <div className="flex flex-col flex-1 overflow-hidden">
@@ -519,7 +517,7 @@ export function UserManagement() {
                     >
                       {isSaving ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <LoadingSpinner size="sm" />
                           Saving...
                         </>
                       ) : (

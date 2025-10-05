@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Server, Globe, Info, AlertCircle, Activity, MapPin, Clock, Users, Zap, HelpCircle, X } from 'lucide-react';
 import axios from 'axios';
+import { LoadingSpinner } from '../components/ui';
 
 interface MonitorAgent {
   id: number;
@@ -108,13 +109,7 @@ export function MonitorAgents() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center dark:bg-gray-900 bg-gray-50">
-        <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
-          <div className="relative">
-            <Server className="w-8 h-8 animate-pulse text-blue-500" />
-            <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"></div>
-          </div>
-          <div className="text-lg font-medium">Loading monitor agents...</div>
-        </div>
+        <LoadingSpinner size="lg" text="Loading monitor agents..." />
       </div>
     );
   }

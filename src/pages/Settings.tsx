@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Trash2, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 import { useMsal } from '@azure/msal-react';
 import { authHttp } from '../services/httpClient';
 
@@ -212,7 +213,7 @@ export function Settings() {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                     Deleting...
                   </>
                 ) : (

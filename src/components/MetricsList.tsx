@@ -8,6 +8,7 @@ import {
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
 import { GroupFilterModal } from './GroupFilterModal';
+import { LoadingSpinner } from './ui';
 import { toast } from 'react-hot-toast';
 
 interface MetricsListProps {
@@ -392,10 +393,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Loading monitors...
-        </div>
+        <LoadingSpinner text="Loading monitors..." />
       </div>
     );
   }

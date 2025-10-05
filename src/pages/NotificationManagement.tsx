@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Bell, Trash2, AlertCircle, Check, Loader2, Mail, MessageSquare, Slack, Smartphone, Webhook, Edit, X } from 'lucide-react';
+import { LoadingSpinner } from '../components/ui';
 import notificationService from '../services/notificationService';
 import { NotificationItem, NotificationType } from '../services/notificationService';
 import { toast } from 'react-hot-toast';
@@ -649,7 +650,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <LoadingSpinner size="sm" />
                   {notification ? 'Updating...' : 'Creating...'}
                 </>
               ) : (
@@ -729,7 +730,7 @@ function DeleteConfirmation({ notification, onConfirm, onCancel, isDeleting }: D
                      disabled:opacity-50 flex items-center gap-2"
           >
             {isDeleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LoadingSpinner size="sm" />
             ) : (
               <Trash2 className="w-4 h-4" />
             )}
@@ -861,10 +862,7 @@ export function NotificationManagement() {
   if (isLoading) {
     return (
       <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Loading notifications...
-        </div>
+        <LoadingSpinner text="Loading notifications..." />
       </div>
     );
   }

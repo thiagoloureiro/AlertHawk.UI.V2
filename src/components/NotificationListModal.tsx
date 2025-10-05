@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Mail, MessageSquare, Send, Bell, Webhook, MessagesSquare } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import { toast } from 'react-hot-toast';
 import { notificationHttp, monitoringHttp } from '../services/httpClient';
 
@@ -119,7 +120,7 @@ export function NotificationListModal({ monitorId, onClose }: NotificationListMo
         <div className="p-4 max-h-[calc(80vh-120px)] overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center p-4">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              <LoadingSpinner size="lg" />
             </div>
           ) : (
             <div className="space-y-6">
@@ -144,7 +145,7 @@ export function NotificationListModal({ monitorId, onClose }: NotificationListMo
                           className="mr-3"
                         />
                         {updatingNotifications.includes(notification.id) && (
-                          <Loader2 className="w-4 h-4 animate-spin ml-2 text-blue-500" />
+                          <LoadingSpinner size="sm" />
                         )}
                         <div className="flex-1">
                           <div className="font-medium dark:text-white">{notification.name}</div>

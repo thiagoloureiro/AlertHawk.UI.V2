@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Clock, Activity, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from './ui';
 import reportService from '../services/reportService';
 import { toast } from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
@@ -59,10 +60,7 @@ export function StatusDashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen dark:bg-gray-900 bg-gray-50 p-6 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          Loading status data...
-        </div>
+        <LoadingSpinner size="lg" text="Loading status data..." />
       </div>
     );
   }
