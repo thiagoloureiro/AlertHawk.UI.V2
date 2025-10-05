@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Save, Eye, Settings, BarChart3, PieChart, Activity, AlertTriangle, RefreshCw, FolderOpen } from 'lucide-react';
+import { Plus, Save, Eye, Settings, BarChart3, PieChart, Activity, AlertTriangle, RefreshCw, FolderOpen, Monitor, X } from 'lucide-react';
 import './DashboardBuilder.css';
 import { LoadingSpinner } from '../components/ui';
 import { DashboardWidget } from '../components/dashboard/DashboardWidget';
@@ -42,6 +42,7 @@ export function DashboardBuilder() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [currentDashboard, setCurrentDashboard] = useState<{ id: string; name: string } | null>(null);
+  const [isKioskMode, setIsKioskMode] = useState(false);
 
   // Load dashboard from URL parameter
   useEffect(() => {
@@ -102,6 +103,22 @@ export function DashboardBuilder() {
       return () => clearInterval(interval);
     }
   }, [refreshInterval]);
+
+  // Kiosk mode keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'F11') {
+        e.preventDefault();
+        setIsKioskMode(!isKioskMode);
+      }
+      if (e.key === 'Escape' && isKioskMode) {
+        setIsKioskMode(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isKioskMode]);
 
   const handleAddWidget = (widgetType: string) => {
     // Check widget limit
@@ -188,10 +205,11 @@ export function DashboardBuilder() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-gray-900 bg-gray-50">
+    <div className={`min-h-screen dark:bg-gray-900 bg-gray-50 ${isKioskMode ? 'fixed inset-0 z-50' : ''}`}>
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
+      {!isKioskMode && (
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               <BarChart3 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -218,6 +236,18 @@ export function DashboardBuilder() {
                 Auto-refresh: {refreshInterval}s
               </div>
             )}
+            
+            <button
+              onClick={() => setIsKioskMode(!isKioskMode)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                isKioskMode 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Monitor className="w-4 h-4" />
+              {isKioskMode ? 'Exit Kiosk' : 'Kiosk Mode'}
+            </button>
             
             <button
               onClick={() => setIsPreviewMode(!isPreviewMode)}
@@ -261,12 +291,13 @@ export function DashboardBuilder() {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className={`flex ${isKioskMode ? 'h-screen' : 'h-[calc(100vh-80px)]'}`}>
         {/* Widget Library Sidebar */}
-        {!isPreviewMode && (
+        {!isPreviewMode && !isKioskMode && (
           <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4">
             <WidgetLibrary 
               onAddWidget={handleAddWidget} 
@@ -277,7 +308,27 @@ export function DashboardBuilder() {
         )}
 
         {/* Dashboard Canvas */}
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6 overflow-auto relative">
+          {/* Kiosk Mode Overlay */}
+          {isKioskMode && (
+            <div className="absolute top-4 right-4 z-10">
+              <div className="bg-black/80 text-white px-4 py-2 rounded-lg text-sm">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4" />
+                  <span>Kiosk Mode</span>
+                  <button
+                    onClick={() => setIsKioskMode(false)}
+                    className="ml-2 p-1 hover:bg-white/20 rounded"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="text-xs text-gray-300 mt-1">
+                  Press F11 or ESC to exit
+                </div>
+              </div>
+            </div>
+          )}
           <div className="min-h-full">
             {widgets.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-96 text-center">
@@ -331,7 +382,7 @@ export function DashboardBuilder() {
       </div>
 
       {/* Modals */}
-      {showWidgetLibrary && (
+      {!isKioskMode && showWidgetLibrary && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
             <WidgetLibrary 
@@ -344,7 +395,7 @@ export function DashboardBuilder() {
         </div>
       )}
 
-      {showSettings && (
+      {!isKioskMode && showSettings && (
         <DashboardSettings
           refreshInterval={refreshInterval}
           onRefreshIntervalChange={setRefreshInterval}
@@ -352,7 +403,7 @@ export function DashboardBuilder() {
         />
       )}
 
-      {showSaveModal && (
+      {!isKioskMode && showSaveModal && (
         <SaveDashboardModal
           isOpen={showSaveModal}
           onClose={() => setShowSaveModal(false)}
@@ -362,7 +413,7 @@ export function DashboardBuilder() {
         />
       )}
 
-      {showLoadModal && (
+      {!isKioskMode && showLoadModal && (
         <LoadDashboardModal
           isOpen={showLoadModal}
           onClose={() => setShowLoadModal(false)}
