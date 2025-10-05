@@ -9,12 +9,11 @@ interface DashboardSettingsProps {
 
 const refreshOptions = [
   { label: 'No auto-refresh', value: null },
+  { label: '10 seconds', value: 10 },
+  { label: '20 seconds', value: 20 },
   { label: '30 seconds', value: 30 },
   { label: '1 minute', value: 60 },
   { label: '5 minutes', value: 300 },
-  { label: '10 minutes', value: 600 },
-  { label: '15 minutes', value: 900 },
-  { label: '30 minutes', value: 1800 },
 ];
 
 export function DashboardSettings({ refreshInterval, onRefreshIntervalChange, onClose }: DashboardSettingsProps) {
@@ -71,44 +70,6 @@ export function DashboardSettings({ refreshInterval, onRefreshIntervalChange, on
                   </div>
                 </label>
               ))}
-            </div>
-          </div>
-
-          {/* Additional Settings */}
-          <div className="mb-6">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Display Settings</h4>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Show widget titles
-                  </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Display titles on all dashboard widgets
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Compact mode
-                  </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Reduce spacing for more widgets per row
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
             </div>
           </div>
         </div>

@@ -139,13 +139,9 @@ export function DashboardWidget({ widget, data, isPreviewMode, onUpdate, onDelet
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden ${
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col ${
         isEditing ? 'ring-2 ring-blue-500' : ''
       }`}
-      style={{
-        gridColumn: `span ${widget.position.w}`,
-        gridRow: `span ${widget.position.h}`,
-      }}
     >
       {/* Widget Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
@@ -187,7 +183,7 @@ export function DashboardWidget({ widget, data, isPreviewMode, onUpdate, onDelet
       </div>
 
       {/* Widget Content */}
-      <div className="p-4 h-[calc(100%-60px)]">
+      <div className="p-4 flex-1 overflow-y-auto">
         {renderWidgetContent()}
       </div>
     </div>

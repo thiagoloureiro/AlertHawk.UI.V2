@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Save, Eye, Settings, BarChart3, PieChart, Activity, AlertTriangle, RefreshCw, FolderOpen } from 'lucide-react';
+import './DashboardBuilder.css';
 import { LoadingSpinner } from '../components/ui';
 import { DashboardWidget } from '../components/dashboard/DashboardWidget';
 import { WidgetLibrary } from '../components/dashboard/WidgetLibrary';
@@ -283,20 +284,28 @@ export function DashboardBuilder() {
                   </button>
                 )}
               </div>
-            ) : (
-              <div className="grid grid-cols-12 gap-4">
-                {widgets.map((widget) => (
-                  <DashboardWidget
-                    key={widget.id}
-                    widget={widget}
-                    data={data}
-                    isPreviewMode={isPreviewMode}
-                    onUpdate={handleUpdateWidget}
-                    onDelete={handleDeleteWidget}
-                  />
-                ))}
-              </div>
-            )}
+              ) : (
+                <div className="dashboard-grid">
+                  {widgets.map((widget) => (
+                    <div
+                      key={widget.id}
+                      className="widget-container"
+                      style={{
+                        gridColumn: `span ${widget.position.w}`,
+                        gridRow: `span ${widget.position.h}`,
+                      }}
+                    >
+                      <DashboardWidget
+                        widget={widget}
+                        data={data}
+                        isPreviewMode={isPreviewMode}
+                        onUpdate={handleUpdateWidget}
+                        onDelete={handleDeleteWidget}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
         </div>
       </div>
