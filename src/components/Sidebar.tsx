@@ -10,7 +10,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
@@ -26,17 +27,18 @@ interface SidebarProps {
 // Add base menu items that are always shown
 const baseMenuItems: MenuItem[] = [
   { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
-  { id: '2', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
-  { id: '3', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
-  { id: '4', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
-  { id: '5', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
-  { id: '6', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
+  { id: '2', name: 'Dashboard Builder', icon: 'BarChart3', path: '/dashboard-builder' },
+  { id: '3', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
+  { id: '4', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
+  { id: '5', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
+  { id: '6', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
+  { id: '7', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
 ];
 
 // Add admin-only menu items
 const adminMenuItems: MenuItem[] = [
-  { id: '7', name: 'User Management', icon: 'UserCircle', path: '/users' },
-  { id: '8', name: 'Administration', icon: 'Bell', path: '/admin' },
+  { id: '8', name: 'User Management', icon: 'UserCircle', path: '/users' },
+  { id: '9', name: 'Administration', icon: 'Bell', path: '/admin' },
 ];
 
 // Settings is shown to all users
@@ -45,6 +47,7 @@ const settingsMenuItem: MenuItem =
 
 const iconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
+  BarChart3,
   Monitor,
   Bell,
   LineChart,
