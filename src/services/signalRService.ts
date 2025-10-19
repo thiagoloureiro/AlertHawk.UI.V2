@@ -21,7 +21,7 @@ class SignalRService {
   private reconnectDelay = 1000; // Start with 1 second
 
   private getConnectionUrl(): string {
-    const baseUrl = import.meta.env.VITE_APP_API_URL || 'https://localhost:7185';
+    const baseUrl = import.meta.env.VITE_APP_MONITORING_API_URL || 'https://localhost:7185';
     return `${baseUrl}/notificationHub`;
   }
 
