@@ -6,6 +6,7 @@ import { Login } from './pages/Login';
 import { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import { useMsal } from "@azure/msal-react";
+import { SignalRProvider } from './contexts/SignalRContext';
 
 interface UserInfo {
   id: string;
@@ -108,9 +109,11 @@ function AppContent() {
   // For protected routes
   return (
     <div className={isDarkTheme ? 'dark' : ''}>
-      <Layout isDarkTheme={isDarkTheme} onThemeToggle={() => setIsDarkTheme(!isDarkTheme)}>
-        <AppRoutes />
-      </Layout>
+      <SignalRProvider autoConnect={!isStatusPage}>
+        <Layout isDarkTheme={isDarkTheme} onThemeToggle={() => setIsDarkTheme(!isDarkTheme)}>
+          <AppRoutes />
+        </Layout>
+      </SignalRProvider>
     </div>
   );
 }

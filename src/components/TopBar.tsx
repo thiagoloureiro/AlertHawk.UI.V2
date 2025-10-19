@@ -4,6 +4,7 @@ import { LoadingSpinner } from './ui';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
 import { WhatsNewModal } from './WhatsNewModal';
+import { SignalRStatus } from './SignalRStatus';
 import monitorService from '../services/monitorService';
 
 // Helper function to get environment from localStorage
@@ -228,8 +229,10 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
         )}
       </div>
 
-      {/* Right Side: Theme Toggle, Notifications, and User Menu */}
+      {/* Right Side: SignalR Status, Theme Toggle, Notifications, and User Menu */}
       <div className="flex items-center gap-4">
+        <SignalRStatus />
+        
         <button
           onClick={onThemeToggle}
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

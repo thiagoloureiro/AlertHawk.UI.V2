@@ -82,6 +82,19 @@ export interface Notification {
 export type Environment = 'production' | 'staging' | 'development' | 'testing';
 export type TimePeriod = '1d' | '7d' | '30d' | '60d' | '90d' | '120d' | '180d';
 
+// SignalR Notification Types
+export interface SignalRNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: string;
+  monitorId?: number;
+  environment?: number;
+  region?: number;
+  groupName?: string;
+}
+
 export interface AlertFilters {
   environment: Environment | 'all';
   timePeriod: TimePeriod;

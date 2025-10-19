@@ -14,6 +14,7 @@ import { cn } from '../lib/utils';
 import { getLocalDateFromUTC, formatCompactDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { useSignalRContext } from '../contexts/SignalRContext';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
 import { 
@@ -587,6 +588,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   const [showCloneConfirm, setShowCloneConfirm] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[1]);
+  const { joinMonitorGroup, leaveMonitorGroup, isConnected } = useSignalRContext();
   const [historyData, setHistoryData] = useState<MonitorHistoryData[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -623,6 +625,17 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       }
     }
   }, [selectedPeriod, metric?.id]);
+
+  // Join/leave monitor group for real-time notifications
+  useEffect(() => {
+    if (isConnected && metric) {
+      joinMonitorGroup(metric.id);
+      
+      return () => {
+        leaveMonitorGroup(metric.id);
+      };
+    }
+  }, [isConnected, metric, joinMonitorGroup, leaveMonitorGroup]);
 
   // Add function to load Kubernetes details
   const loadK8sDetails = async () => {

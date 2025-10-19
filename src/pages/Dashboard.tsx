@@ -3,6 +3,7 @@ import { MetricsList } from '../components/MetricsList';
 import { MetricDetails } from '../components/MetricDetails';
 import { CertificateExpirationModal } from '../components/CertificateExpirationModal';
 import { Monitor, MonitorGroup } from '../types';
+import { useSignalRContext } from '../contexts/SignalRContext';
 import monitorService from '../services/monitorService';
 
 export function Dashboard() {
@@ -10,6 +11,7 @@ export function Dashboard() {
   const [selectedGroup, setSelectedGroup] = useState<MonitorGroup | undefined>(undefined);
   const [showCertModal, setShowCertModal] = useState(false);
   const [expiringMonitors, setExpiringMonitors] = useState<Monitor[]>([]);
+  const { joinEnvironmentGroup, isConnected } = useSignalRContext();
 
   const handleMetricSelect = (metric: Monitor | null, group?: MonitorGroup) => {
     setSelectedMetric(metric);
@@ -58,6 +60,15 @@ export function Dashboard() {
   const handleCloseCertModal = () => {
     setShowCertModal(false);
   };
+
+  // Join environment group for notifications when connected
+  useEffect(() => {
+    if (isConnected) {
+      // Get current environment from localStorage (default to Production - 6)
+      const environment = parseInt(localStorage.getItem('selectedEnvironment') || '6', 10);
+      joinEnvironmentGroup(environment);
+    }
+  }, [isConnected, joinEnvironmentGroup]);
 
   return (
     <div className="flex h-full">
