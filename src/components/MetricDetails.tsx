@@ -284,11 +284,12 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
 };
 
 // Add the AiResponse component
-const AiResponse = ({ group, metric, selectedModel, modelOptions, onModelChange }: { 
+const AiResponse = ({ group, metric, selectedModel, availableModels, isLoadingModels, onModelChange }: { 
   group?: MonitorGroup; 
   metric?: Monitor | null; 
   selectedModel?: string;
-  modelOptions?: Array<{value: string; label: string; category: string}>;
+  availableModels?: string[];
+  isLoadingModels?: boolean;
   onModelChange?: (model: string) => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -463,16 +464,21 @@ Please provide a concise analysis of the monitor's performance and alert history
             <select
               value={selectedModel}
               onChange={(e) => onModelChange?.(e.target.value)}
+              disabled={isLoadingModels}
               className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
                        dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                        focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                       transition-colors duration-200"
+                       transition-colors duration-200 disabled:opacity-50"
             >
-              {modelOptions?.map(model => (
-                <option key={model.value} value={model.value}>
-                  {model.label}
-                </option>
-              ))}
+              {isLoadingModels ? (
+                <option value="">Loading models...</option>
+              ) : (
+                availableModels?.map(model => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))
+              )}
             </select>
           </div>
         )}
@@ -626,18 +632,32 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   } | null>(null);
   const [isLoadingK8s, setIsLoadingK8s] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('o4-mini');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  // Model options (sorted alphabetically by label)
-  const modelOptions = [
-    { value: 'claude-4.1-opus', label: 'Claude 4.1 Opus', category: 'Content Generation' },
-    { value: 'claude-4.5-sonnet', label: 'Claude 4.5 Sonnet', category: 'Chatbots & Customer Support' },
-    { value: 'claude-4.5-sonnet-thinking', label: 'Claude 4.5 Sonnet Thinking', category: 'Research & Analysis' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', category: 'Budget-Conscious' },
-    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', category: 'Image Analysis' },
-    { value: 'gpt-5-mini', label: 'GPT-5 Mini', category: 'Budget-Conscious' },
-    { value: 'o4-mini', label: 'o4-mini (Default)', category: 'Code Assistance' },
-    { value: 'o4-mini-thinking', label: 'o4-mini Thinking', category: 'Research & Analysis' }
-  ];
+  // Fetch available models from API
+  const fetchModels = async () => {
+    if (import.meta.env.VITE_APP_ABBY_ENABLED !== 'true') {
+      return;
+    }
+
+    try {
+      setIsLoadingModels(true);
+      const models = await aiService.getModels();
+      setAvailableModels(models);
+    } catch (error) {
+      console.error('Failed to fetch models:', error);
+      // Fallback to default models if API fails
+      setAvailableModels(['o4-mini']);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  // Load models when component mounts
+  useEffect(() => {
+    fetchModels();
+  }, []);
 
   // Load history data when metric or period changes
   useEffect(() => {
@@ -833,7 +853,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             group={group} 
             metric={null} 
             selectedModel={selectedModel} 
-            modelOptions={modelOptions}
+            availableModels={availableModels}
+            isLoadingModels={isLoadingModels}
             onModelChange={setSelectedModel}
           />
         )}
@@ -1429,7 +1450,8 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           group={group} 
           metric={null} 
           selectedModel={selectedModel} 
-          modelOptions={modelOptions}
+          availableModels={availableModels}
+          isLoadingModels={isLoadingModels}
           onModelChange={setSelectedModel}
         />
       )}

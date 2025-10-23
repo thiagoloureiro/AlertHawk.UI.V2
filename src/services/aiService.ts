@@ -14,6 +14,35 @@ class AiService {
   private baseUrl = import.meta.env.VITE_APP_ABBY_API_URL + 'v1';
   private apiKey = import.meta.env.VITE_APP_ABBY_API_KEY;
 
+  async getModels(): Promise<string[]> {
+    // Check if Abby is enabled
+    if (import.meta.env.VITE_APP_ABBY_ENABLED !== 'true') {
+      throw new Error('AI Analysis is not enabled. Please set VITE_APP_ABBY_ENABLED=true in your environment variables.');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/developers/get_models/`, {
+        method: 'GET',
+        headers: {
+          'X-ABBY-API-Key': this.apiKey,
+          'Accept': 'application/json',
+          'User-Agent': 'AlertHawk-UI'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const models = await response.json();
+      return models;
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      throw error;
+    }
+  }
+
   async chat(prompt: string, onMessage: (message: ChatResponse) => void, model: string = 'o4-mini'): Promise<void> {
     // Check if Abby is enabled
     if (import.meta.env.VITE_APP_ABBY_ENABLED !== 'true') {
