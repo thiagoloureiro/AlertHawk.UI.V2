@@ -14,7 +14,12 @@ class AiService {
   private baseUrl = import.meta.env.VITE_APP_ABBY_API_URL + 'v1';
   private apiKey = import.meta.env.VITE_APP_ABBY_API_KEY;
 
-  async chat(prompt: string, onMessage: (message: ChatResponse) => void): Promise<void> {
+  async chat(prompt: string, onMessage: (message: ChatResponse) => void, model: string = 'o4-mini'): Promise<void> {
+    // Check if Abby is enabled
+    if (import.meta.env.VITE_APP_ABBY_ENABLED !== 'true') {
+      throw new Error('AI Analysis is not enabled. Please set VITE_APP_ABBY_ENABLED=true in your environment variables.');
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/developers/simple_chat/`, {
         method: 'POST',
@@ -25,7 +30,7 @@ class AiService {
           'User-Agent': 'AlertHawk-UI'
         },
         body: JSON.stringify({
-          model: "o4-mini",
+          model: model,
           input: prompt
         })
       });

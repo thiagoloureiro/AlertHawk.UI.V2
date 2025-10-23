@@ -284,7 +284,13 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
 };
 
 // Add the AiResponse component
-const AiResponse = ({ group, metric }: { group?: MonitorGroup; metric?: Monitor | null }) => {
+const AiResponse = ({ group, metric, selectedModel, modelOptions, onModelChange }: { 
+  group?: MonitorGroup; 
+  metric?: Monitor | null; 
+  selectedModel?: string;
+  modelOptions?: Array<{value: string; label: string; category: string}>;
+  onModelChange?: (model: string) => void;
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<string>('');
@@ -398,9 +404,7 @@ Please provide a concise analysis of the monitor's performance and alert history
       if (group || metric) {
         setIsAnalyzing(true);
         const prompt = generateAnalysisPrompt();
-        console.log('Prompt:', prompt);
         await aiService.chat(prompt, (message) => {
-          console.log('Received message:', message);
           // Handle both streaming and complete responses
           if (message.output?.content) {
             setMessages(prev => prev + message.output!.content);
@@ -408,7 +412,7 @@ Please provide a concise analysis of the monitor's performance and alert history
             // Fallback for different response structure
             setMessages(prev => prev + message.content);
           }
-        });
+        }, selectedModel || 'o4-mini');
         setHasAnalyzed(true);
       }
     } catch (error) {
@@ -445,9 +449,34 @@ Please provide a concise analysis of the monitor's performance and alert history
 
   return (
     <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
-      <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
-        AI Analysis - Powered by Abby
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold dark:text-white text-gray-900">
+          AI Analysis - Powered by Abby
+        </h2>
+        
+        {/* AI Model Selection - Only show for groups */}
+        {group && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium dark:text-gray-300 text-gray-700">
+              Model:
+            </label>
+            <select
+              value={selectedModel}
+              onChange={(e) => onModelChange?.(e.target.value)}
+              className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
+                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                       transition-colors duration-200"
+            >
+              {modelOptions?.map(model => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       {error ? (
         <div className="text-center dark:text-gray-400 text-gray-600">
           {error}
@@ -596,6 +625,19 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
     monitorGroup: number;
   } | null>(null);
   const [isLoadingK8s, setIsLoadingK8s] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('o4-mini');
+
+  // Model options (sorted alphabetically by label)
+  const modelOptions = [
+    { value: 'claude-4.1-opus', label: 'Claude 4.1 Opus', category: 'Content Generation' },
+    { value: 'claude-4.5-sonnet', label: 'Claude 4.5 Sonnet', category: 'Chatbots & Customer Support' },
+    { value: 'claude-4.5-sonnet-thinking', label: 'Claude 4.5 Sonnet Thinking', category: 'Research & Analysis' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', category: 'Budget-Conscious' },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', category: 'Image Analysis' },
+    { value: 'gpt-5-mini', label: 'GPT-5 Mini', category: 'Budget-Conscious' },
+    { value: 'o4-mini', label: 'o4-mini (Default)', category: 'Code Assistance' },
+    { value: 'o4-mini-thinking', label: 'o4-mini Thinking', category: 'Research & Analysis' }
+  ];
 
   // Load history data when metric or period changes
   useEffect(() => {
@@ -785,8 +827,16 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           </div>
         </div>
 
-        {/* AI Response Component */}
-        <AiResponse group={group} metric={null} />
+        {/* AI Response Component - Only show if enabled */}
+        {import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
+          <AiResponse 
+            group={group} 
+            metric={null} 
+            selectedModel={selectedModel} 
+            modelOptions={modelOptions}
+            onModelChange={setSelectedModel}
+          />
+        )}
       </div>
     );
   }
@@ -1373,8 +1423,16 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         </div>
       )}
 
-      {/* AI Response Component - Only show for groups, not for individual monitors */}
-      {group && !metric && <AiResponse group={group} metric={null} />}
+      {/* AI Response Component - Only show for groups, not for individual monitors, and only if enabled */}
+      {group && !metric && import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
+        <AiResponse 
+          group={group} 
+          metric={null} 
+          selectedModel={selectedModel} 
+          modelOptions={modelOptions}
+          onModelChange={setSelectedModel}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

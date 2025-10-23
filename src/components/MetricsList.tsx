@@ -3,7 +3,7 @@ import { MonitorGroup, Monitor } from '../types';
 import { 
   AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, 
   Search, Plus, ChevronsDown, ChevronsUp, Server, Filter, Clock, 
-  Activity, Shield, AlertTriangle, CheckCircle, XCircle, Pause
+  Activity, Shield, AlertTriangle, CheckCircle, XCircle, Pause, Bot
 } from 'lucide-react';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
@@ -332,6 +332,7 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     { id: 6, name: 'Production' }
   ];
 
+
   // Handle environment change
   const handleEnvironmentChange = (environmentId: number) => {
     setSelectedEnvironment(environmentId);
@@ -453,21 +454,24 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
       {/* Search and Filter Section */}
       <div className="p-4 border-b dark:border-gray-700 border-gray-200">
         <div className="flex items-center justify-between gap-4 mb-4">
-          {/* Environment Dropdown */}
-          <select
-            value={selectedEnvironment}
-            onChange={(e) => handleEnvironmentChange(Number(e.target.value))}
-            className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
-                     dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                     transition-colors duration-200"
-          >
-            {environments.map(env => (
-              <option key={env.id} value={env.id}>
-                {env.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-4">
+            {/* Environment Dropdown */}
+            <select
+              value={selectedEnvironment}
+              onChange={(e) => handleEnvironmentChange(Number(e.target.value))}
+              className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
+                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                       transition-colors duration-200"
+            >
+              {environments.map(env => (
+                <option key={env.id} value={env.id}>
+                  {env.name}
+                </option>
+              ))}
+            </select>
+
+          </div>
 
           <div className="flex items-center gap-4">
             {/* Status Filter */}
@@ -549,14 +553,31 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
                   </button>
 
                   {/* Group info and metrics - clickable for group selection */}
-                  <div
-                    onClick={() => handleGroupSelect(group)}
-                    className="flex-1 cursor-pointer"
-                  >
-                    <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-1">{group.name}</h2>
-                    <div className="text-sm dark:text-gray-400 text-gray-600">
-                      Avg Uptime (24h): {group.avgUptime24Hrs.toFixed(2)}%
+                  <div className="flex-1">
+                    <div
+                      onClick={() => handleGroupSelect(group)}
+                      className="cursor-pointer"
+                    >
+                      <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-1">{group.name}</h2>
+                      <div className="text-sm dark:text-gray-400 text-gray-600">
+                        Avg Uptime (24h): {group.avgUptime24Hrs.toFixed(2)}%
+                      </div>
                     </div>
+                    
+                    {/* Analysis with Abby button - Only show if enabled */}
+                    {import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGroupSelect(group);
+                        }}
+                        className="mt-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg
+                                 flex items-center gap-2 text-sm transition-colors duration-200"
+                      >
+                        <Bot className="w-4 h-4" />
+                        Analysis with Abby
+                      </button>
+                    )}
                   </div>
                 </div>
                 
