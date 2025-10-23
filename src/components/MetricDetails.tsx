@@ -22,7 +22,7 @@ import {
 } from '../services/monitorService';
 import { NotificationListModal } from './NotificationListModal';
 import { SecurityHeadersModal } from './SecurityHeadersModal';
-import { aiService, msalInstance } from '../services/aiService';
+import { aiService } from '../services/aiService';
 import { monitoringHttp } from '../services/httpClient';
 
 // Initialize markdown-it
@@ -395,40 +395,25 @@ Please provide a concise analysis of the monitor's performance and alert history
       setIsLoading(true);
       setMessages('');
       
-      const response = await aiService.getNewConversationId();
-      if (!response?.conversation_id) {
-        throw new Error('Failed to get conversation ID');
-      }
-      
       if (group || metric) {
         setIsAnalyzing(true);
         const prompt = generateAnalysisPrompt();
-        await aiService.chat(response.conversation_id, prompt, (message) => {
-          if (message.output.type === 'text') {
-            setMessages(prev => prev + message.output.content);
+        console.log('Prompt:', prompt);
+        await aiService.chat(prompt, (message) => {
+          console.log('Received message:', message);
+          // Handle both streaming and complete responses
+          if (message.output?.content) {
+            setMessages(prev => prev + message.output!.content);
+          } else if (message.content) {
+            // Fallback for different response structure
+            setMessages(prev => prev + message.content);
           }
         });
         setHasAnalyzed(true);
-
-        // Delete the conversation after receiving the response
-        try {
-          await aiService.deleteConversation(response.conversation_id);
-        } catch (deleteError) {
-          console.error('Failed to delete conversation:', deleteError);
-        }
       }
     } catch (error) {
       console.error('Failed to initialize conversation:', error);
-      if (error instanceof Error && error.message.includes('Please sign in first')) {
-        setError('Please sign in to use AI features');
-        try {
-          await msalInstance.loginRedirect();
-        } catch (loginError) {
-          console.error('Failed to initiate login:', loginError);
-        }
-      } else {
-        setError('Failed to initialize AI conversation');
-      }
+      setError('Failed to initialize AI conversation');
     } finally {
       setIsLoading(false);
       setIsAnalyzing(false);
