@@ -11,7 +11,7 @@ interface ChatResponse {
 }
 
 class AiService {
-  private baseUrl = import.meta.env.VITE_APP_ABBY_API_URL + 'api/v1';
+  private baseUrl = import.meta.env.VITE_APP_ABBY_API_URL + 'v1';
   private apiKey = import.meta.env.VITE_APP_ABBY_API_KEY;
 
   async chat(prompt: string, onMessage: (message: ChatResponse) => void): Promise<void> {
