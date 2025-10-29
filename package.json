@@ -10,14 +10,14 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@azure/msal-browser": "^4.25.1",
-    "@azure/msal-react": "^3.0.20",
+    "@azure/msal-browser": "^4.26.0",
+    "@azure/msal-react": "^3.0.21",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@sentry/react": "^10.22.0",
     "@types/react-router-dom": "^5.3.3",
-    "axios": "^1.12.2",
+    "axios": "^1.13.1",
     "lucide-react": "^0.548.0",
     "markdown-it": "^14.1.0",
     "react": "^19.2.0",
