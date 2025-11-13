@@ -291,9 +291,21 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
         ...group,
         monitors: group.monitors.filter(monitor => {
           const matchesSearch = monitor.name.toLowerCase().includes(searchTerm.toLowerCase());
-          const matchesStatus = statusFilter === 'all' 
-            ? true 
-            : statusFilter === 'online' ? monitor.status : !monitor.status;
+          
+          // If paused, only show in "all" filter
+          if (monitor.paused) {
+            return matchesSearch && statusFilter === 'all';
+          }
+          
+          // For non-paused monitors, apply status filter
+          let matchesStatus: boolean;
+          if (statusFilter === 'all') {
+            matchesStatus = true;
+          } else if (statusFilter === 'online') {
+            matchesStatus = monitor.status; // Only online
+          } else {
+            matchesStatus = !monitor.status; // Only offline
+          }
           return matchesSearch && matchesStatus;
         })
       })).filter(group => group.monitors.length > 0); // Only show groups with matching monitors
