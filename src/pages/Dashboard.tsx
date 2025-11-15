@@ -68,7 +68,13 @@ export function Dashboard() {
         />
       </div>
       <div className="flex-1">
-        <MetricDetails metric={selectedMetric} group={selectedGroup} />
+        <MetricDetails 
+          metric={selectedMetric} 
+          group={selectedGroup}
+          onMetricUpdate={(updatedMetric) => {
+            setSelectedMetric(updatedMetric);
+          }}
+        />
       </div>
       
       <CertificateExpirationModal
