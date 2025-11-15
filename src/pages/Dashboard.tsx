@@ -10,6 +10,8 @@ export function Dashboard() {
   const [selectedGroup, setSelectedGroup] = useState<MonitorGroup | undefined>(undefined);
   const [showCertModal, setShowCertModal] = useState(false);
   const [expiringMonitors, setExpiringMonitors] = useState<Monitor[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [updatedMonitor, setUpdatedMonitor] = useState<{ monitor: Monitor; timestamp: number } | null>(null);
 
   const handleMetricSelect = (metric: Monitor | null, group?: MonitorGroup) => {
     setSelectedMetric(metric);
@@ -65,6 +67,8 @@ export function Dashboard() {
         <MetricsList
           selectedMetric={selectedMetric}
           onSelectMetric={handleMetricSelect}
+          refreshTrigger={refreshTrigger}
+          updatedMonitor={updatedMonitor}
         />
       </div>
       <div className="flex-1">
@@ -73,6 +77,11 @@ export function Dashboard() {
           group={selectedGroup}
           onMetricUpdate={(updatedMetric) => {
             setSelectedMetric(updatedMetric);
+            // Update MetricsList with the updated monitor (targeted update, no reload)
+            // Use timestamp to ensure the update always triggers even if monitor reference is similar
+            setUpdatedMonitor({ monitor: updatedMetric, timestamp: Date.now() });
+            // Clear after a brief moment to allow the update to process
+            setTimeout(() => setUpdatedMonitor(null), 100);
           }}
         />
       </div>

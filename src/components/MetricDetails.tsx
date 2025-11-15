@@ -1553,6 +1553,8 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
           onClose={() => setShowEditModal(false)}
           onAdd={async () => {}}
           onUpdate={async (updatedMonitor) => {
+            if (!currentMetric) return;
+            
             try {
               updatedMonitor.id = currentMetric.id;
               updatedMonitor.monitorId = currentMetric.id;
@@ -1563,7 +1565,76 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
               if (success) {
                 toast.success('Monitor updated successfully', { position: 'bottom-right' });
                 setShowEditModal(false);
-                window.location.reload();
+                
+                // Refresh monitor data from API to get updated details
+                try {
+                  const refreshedGroups = await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
+                  // Find the updated monitor in the refreshed data
+                  const refreshedGroup = refreshedGroups.find(g => 
+                    g.monitors.some(m => m.id === currentMetric.id)
+                  );
+                  if (refreshedGroup) {
+                    let refreshedMonitor = refreshedGroup.monitors.find(m => m.id === currentMetric.id);
+                    if (refreshedMonitor) {
+                      // If it's a TCP monitor, fetch TCP details
+                      if (refreshedMonitor.monitorTypeId === 3) {
+                        const tcpDetails = await monitorService.getMonitorTcpDetails(refreshedMonitor.id);
+                        refreshedMonitor = {
+                          ...refreshedMonitor,
+                          monitorTcp: {
+                            IP: tcpDetails.ip,
+                            port: tcpDetails.port
+                          }
+                        };
+                      } else if (refreshedMonitor.monitorTypeId === 4) {
+                        // If it's a Kubernetes monitor, fetch K8s details
+                        const k8sDetails = await monitorService.getMonitorK8sDetails(refreshedMonitor.id);
+                        refreshedMonitor = {
+                          ...refreshedMonitor,
+                          monitorK8s: {
+                            clusterName: k8sDetails.ClusterName,
+                            kubeConfig: k8sDetails.KubeConfig,
+                            monitorK8sNodes: k8sDetails.monitorK8sNodes
+                          }
+                        };
+                      } else {
+                        // If it's an HTTP monitor, fetch HTTP details
+                        const httpDetails = await monitorService.getMonitorHttpDetails(refreshedMonitor.id);
+                        refreshedMonitor = {
+                          ...refreshedMonitor,
+                          monitorHttp: {
+                            ignoreTlsSsl: httpDetails.ignoreTlsSsl,
+                            maxRedirects: httpDetails.maxRedirects,
+                            responseStatusCode: httpDetails.responseStatusCode,
+                            timeout: httpDetails.timeout,
+                            monitorHttpMethod: httpDetails.monitorHttpMethod,
+                            body: httpDetails.body
+                          },
+                          urlToCheck: httpDetails.urlToCheck,
+                          httpResponseCodeFrom: httpDetails.httpResponseCodeFrom,
+                          httpResponseCodeTo: httpDetails.httpResponseCodeTo
+                        };
+                      }
+                      
+                      // Update local state
+                      setCurrentMetric(refreshedMonitor);
+                      // Notify parent component
+                      onMetricUpdate?.(refreshedMonitor);
+                    }
+                  }
+                } catch (refreshError) {
+                  console.error('Failed to refresh monitor data:', refreshError);
+                  // Don't show error to user since the update succeeded
+                  // Just update with the data we have from the updatedMonitor
+                  const updatedMetric = {
+                    ...currentMetric,
+                    ...updatedMonitor,
+                    id: currentMetric.id,
+                    monitorId: currentMetric.id
+                  };
+                  setCurrentMetric(updatedMetric as Monitor);
+                  onMetricUpdate?.(updatedMetric as Monitor);
+                }
               }
             } catch (error) {
               console.error('Failed to update monitor:', error);

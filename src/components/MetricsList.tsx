@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { MonitorGroup, Monitor } from '../types';
 import { 
   AlertCircle, Loader2, Globe, Network, ChevronDown, ChevronRight, 
@@ -14,6 +14,8 @@ import { toast } from 'react-hot-toast';
 interface MetricsListProps {
   selectedMetric: Monitor | null;
   onSelectMetric: (metric: Monitor | null, group?: MonitorGroup) => void;
+  refreshTrigger?: number;
+  updatedMonitor?: { monitor: Monitor; timestamp: number } | null;
 }
 
 // Helper function to get monitor type icon and label
@@ -239,7 +241,7 @@ const setStoredEnvironment = (environment: number): void => {
   }
 };
 
-export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps) {
+export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, updatedMonitor }: MetricsListProps) {
   const [groups, setGroups] = useState<MonitorGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<MonitorGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -256,6 +258,32 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
   const [showGroupFilterModal, setShowGroupFilterModal] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
+  // Function to update a specific monitor in the groups state
+  const updateMonitorInGroups = useCallback((updatedMonitor: Monitor) => {
+    setGroups(prevGroups => {
+      return prevGroups.map(group => ({
+        ...group,
+        monitors: group.monitors.map(monitor => 
+          monitor.id === updatedMonitor.id ? updatedMonitor : monitor
+        )
+      }));
+    });
+  }, []);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const groups = await monitorService.getDashboardGroups(selectedEnvironment);
+      setGroups(groups);
+      setFilteredGroups(groups);
+    } catch (err) {
+      console.error('Failed to fetch monitor groups:', err);
+      setError('Failed to load monitor groups');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedEnvironment]);
+
   const sortedGroups = useMemo(() => {
     return [...filteredGroups].sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredGroups]);
@@ -265,23 +293,18 @@ export function MetricsList({ selectedMetric, onSelectMetric }: MetricsListProps
     setStoredEnvironment(selectedEnvironment);
   }, [selectedEnvironment]);
 
+  // Handle targeted monitor updates (no full reload)
   useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        setIsLoading(true);
-        const groups = await monitorService.getDashboardGroups(selectedEnvironment);
-        setGroups(groups);
-        setFilteredGroups(groups);
-      } catch (err) {
-        console.error('Failed to fetch monitor groups:', err);
-        setError('Failed to load monitor groups');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (updatedMonitor?.monitor) {
+      updateMonitorInGroups(updatedMonitor.monitor);
+    }
+  }, [updatedMonitor?.timestamp, updateMonitorInGroups]);
 
+  // Fetch groups on initial load and when environment changes
+  // We don't refetch when refreshTrigger changes - we use targeted updates instead
+  useEffect(() => {
     fetchGroups();
-  }, [selectedEnvironment]);
+  }, [fetchGroups]);
 
   // Filter monitors based on search term, status, and selected groups
   useEffect(() => {
