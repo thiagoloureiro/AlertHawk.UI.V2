@@ -10,6 +10,8 @@ export function Dashboard() {
   const [selectedGroup, setSelectedGroup] = useState<MonitorGroup | undefined>(undefined);
   const [showCertModal, setShowCertModal] = useState(false);
   const [expiringMonitors, setExpiringMonitors] = useState<Monitor[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [updatedMonitor, setUpdatedMonitor] = useState<{ monitor: Monitor; timestamp: number } | null>(null);
 
   const handleMetricSelect = (metric: Monitor | null, group?: MonitorGroup) => {
     setSelectedMetric(metric);
@@ -65,10 +67,28 @@ export function Dashboard() {
         <MetricsList
           selectedMetric={selectedMetric}
           onSelectMetric={handleMetricSelect}
+          refreshTrigger={refreshTrigger}
+          updatedMonitor={updatedMonitor}
+          onEnvironmentChange={(environmentId) => {
+            // Clear selected metric and group when environment changes
+            setSelectedMetric(null);
+            setSelectedGroup(undefined);
+          }}
         />
       </div>
       <div className="flex-1">
-        <MetricDetails metric={selectedMetric} group={selectedGroup} />
+        <MetricDetails 
+          metric={selectedMetric} 
+          group={selectedGroup}
+          onMetricUpdate={(updatedMetric) => {
+            setSelectedMetric(updatedMetric);
+            // Update MetricsList with the updated monitor (targeted update, no reload)
+            // Use timestamp to ensure the update always triggers even if monitor reference is similar
+            setUpdatedMonitor({ monitor: updatedMetric, timestamp: Date.now() });
+            // Clear after a brief moment to allow the update to process
+            setTimeout(() => setUpdatedMonitor(null), 100);
+          }}
+        />
       </div>
       
       <CertificateExpirationModal

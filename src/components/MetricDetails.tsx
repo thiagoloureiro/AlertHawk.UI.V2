@@ -35,6 +35,7 @@ const md = new MarkdownIt({
 interface MetricDetailsProps {
   metric: Monitor | null;
   group?: MonitorGroup;
+  onMetricUpdate?: (updatedMetric: Monitor) => void;
 }
 
 interface TimePeriod {
@@ -596,7 +597,15 @@ const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
   );
 };
 
-export function MetricDetails({ metric, group }: MetricDetailsProps) {
+export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsProps) {
+  // Local state to track the current metric (allows optimistic updates)
+  const [currentMetric, setCurrentMetric] = useState<Monitor | null>(metric);
+  
+  // Sync local state with prop when metric changes
+  useEffect(() => {
+    setCurrentMetric(metric);
+  }, [metric]);
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPauseLoading, setIsPauseLoading] = useState(false);
@@ -661,23 +670,23 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Load history data when metric or period changes
   useEffect(() => {
-    if (metric) {
+    if (currentMetric) {
       loadHistoryData(selectedPeriod);
       
       // Load Kubernetes details if this is a Kubernetes monitor
-      if (metric.monitorTypeId === 4) {
+      if (currentMetric.monitorTypeId === 4) {
         loadK8sDetails();
       }
     }
-  }, [selectedPeriod, metric?.id]);
+  }, [selectedPeriod, currentMetric?.id]);
 
   // Add function to load Kubernetes details
   const loadK8sDetails = async () => {
-    if (!metric || metric.monitorTypeId !== 4) return;
+    if (!currentMetric || currentMetric.monitorTypeId !== 4) return;
     
     try {
       setIsLoadingK8s(true);
-      const response = await monitoringHttp.get(`/api/Monitor/getMonitorK8sByMonitorId/${metric.id}`);
+      const response = await monitoringHttp.get(`/api/Monitor/getMonitorK8sByMonitorId/${currentMetric.id}`);
       console.log('Kubernetes details:', response.data);
       console.log('Cluster name from API:', response.data.clusterName || response.data.ClusterName);
       
@@ -713,11 +722,11 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   };
 
   const loadHistoryData = async (period: TimePeriod) => {
-    if (!metric) return;
+    if (!currentMetric) return;
     
     try {
       setIsLoadingHistory(true);
-      const data = await monitorService.getMonitorHistory(metric.id, period.days);
+      const data = await monitorService.getMonitorHistory(currentMetric.id, period.days);
       // Validate timestamps before setting state
       const validatedData = data.map(item => {
         try {
@@ -744,7 +753,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Function to refresh all data
   const refreshData = async () => {
-    if (!metric) return;
+    if (!currentMetric) return;
     
     try {
       setIsRefreshing(true);
@@ -752,12 +761,12 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       await loadHistoryData(selectedPeriod);
       
       // Refresh Kubernetes details if applicable
-      if (metric.monitorTypeId === 4) {
+      if (currentMetric.monitorTypeId === 4) {
         await loadK8sDetails();
       }
       
       // Refresh monitor details
-      await monitorService.getDashboardGroups(metric.monitorEnvironment);
+      await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
       // Force a re-render by updating the URL without redirecting
       window.history.replaceState({}, '', window.location.pathname);
     } catch (error) {
@@ -772,7 +781,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   useEffect(() => {
     let intervalId: number;
 
-    if (autoRefresh && metric) {
+    if (autoRefresh && currentMetric) {
       intervalId = window.setInterval(() => {
         refreshData();
       }, 30000); // Refresh every 30 seconds
@@ -783,7 +792,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         window.clearInterval(intervalId);
       }
     };
-  }, [autoRefresh, metric, selectedPeriod]);
+  }, [autoRefresh, currentMetric, selectedPeriod]);
 
   // Early return for group view
   if (!metric && group) {
@@ -863,7 +872,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
   }
 
   // Return early if no metric and no group
-  if (!metric) {
+  if (!currentMetric) {
     return (
       <div className="h-full flex items-center justify-center dark:bg-gray-900 bg-gray-50">
         <div className="text-center dark:text-gray-400 text-gray-600">
@@ -875,13 +884,15 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Add delete handler
   const handleDelete = async () => {
+    if (!currentMetric) return;
+    
     setIsDeleting(true);
     try {
-      const success = await monitorService.deleteMonitor(metric.id);
+      const success = await monitorService.deleteMonitor(currentMetric.id);
       if (success) {
         toast.success('Monitor deleted successfully', { position: 'bottom-right' });
         // Refresh dashboard data with current environment
-        await monitorService.getDashboardGroups(metric.monitorEnvironment);
+        await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
         // Force a full page refresh to update all data
         window.location.href = '/dashboard';
       } else {
@@ -897,18 +908,51 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Add pause handler
   const handlePauseToggle = async () => {
+    if (!currentMetric) return;
+    
     setIsPauseLoading(true);
+    const originalMetric = currentMetric; // Store original for rollback
+    const newPausedState = !currentMetric.paused;
+    
+    // Optimistically update the UI
+    const updatedMetric = { ...currentMetric, paused: newPausedState };
+    setCurrentMetric(updatedMetric);
+    onMetricUpdate?.(updatedMetric);
+    
     try {
-      const success = await monitorService.toggleMonitorPause(metric.id, !metric.paused);
+      const success = await monitorService.toggleMonitorPause(originalMetric.id, newPausedState);
       if (success) {
-        toast.success(`Monitor ${metric.paused ? 'resumed' : 'paused'} successfully`, { position: 'bottom-right' });
-        // Refresh the page to show updated status
-        window.location.reload();
+        toast.success(`Monitor ${originalMetric.paused ? 'resumed' : 'paused'} successfully`, { position: 'bottom-right' });
+        // Optionally refresh monitor data to ensure consistency (without full page reload)
+        // The optimistic update already shows the change, so this is just for data consistency
+        try {
+          const refreshedGroups = await monitorService.getDashboardGroups(originalMetric.monitorEnvironment);
+          // Find the updated monitor in the refreshed data
+          const refreshedGroup = refreshedGroups.find(g => 
+            g.monitors.some(m => m.id === originalMetric.id)
+          );
+          if (refreshedGroup) {
+            const refreshedMonitor = refreshedGroup.monitors.find(m => m.id === originalMetric.id);
+            if (refreshedMonitor) {
+              setCurrentMetric(refreshedMonitor);
+              onMetricUpdate?.(refreshedMonitor);
+            }
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh monitor data:', refreshError);
+          // Don't show error to user since the operation succeeded
+        }
       } else {
-        toast.error(`Failed to ${metric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
+        // Revert optimistic update on failure
+        setCurrentMetric(originalMetric);
+        onMetricUpdate?.(originalMetric);
+        toast.error(`Failed to ${originalMetric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
       }
     } catch {
-      toast.error(`Failed to ${metric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
+      // Revert optimistic update on error
+      setCurrentMetric(originalMetric);
+      onMetricUpdate?.(originalMetric);
+      toast.error(`Failed to ${originalMetric.paused ? 'resume' : 'pause'} monitor`, { position: 'bottom-right' });
     } finally {
       setIsPauseLoading(false);
     }
@@ -916,13 +960,15 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Add handler for edit button
   const handleEditClick = async () => {
+    if (!currentMetric) return;
+    
     try {
       let monitorData: Monitor;
       
-      console.log('Monitor Type ID:', metric.monitorTypeId);
+      console.log('Monitor Type ID:', currentMetric.monitorTypeId);
       
-      if (metric.monitorTypeId === 3) {
-        const tcpDetails = await monitorService.getMonitorTcpDetails(metric.id);
+      if (currentMetric.monitorTypeId === 3) {
+        const tcpDetails = await monitorService.getMonitorTcpDetails(currentMetric.id);
         monitorData = {
           ...tcpDetails,
           monitorTcp: {
@@ -930,13 +976,13 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             port: tcpDetails.port
           },
           urlToCheck: '',  // Required by Monitor type but not used for TCP
-          monitorStatusDashboard: metric.monitorStatusDashboard
+          monitorStatusDashboard: currentMetric.monitorStatusDashboard
         };
-      } else if (metric.monitorTypeId === 4) {
+      } else if (currentMetric.monitorTypeId === 4) {
         // Fetch Kubernetes monitor details
-        const k8sDetails = await monitorService.getMonitorK8sDetails(metric.id);
+        const k8sDetails = await monitorService.getMonitorK8sDetails(currentMetric.id);
         monitorData = {
-          ...metric,
+          ...currentMetric,
           monitorTypeId: 4,
           monitorK8s: {
             clusterName: k8sDetails.ClusterName,
@@ -946,7 +992,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         };
       } else {
         // Fetch HTTP monitor details
-        const httpDetails = await monitorService.getMonitorHttpDetails(metric.id);
+        const httpDetails = await monitorService.getMonitorHttpDetails(currentMetric.id);
         monitorData = {
           ...httpDetails,
           monitorHttp: {
@@ -958,7 +1004,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             body: httpDetails.body
           },
           urlToCheck: httpDetails.urlToCheck,
-          monitorStatusDashboard: metric.monitorStatusDashboard,
+          monitorStatusDashboard: currentMetric.monitorStatusDashboard,
           // Include HTTP response code fields for editing
           httpResponseCodeFrom: httpDetails.httpResponseCodeFrom,
           httpResponseCodeTo: httpDetails.httpResponseCodeTo
@@ -977,9 +1023,11 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
 
   // Add clone handler
   const handleClone = async () => {
+    if (!currentMetric) return;
+    
     setIsCloning(true);
     try {
-      await monitorService.cloneMonitor(metric.id);
+      await monitorService.cloneMonitor(currentMetric.id);
       toast.success('Monitor cloned successfully', { position: 'bottom-right' });
       window.location.reload();
     } catch (error) {
@@ -1052,26 +1100,26 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <h1 className="text-2xl font-bold dark:text-white text-gray-900">{metric?.name || group?.name}</h1>
-          {metric?.monitorTypeId === 3 ? (
+          <h1 className="text-2xl font-bold dark:text-white text-gray-900">{currentMetric?.name || group?.name}</h1>
+          {currentMetric?.monitorTypeId === 3 ? (
             <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <Network className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
               <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {`${metric.monitorTcp?.IP}:${metric.monitorTcp?.port}`}
+                {`${currentMetric.monitorTcp?.IP}:${currentMetric.monitorTcp?.port}`}
               </span>
             </div>
-          ) : metric?.monitorTypeId === 4 ? (
+          ) : currentMetric?.monitorTypeId === 4 ? (
             <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <Server className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
               <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {k8sDetails?.clusterName || metric.monitorK8s?.clusterName || 'No cluster specified'}
+                {k8sDetails?.clusterName || currentMetric.monitorK8s?.clusterName || 'No cluster specified'}
               </span>
             </div>
-          ) : metric && (
+          ) : currentMetric && (
             <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <Globe className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
               <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {metric.urlToCheck || 'No URL specified'}
+                {currentMetric.urlToCheck || 'No URL specified'}
               </span>
             </div>
           )}
@@ -1089,12 +1137,12 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           >
             {isPauseLoading ? (
               <LoadingSpinner size="sm" />
-            ) : metric.paused ? (
+            ) : currentMetric.paused ? (
               <Play className="w-4 h-4" />
             ) : (
               <Pause className="w-4 h-4" />
             )}
-            {isPauseLoading ? 'Processing...' : (metric.paused ? 'Resume' : 'Pause')}
+            {isPauseLoading ? 'Processing...' : (currentMetric.paused ? 'Resume' : 'Pause')}
           </button>
 
           <button
@@ -1109,7 +1157,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           </button>
 
           <Link 
-            to={`/monitor/${metric.id}/alerts`}
+            to={`/monitor/${currentMetric.id}/alerts`}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                      bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800
                      text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40
@@ -1130,7 +1178,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             Notifications
           </button>
 
-          {metric?.monitorTypeId === 1 && (
+          {currentMetric?.monitorTypeId === 1 && (
             <button
               onClick={() => setShowSecurityHeaders(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
@@ -1205,9 +1253,9 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           <div className="flex items-center gap-3">
             <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
               <Activity className={`w-5 h-5 ${
-                metric.paused 
+                currentMetric.paused 
                   ? 'dark:text-gray-400 text-gray-500'
-                  : metric.status 
+                  : currentMetric.status 
                     ? 'dark:text-green-400 text-green-500' 
                     : 'dark:text-red-400 text-red-500'
               }`} />
@@ -1215,13 +1263,13 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <div>
               <p className="text-xs dark:text-gray-400 text-gray-600">Current Status</p>
               <p className={`text-xl font-bold ${
-                metric.paused 
+                currentMetric.paused 
                   ? 'dark:text-gray-400 text-gray-500'
-                  : metric.status 
+                  : currentMetric.status 
                     ? 'dark:text-green-400 text-green-500' 
                     : 'dark:text-red-400 text-red-500'
               }`}>
-                {metric.paused ? 'Paused' : (metric.status ? 'Online' : 'Offline')}
+                {currentMetric.paused ? 'Paused' : (currentMetric.status ? 'Online' : 'Offline')}
               </p>
             </div>
           </div>
@@ -1231,12 +1279,12 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
         <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              {getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused).icon}
+              {getMonitorTypeInfo(currentMetric.monitorTypeId, currentMetric.status, currentMetric.paused).icon}
             </div>
             <div>
               <p className="text-xs dark:text-gray-400 text-gray-600">Monitor Type</p>
               <p className="text-xl font-bold dark:text-white text-gray-900">
-                {getMonitorTypeInfo(metric.monitorTypeId, metric.status, metric.paused).label}
+                {getMonitorTypeInfo(currentMetric.monitorTypeId, currentMetric.status, currentMetric.paused).label}
               </p>
             </div>
           </div>
@@ -1251,14 +1299,14 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             <div>
               <p className="text-xs dark:text-gray-400 text-gray-600">Response Time</p>
               <p className="text-xl font-bold dark:text-white text-gray-900">
-                {metric.monitorStatusDashboard.responseTime.toFixed(0)}ms
+                {currentMetric.monitorStatusDashboard.responseTime.toFixed(0)}ms
               </p>
             </div>
           </div>
         </div>
 
         {/* SSL Certificate Card */}
-        {metric.checkCertExpiry && (
+        {currentMetric.checkCertExpiry && (
           <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
@@ -1267,7 +1315,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
               <div>
                 <p className="text-xs dark:text-gray-400 text-gray-600">SSL Certificate</p>
                 <p className="text-xl font-bold dark:text-white text-gray-900">
-                  {metric.daysToExpireCert} days
+                  {currentMetric.daysToExpireCert} days
                 </p>
               </div>
             </div>
@@ -1279,25 +1327,29 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {TIME_PERIODS.map((period) => {
           const uptimeValue = period.label === '1 Hour'
-            ? metric.monitorStatusDashboard.uptime1Hr
+            ? currentMetric.monitorStatusDashboard.uptime1Hr
             : period.label === '24 Hours'
-            ? metric.monitorStatusDashboard.uptime24Hrs
+            ? currentMetric.monitorStatusDashboard.uptime24Hrs
             : period.label === '7 Days'
-            ? metric.monitorStatusDashboard.uptime7Days
+            ? currentMetric.monitorStatusDashboard.uptime7Days
             : period.label === '30 Days'
-            ? metric.monitorStatusDashboard.uptime30Days
+            ? currentMetric.monitorStatusDashboard.uptime30Days
             : period.label === '3 Months'
-            ? metric.monitorStatusDashboard.uptime3Months
-            : metric.monitorStatusDashboard.uptime6Months;
+            ? currentMetric.monitorStatusDashboard.uptime3Months
+            : currentMetric.monitorStatusDashboard.uptime6Months;
           
           const isSelected = selectedPeriod === period;
+          const hasNoData = !uptimeValue || uptimeValue === -1;
+          
           const getUptimeColor = (value: number) => {
+            if (hasNoData) return 'text-gray-500 dark:text-gray-400';
             if (value >= 99.5) return 'text-green-600 dark:text-green-400';
             if (value >= 95) return 'text-yellow-600 dark:text-yellow-400';
             return 'text-red-600 dark:text-red-400';
           };
           
           const getUptimeStatus = (value: number) => {
+            if (hasNoData) return 'N/A';
             if (value >= 99.5) return 'Excellent';
             if (value >= 95) return 'Good';
             if (value >= 90) return 'Fair';
@@ -1334,7 +1386,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
               </div>
               
               <div className={`text-xl font-bold mb-0.5 ${getUptimeColor(uptimeValue)}`}>
-                {uptimeValue.toFixed(2)}%
+                {hasNoData ? 'N/A' : `${uptimeValue.toFixed(2)}%`}
               </div>
               
               <div className={`text-xs font-medium ${getUptimeColor(uptimeValue)}`}>
@@ -1349,7 +1401,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       <StatusTimeline historyData={historyData} />
 
       {/* Response Time Chart - Only show for HTTP monitors */}
-      {metric.monitorTypeId === 1 && (
+      {currentMetric.monitorTypeId === 1 && (
         <div className="h-64 mt-6 relative">
           {isLoadingHistory && (
             <div className="absolute inset-0 bg-gray-900/20 dark:bg-gray-900/40 flex items-center justify-center z-10 rounded-lg">
@@ -1432,7 +1484,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
       )}
 
       {/* Kubernetes Nodes - Only show for Kubernetes monitors */}
-      {metric.monitorTypeId === 4 && (
+      {currentMetric.monitorTypeId === 4 && (
         <div className="mt-6 relative">
           {isLoadingK8s ? (
             <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 flex items-center justify-center">
@@ -1465,7 +1517,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             </h3>
             
             <p className="dark:text-gray-300 text-gray-700 mb-6">
-              Are you sure you want to delete monitor "{metric.name}"? This action cannot be undone.
+              Are you sure you want to delete monitor "{currentMetric.name}"? This action cannot be undone.
             </p>
 
             <div className="flex justify-end gap-3">
@@ -1505,44 +1557,115 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
           onClose={() => setShowEditModal(false)}
           onAdd={async () => {}}
           onUpdate={async (updatedMonitor) => {
+            if (!currentMetric) return;
+            
             try {
-              updatedMonitor.id = metric.id;
-              updatedMonitor.monitorId = metric.id;
-              const success = metric.monitorTypeId === 3
+              updatedMonitor.id = currentMetric.id;
+              updatedMonitor.monitorId = currentMetric.id;
+              const success = currentMetric.monitorTypeId === 3
                 ? await monitorService.updateMonitorTcp(updatedMonitor as UpdateMonitorTcpPayload)
                 : await monitorService.updateMonitorHttp(updatedMonitor as UpdateMonitorHttpPayload);
               
               if (success) {
                 toast.success('Monitor updated successfully', { position: 'bottom-right' });
                 setShowEditModal(false);
-                window.location.reload();
+                
+                // Refresh monitor data from API to get updated details
+                try {
+                  const refreshedGroups = await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
+                  // Find the updated monitor in the refreshed data
+                  const refreshedGroup = refreshedGroups.find(g => 
+                    g.monitors.some(m => m.id === currentMetric.id)
+                  );
+                  if (refreshedGroup) {
+                    let refreshedMonitor = refreshedGroup.monitors.find(m => m.id === currentMetric.id);
+                    if (refreshedMonitor) {
+                      // If it's a TCP monitor, fetch TCP details
+                      if (refreshedMonitor.monitorTypeId === 3) {
+                        const tcpDetails = await monitorService.getMonitorTcpDetails(refreshedMonitor.id);
+                        refreshedMonitor = {
+                          ...refreshedMonitor,
+                          monitorTcp: {
+                            IP: tcpDetails.ip,
+                            port: tcpDetails.port
+                          }
+                        };
+                      } else if (refreshedMonitor.monitorTypeId === 4) {
+                        // If it's a Kubernetes monitor, fetch K8s details
+                        const k8sDetails = await monitorService.getMonitorK8sDetails(refreshedMonitor.id);
+                        refreshedMonitor = {
+                          ...refreshedMonitor,
+                          monitorK8s: {
+                            clusterName: k8sDetails.ClusterName,
+                            kubeConfig: k8sDetails.KubeConfig,
+                            monitorK8sNodes: k8sDetails.monitorK8sNodes
+                          }
+                        };
+                      } else {
+                        // If it's an HTTP monitor, fetch HTTP details
+                        const httpDetails = await monitorService.getMonitorHttpDetails(refreshedMonitor.id);
+                        refreshedMonitor = {
+                          ...refreshedMonitor,
+                          monitorHttp: {
+                            ignoreTlsSsl: httpDetails.ignoreTlsSsl,
+                            maxRedirects: httpDetails.maxRedirects,
+                            responseStatusCode: httpDetails.responseStatusCode,
+                            timeout: httpDetails.timeout,
+                            monitorHttpMethod: httpDetails.monitorHttpMethod,
+                            body: httpDetails.body
+                          },
+                          urlToCheck: httpDetails.urlToCheck,
+                          httpResponseCodeFrom: httpDetails.httpResponseCodeFrom,
+                          httpResponseCodeTo: httpDetails.httpResponseCodeTo
+                        };
+                      }
+                      
+                      // Update local state
+                      setCurrentMetric(refreshedMonitor);
+                      // Notify parent component
+                      onMetricUpdate?.(refreshedMonitor);
+                    }
+                  }
+                } catch (refreshError) {
+                  console.error('Failed to refresh monitor data:', refreshError);
+                  // Don't show error to user since the update succeeded
+                  // Just update with the data we have from the updatedMonitor
+                  const updatedMetric = {
+                    ...currentMetric,
+                    ...updatedMonitor,
+                    id: currentMetric.id,
+                    monitorId: currentMetric.id
+                  };
+                  setCurrentMetric(updatedMetric as Monitor);
+                  onMetricUpdate?.(updatedMetric as Monitor);
+                }
               }
             } catch (error) {
               console.error('Failed to update monitor:', error);
               toast.error('Failed to update monitor', { position: 'bottom-right' });
             }
           }}
-          existingMonitor={monitorToEdit || metric}
+          existingMonitor={monitorToEdit || currentMetric}
           isEditing={true}
         />
       )}
 
       {showNotifications && (
         <NotificationListModal
-          monitorId={metric.id}
+          monitorId={currentMetric.id}
           onClose={() => setShowNotifications(false)}
         />
       )}
 
-      {showSecurityHeaders && metric && (
+      {showSecurityHeaders && currentMetric && (
         <SecurityHeadersModal
-          monitorId={metric.id}
-          monitorName={metric.name}
+          monitorId={currentMetric.id}
+          monitorName={currentMetric.name}
           onClose={() => setShowSecurityHeaders(false)}
           onEditMonitor={() => {
             setShowSecurityHeaders(false);
             setShowEditModal(true);
-            setMonitorToEdit(metric);
+            setMonitorToEdit(currentMetric);
           }}
         />
       )}
@@ -1556,7 +1679,7 @@ export function MetricDetails({ metric, group }: MetricDetailsProps) {
             </h3>
             
             <p className="dark:text-gray-300 text-gray-700 mb-6">
-              Are you sure you want to clone monitor "{metric.name}"? A new monitor will be created with name "{metric.name}_Clone".
+              Are you sure you want to clone monitor "{currentMetric.name}"? A new monitor will be created with name "{currentMetric.name}_Clone".
             </p>
 
             <div className="flex justify-end gap-3">

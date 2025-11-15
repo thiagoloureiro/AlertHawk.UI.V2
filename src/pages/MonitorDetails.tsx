@@ -24,7 +24,12 @@ export function MonitorDetails() {
       <h1 className="text-2xl font-semibold dark:text-white">
         Monitor Details: {monitorId}
       </h1>
-      <MetricDetails metric={monitor} />
+      <MetricDetails 
+        metric={monitor}
+        onMetricUpdate={(updatedMonitor) => {
+          setMonitor(updatedMonitor);
+        }}
+      />
     </div>
   );
 } 
