@@ -16,6 +16,7 @@ interface MetricsListProps {
   onSelectMetric: (metric: Monitor | null, group?: MonitorGroup) => void;
   refreshTrigger?: number;
   updatedMonitor?: { monitor: Monitor; timestamp: number } | null;
+  onEnvironmentChange?: (environmentId: number) => void;
 }
 
 // Helper function to get monitor type icon and label
@@ -241,7 +242,7 @@ const setStoredEnvironment = (environment: number): void => {
   }
 };
 
-export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, updatedMonitor }: MetricsListProps) {
+export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, updatedMonitor, onEnvironmentChange }: MetricsListProps) {
   const [groups, setGroups] = useState<MonitorGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<MonitorGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -371,6 +372,8 @@ export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, up
   // Handle environment change
   const handleEnvironmentChange = (environmentId: number) => {
     setSelectedEnvironment(environmentId);
+    // Notify parent component about environment change
+    onEnvironmentChange?.(environmentId);
   };
 
   // Update the toggle function

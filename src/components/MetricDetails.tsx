@@ -1339,13 +1339,17 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
             : currentMetric.monitorStatusDashboard.uptime6Months;
           
           const isSelected = selectedPeriod === period;
+          const hasNoData = !uptimeValue || uptimeValue === -1;
+          
           const getUptimeColor = (value: number) => {
+            if (hasNoData) return 'text-gray-500 dark:text-gray-400';
             if (value >= 99.5) return 'text-green-600 dark:text-green-400';
             if (value >= 95) return 'text-yellow-600 dark:text-yellow-400';
             return 'text-red-600 dark:text-red-400';
           };
           
           const getUptimeStatus = (value: number) => {
+            if (hasNoData) return 'N/A';
             if (value >= 99.5) return 'Excellent';
             if (value >= 95) return 'Good';
             if (value >= 90) return 'Fair';
@@ -1382,7 +1386,7 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
               </div>
               
               <div className={`text-xl font-bold mb-0.5 ${getUptimeColor(uptimeValue)}`}>
-                {uptimeValue.toFixed(2)}%
+                {hasNoData ? 'N/A' : `${uptimeValue.toFixed(2)}%`}
               </div>
               
               <div className={`text-xs font-medium ${getUptimeColor(uptimeValue)}`}>

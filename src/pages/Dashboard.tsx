@@ -69,6 +69,11 @@ export function Dashboard() {
           onSelectMetric={handleMetricSelect}
           refreshTrigger={refreshTrigger}
           updatedMonitor={updatedMonitor}
+          onEnvironmentChange={(environmentId) => {
+            // Clear selected metric and group when environment changes
+            setSelectedMetric(null);
+            setSelectedGroup(undefined);
+          }}
         />
       </div>
       <div className="flex-1">
