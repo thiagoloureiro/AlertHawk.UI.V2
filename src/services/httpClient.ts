@@ -6,6 +6,7 @@ class HttpClient {
   private static monitoringInstance: HttpClient;
   private static authInstance: HttpClient;
   private static notificationInstance: HttpClient;
+  private static metricsInstance: HttpClient;
   private axiosInstance: AxiosInstance;
   private msalInstance: PublicClientApplication;
   private initialized: boolean = false;
@@ -148,18 +149,28 @@ class HttpClient {
     }
     return HttpClient.notificationInstance.axiosInstance;
   }
+
+  public static async getMetricsInstance(): Promise<AxiosInstance> {
+    if (!HttpClient.metricsInstance) {
+      HttpClient.metricsInstance = new HttpClient(import.meta.env.VITE_APP_METRICS_API_URL);
+      await HttpClient.metricsInstance.initialize();
+    }
+    return HttpClient.metricsInstance.axiosInstance;
+  }
 }
 
 // Create and initialize instances
 let monitoringHttp: AxiosInstance;
 let authHttp: AxiosInstance;
 let notificationHttp: AxiosInstance;
+let metricsHttp: AxiosInstance;
 
 // Initialize instances
 (async () => {
   monitoringHttp = await HttpClient.getMonitoringInstance();
   authHttp = await HttpClient.getAuthInstance();
   notificationHttp = await HttpClient.getNotificationInstance();
+  metricsHttp = await HttpClient.getMetricsInstance();
 })();
 
-export { monitoringHttp, authHttp, notificationHttp }; 
+export { monitoringHttp, authHttp, notificationHttp, metricsHttp }; 

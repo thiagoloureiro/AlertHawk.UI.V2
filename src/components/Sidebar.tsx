@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
-  BarChart3
+  BarChart3,
+  Package
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
@@ -28,17 +29,19 @@ interface SidebarProps {
 const baseMenuItems: MenuItem[] = [
   { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
   { id: '2', name: 'Dashboard Builder', icon: 'BarChart3', path: '/dashboard-builder' },
-  { id: '3', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
-  { id: '4', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
-  { id: '5', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
-  { id: '6', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
-  { id: '7', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
+  { id: '3', name: 'Metrics', icon: 'LineChart', path: '/metrics' },
+  { id: '4', name: 'Application Metrics', icon: 'Package', path: '/application-metrics' },
+  { id: '5', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
+  { id: '6', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
+  { id: '7', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
+  { id: '8', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
+  { id: '9', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
 ];
 
 // Add admin-only menu items
 const adminMenuItems: MenuItem[] = [
-  { id: '8', name: 'User Management', icon: 'UserCircle', path: '/users' },
-  { id: '9', name: 'Administration', icon: 'Bell', path: '/admin' },
+  { id: '10', name: 'User Management', icon: 'UserCircle', path: '/users' },
+  { id: '11', name: 'Administration', icon: 'Bell', path: '/admin' },
 ];
 
 // Settings is shown to all users
@@ -56,6 +59,7 @@ const iconMap: Record<string, React.ElementType> = {
   UserCircle,
   Settings,
   Shield,
+  Package,
 };
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
