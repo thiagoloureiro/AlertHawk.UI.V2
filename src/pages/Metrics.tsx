@@ -16,6 +16,7 @@ import { toast } from 'react-hot-toast';
 export function Metrics() {
   const [nodeMetrics, setNodeMetrics] = useState<NodeMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hours, setHours] = useState(1);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -27,11 +28,15 @@ export function Metrics() {
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
     try {
-      if (showLoading) setIsLoading(true);
-      else setIsRefreshing(true);
+      if (showLoading && isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       setError(null);
       const metrics = await metricsService.getNodeMetrics(hours, 1000, selectedCluster || undefined);
       setNodeMetrics(metrics);
+      setIsInitialLoad(false);
     } catch (err) {
       console.error('Failed to fetch node metrics:', err);
       setError('Failed to load node metrics');
@@ -44,7 +49,7 @@ export function Metrics() {
 
   useEffect(() => {
     if (selectedCluster) {
-      fetchMetrics();
+      fetchMetrics(!isInitialLoad);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hours, selectedCluster]);
@@ -231,7 +236,15 @@ export function Metrics() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div className="h-full overflow-y-auto p-6 relative">
+      {isRefreshing && (
+        <div className="absolute inset-0 bg-black bg-opacity-10 dark:bg-opacity-20 z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+            <span className="text-sm font-medium dark:text-white text-gray-900">Loading metrics...</span>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
