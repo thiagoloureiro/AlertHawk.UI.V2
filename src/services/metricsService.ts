@@ -17,10 +17,17 @@ class MetricsService {
 
   /**
    * Fetch available namespace names from the API
+   * @param clusterName - Name of the cluster to filter by (optional)
    */
-  async getNamespaces(): Promise<string[]> {
+  async getNamespaces(clusterName?: string): Promise<string[]> {
     try {
-      const response = await metricsHttp.get<string[]>('/api/metrics/namespaces');
+      const params: { clusterName?: string } = {};
+      if (clusterName) {
+        params.clusterName = clusterName;
+      }
+      const response = await metricsHttp.get<string[]>('/api/metrics/namespaces', {
+        params
+      });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch namespaces:', error);
