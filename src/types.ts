@@ -190,3 +190,24 @@ export const getEnvironmentName = (envId: number): string => {
     default: return 'Unknown';
   }
 };
+
+export interface NodeMetric {
+  timestamp: string;
+  nodeName: string;
+  clusterName: string;
+  cpuUsageCores: number;
+  cpuCapacityCores: number;
+  memoryUsageBytes: number;
+  memoryCapacityBytes: number;
+}
+
+export interface NamespaceMetric {
+  timestamp: string;
+  namespace: string;
+  pod: string;
+  container: string;
+  clusterName: string;
+  cpuUsageCores: number;
+  cpuLimitCores: number | null;
+  memoryUsageBytes: number;
+}
