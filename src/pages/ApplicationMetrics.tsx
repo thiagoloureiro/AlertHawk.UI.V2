@@ -538,7 +538,7 @@ export function ApplicationMetrics() {
                 <YAxis 
                   stroke="#6B7280"
                   fontSize={12}
-                  label={{ value: 'CPU (cores)', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'CPU (cores)', angle: -90, position: 'insideLeft' , dy: 30, fontSize: 15}}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -602,7 +602,7 @@ export function ApplicationMetrics() {
                 <YAxis 
                   stroke="#6B7280"
                   fontSize={12}
-                  label={{ value: 'Memory (MB)', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Memory (MB)', angle: -90, position: 'insideLeft', dy: 35, fontSize: 15}}
                 />
                 <Tooltip 
                   contentStyle={{
