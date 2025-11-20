@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut, Sparkles, Activity, Loader2 } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, Activity, Palette } from 'lucide-react';
 import { LoadingSpinner } from './ui';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
@@ -37,8 +37,8 @@ const getEnvironmentInfo = (environmentId: number) => {
 };
 
 interface TopBarProps {
-  isDarkTheme: boolean;
-  onThemeToggle: () => void;
+  theme: 'light' | 'dark' | 'darcula' | 'monokai';
+  onThemeChange: (theme: 'light' | 'dark' | 'darcula' | 'monokai') => void;
 }
 
 interface UserInfo {
@@ -54,15 +54,17 @@ interface MonitorStatus {
   paused: number;
 }
 
-export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
+export function TopBar({ theme, onThemeChange }: TopBarProps) {
   const { accounts, instance } = useMsal();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [monitorStatus, setMonitorStatus] = useState<MonitorStatus>({ online: 0, offline: 0, paused: 0 });
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [selectedEnvironment, setSelectedEnvironment] = useState<number>(getStoredEnvironment());
   const menuRef = useRef<HTMLDivElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
   
   const userInfo: UserInfo | null = (() => {
     const stored = localStorage.getItem('userInfo');
@@ -152,6 +154,9 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setShowThemeMenu(false);
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -159,6 +164,26 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'light':
+        return <Sun className="w-5 h-5 text-gray-500" />;
+      case 'dark':
+        return <Moon className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
+      case 'darcula':
+        return <Palette className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
+      case 'monokai':
+        return <Palette className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
+    }
+  };
+
+  const themes = [
+    { value: 'light' as const, label: 'Light', icon: <Sun className="w-4 h-4" /> },
+    { value: 'dark' as const, label: 'Dark', icon: <Moon className="w-4 h-4" /> },
+    { value: 'darcula' as const, label: 'Darcula', icon: <Palette className="w-4 h-4" /> },
+    { value: 'monokai' as const, label: 'Monokai', icon: <Palette className="w-4 h-4" /> },
+  ];
 
   return (
     <div className="h-16 px-4 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between
@@ -230,16 +255,40 @@ export function TopBar({ isDarkTheme, onThemeToggle }: TopBarProps) {
 
       {/* Right Side: Theme Toggle, Notifications, and User Menu */}
       <div className="flex items-center gap-4">
-        <button
-          onClick={onThemeToggle}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          {isDarkTheme ? (
-            <Sun className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          ) : (
-            <Moon className="w-5 h-5 text-gray-500" />
+        {/* Theme Selector */}
+        <div ref={themeMenuRef} className="relative">
+          <button
+            onClick={() => setShowThemeMenu(!showThemeMenu)}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Select theme"
+          >
+            {getThemeIcon()}
+          </button>
+          {showThemeMenu && (
+            <div className="absolute top-full right-0 mt-1 w-40 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200 z-50">
+              {themes.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => {
+                    onThemeChange(t.value);
+                    setShowThemeMenu(false);
+                  }}
+                  className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                    theme === t.value
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
+                  {theme === t.value && (
+                    <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
           )}
-        </button>
+        </div>
         
        {/* <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
           <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />

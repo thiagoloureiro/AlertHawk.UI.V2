@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AppRoutes } from './routes';
@@ -19,16 +19,17 @@ function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('authToken') !== null;
   });
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+  const [isSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'darcula' | 'monokai'>(() => {
     const saved = localStorage.getItem('theme');
-    if (saved === 'light') return false;
-    if (saved === 'dark') return true;
-    return true; // default to dark theme
+    if (saved === 'light' || saved === 'dark' || saved === 'darcula' || saved === 'monokai') {
+      return saved;
+    }
+    return 'dark'; // default to dark theme
   });
 
   const location = useLocation();
@@ -83,9 +84,14 @@ function AppContent() {
   }, [isSidebarCollapsed]);
 
   useEffect(() => {
-    localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark', isDarkTheme);
-  }, [isDarkTheme]);
+    localStorage.setItem('theme', theme);
+    // Remove all theme classes
+    document.documentElement.classList.remove('dark', 'darcula', 'monokai');
+    // Add the current theme class (except for light which has no class)
+    if (theme !== 'light') {
+      document.documentElement.classList.add(theme);
+    }
+  }, [theme]);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -94,7 +100,7 @@ function AppContent() {
   // If it's the status page, render without authentication or layout
   if (isStatusPage) {
     return (
-      <div className={isDarkTheme ? 'dark' : ''}>
+      <div className={theme !== 'light' ? theme : ''}>
         <AppRoutes />
       </div>
     );
@@ -107,8 +113,8 @@ function AppContent() {
 
   // For protected routes
   return (
-    <div className={isDarkTheme ? 'dark' : ''}>
-      <Layout isDarkTheme={isDarkTheme} onThemeToggle={() => setIsDarkTheme(!isDarkTheme)}>
+    <div className={theme !== 'light' ? theme : ''}>
+      <Layout theme={theme} onThemeChange={setTheme}>
         <AppRoutes />
       </Layout>
     </div>
