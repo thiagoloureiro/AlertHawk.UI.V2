@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   Package, Cpu, HardDrive, RefreshCw, 
-  Activity, AlertCircle, Layers, ChevronDown, X
+  Activity, AlertCircle, Layers, ChevronDown, X, Maximize2, Minimize2
 } from 'lucide-react';
 import { NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -23,6 +23,7 @@ export function ApplicationMetrics() {
   const [selectedPods, setSelectedPods] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPodDropdownOpen, setIsPodDropdownOpen] = useState(false);
+  const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | null>(null);
 
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -57,6 +58,17 @@ export function ApplicationMetrics() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isPodDropdownOpen]);
+
+  // Close expanded chart on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && expandedChart) {
+        setExpandedChart(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [expandedChart]);
 
   // Get unique clusters
   const uniqueClusters = useMemo(() => {
@@ -520,10 +532,19 @@ export function ApplicationMetrics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* CPU Usage Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4 flex items-center gap-2">
-                <Cpu className="w-5 h-5" />
-                CPU Usage Over Time
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                  <Cpu className="w-5 h-5" />
+                  CPU Usage Over Time
+                </h3>
+                <button
+                  onClick={() => setExpandedChart('cpu')}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Expand chart"
+                >
+                  <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
               <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
@@ -584,10 +605,19 @@ export function ApplicationMetrics() {
 
           {/* Memory Usage Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4 flex items-center gap-2">
-              <HardDrive className="w-5 h-5" />
-              Memory Usage Over Time
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                <HardDrive className="w-5 h-5" />
+                Memory Usage Over Time
+              </h3>
+              <button
+                onClick={() => setExpandedChart('memory')}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Expand chart"
+              >
+                <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
@@ -748,6 +778,108 @@ export function ApplicationMetrics() {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Chart Modal */}
+      {expandedChart && (
+        <div 
+          className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          onClick={() => setExpandedChart(null)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                {expandedChart === 'cpu' ? (
+                  <>
+                    <Cpu className="w-6 h-6" />
+                    CPU Usage Over Time
+                  </>
+                ) : (
+                  <>
+                    <HardDrive className="w-6 h-6" />
+                    Memory Usage Over Time
+                  </>
+                )}
+              </h3>
+              <button
+                onClick={() => setExpandedChart(null)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Close"
+              >
+                <Minimize2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                  <XAxis 
+                    dataKey="timestamp" 
+                    stroke="#6B7280"
+                    fontSize={12}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis 
+                    stroke="#6B7280"
+                    fontSize={12}
+                    label={{ 
+                      value: expandedChart === 'cpu' ? 'CPU (cores)' : 'Memory (MB)', 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      dy: expandedChart === 'cpu' ? 30 : 35,
+                      fontSize: 15
+                    }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                      color: '#F9FAFB',
+                      fontSize: '11px',
+                      padding: '8px',
+                      maxHeight: '300px',
+                      overflowY: 'auto'
+                    }}
+                    itemStyle={{
+                      padding: '2px 4px',
+                      fontSize: '11px'
+                    }}
+                    labelStyle={{
+                      fontSize: '11px',
+                      marginBottom: '4px',
+                      paddingBottom: '4px',
+                      borderBottom: '1px solid #374151'
+                    }}
+                    formatter={(value: number) => expandedChart === 'cpu' 
+                      ? `${value.toFixed(4)} cores` 
+                      : `${value.toFixed(2)} MB`}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  {chartContainers.map((key, index) => {
+                    const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#818CF8', '#60A5FA'];
+                    return (
+                      <Line
+                        key={`${key}_${expandedChart}`}
+                        type="monotone"
+                        dataKey={`${key}_${expandedChart}`}
+                        stroke={colors[index % colors.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={key.split('/').pop()}
+                      />
+                    );
+                  })}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
