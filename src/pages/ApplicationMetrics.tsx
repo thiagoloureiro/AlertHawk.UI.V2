@@ -563,9 +563,9 @@ export function ApplicationMetrics() {
                   }}
                   formatter={(value: number) => `${value.toFixed(4)} cores`}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 {chartContainers.map((key, index) => {
-                  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A855F7', '#E11D48'];
+                  const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#818CF8', '#60A5FA'];
                   return (
                     <Line
                       key={`${key}_cpu`}
@@ -627,9 +627,9 @@ export function ApplicationMetrics() {
                   }}
                   formatter={(value: number) => `${value.toFixed(2)} MB`}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 {chartContainers.map((key, index) => {
-                  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A855F7', '#E11D48'];
+                  const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#818CF8', '#60A5FA'];
                   return (
                     <Line
                       key={`${key}_memory`}

@@ -375,9 +375,9 @@ export function Metrics() {
                   }}
                   formatter={(value: number) => `${value.toFixed(2)}%`}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 {(selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
-                  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+                  const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
                   return (
                     <Line
                       key={`${node}_cpu`}
@@ -425,9 +425,9 @@ export function Metrics() {
                   }}
                   formatter={(value: number) => `${value.toFixed(2)}%`}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 {(selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
-                  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+                  const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
                   return (
                     <Line
                       key={`${node}_memory`}
