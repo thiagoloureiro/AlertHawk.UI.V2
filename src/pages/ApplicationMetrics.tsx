@@ -154,12 +154,8 @@ export function ApplicationMetrics() {
       const entry = dataMap.get(timeKey)!;
       const key = `${metric.namespace}/${metric.pod}/${metric.container}`;
       
-      // CPU percentage (only if limit exists)
-      if (metric.cpuLimitCores !== null) {
-        entry[`${key}_cpu`] = ((metric.cpuUsageCores / metric.cpuLimitCores) * 100);
-      } else {
-        entry[`${key}_cpu`] = metric.cpuUsageCores;
-      }
+      // CPU usage in cores (always use actual cores, not percentage)
+      entry[`${key}_cpu`] = metric.cpuUsageCores;
       
       // Memory usage (in MB for readability)
       entry[`${key}_memory`] = metric.memoryUsageBytes / (1024 * 1024);
