@@ -16,6 +16,7 @@ import { toast } from 'react-hot-toast';
 export function ApplicationMetrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hours, setHours] = useState(1);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
@@ -30,8 +31,11 @@ export function ApplicationMetrics() {
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
     try {
-      if (showLoading) setIsLoading(true);
-      else setIsRefreshing(true);
+      if (showLoading && isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       setError(null);
       const metrics = await metricsService.getNamespaceMetrics(
         hours, 
@@ -39,7 +43,9 @@ export function ApplicationMetrics() {
         selectedCluster || undefined,
         selectedNamespace || undefined
       );
+      // Only update metrics after successful fetch to prevent blinking
       setNamespaceMetrics(metrics);
+      setIsInitialLoad(false);
     } catch (err) {
       console.error('Failed to fetch namespace metrics:', err);
       setError('Failed to load application metrics');
@@ -52,7 +58,7 @@ export function ApplicationMetrics() {
 
   useEffect(() => {
     if (selectedCluster && selectedNamespace) {
-      fetchMetrics();
+      fetchMetrics(!isInitialLoad);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hours, selectedCluster, selectedNamespace]);
@@ -572,7 +578,15 @@ export function ApplicationMetrics() {
 
         {/* Charts */}
         {selectedCluster && selectedNamespace && chartData.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+            {isRefreshing && (
+              <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
+                <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                  <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
+                </div>
+              </div>
+            )}
             {/* CPU Usage Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
@@ -722,7 +736,15 @@ export function ApplicationMetrics() {
         )}
 
         {/* Pod Details Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden relative">
+          {isRefreshing && (
+            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
+              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
+              </div>
+            </div>
+          )}
           <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
             <h3 className="text-lg font-semibold dark:text-white text-gray-900">Pod & Container Details</h3>
           </div>
