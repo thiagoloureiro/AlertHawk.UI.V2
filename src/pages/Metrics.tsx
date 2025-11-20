@@ -236,15 +236,7 @@ export function Metrics() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6 relative">
-      {isRefreshing && (
-        <div className="absolute inset-0 bg-black bg-opacity-10 dark:bg-opacity-20 z-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 flex items-center gap-3">
-            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-            <span className="text-sm font-medium dark:text-white text-gray-900">Loading metrics...</span>
-          </div>
-        </div>
-      )}
+    <div className="h-full overflow-y-auto p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -386,7 +378,15 @@ export function Metrics() {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+          {isRefreshing && (
+            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
+              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
+              </div>
+            </div>
+          )}
           {/* CPU Usage Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
@@ -531,7 +531,15 @@ export function Metrics() {
         </div>
 
         {/* Node Details Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden relative">
+          {isRefreshing && (
+            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
+              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
+              </div>
+            </div>
+          )}
           <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
             <h3 className="text-lg font-semibold dark:text-white text-gray-900">Node Details</h3>
           </div>
