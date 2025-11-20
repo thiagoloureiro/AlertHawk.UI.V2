@@ -22,6 +22,7 @@ export function Metrics() {
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | null>(null);
+  const [clusters, setClusters] = useState<string[]>([]);
 
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -29,7 +30,7 @@ export function Metrics() {
       if (showLoading) setIsLoading(true);
       else setIsRefreshing(true);
       setError(null);
-      const metrics = await metricsService.getNodeMetrics(hours, 1000);
+      const metrics = await metricsService.getNodeMetrics(hours, 1000, selectedCluster || undefined);
       setNodeMetrics(metrics);
     } catch (err) {
       console.error('Failed to fetch node metrics:', err);
@@ -42,9 +43,11 @@ export function Metrics() {
   };
 
   useEffect(() => {
-    fetchMetrics();
+    if (selectedCluster) {
+      fetchMetrics();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hours]);
+  }, [hours, selectedCluster]);
 
   // Close expanded chart on Escape key
   useEffect(() => {
@@ -57,11 +60,26 @@ export function Metrics() {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [expandedChart]);
 
-  // Get unique clusters
+  // Fetch clusters
+  const fetchClusters = async () => {
+    try {
+      const clusterList = await metricsService.getClusters();
+      setClusters(clusterList);
+    } catch (err) {
+      console.error('Failed to fetch clusters:', err);
+      toast.error('Failed to load clusters', { position: 'bottom-right' });
+    }
+  };
+
+  // Get unique clusters (from fetched clusters list)
   const uniqueClusters = useMemo(() => {
-    const clusters = new Set(nodeMetrics.map(m => m.clusterName));
-    return Array.from(clusters).sort();
-  }, [nodeMetrics]);
+    return [...clusters].sort();
+  }, [clusters]);
+
+  // Fetch clusters on mount
+  useEffect(() => {
+    fetchClusters();
+  }, []);
 
   // Auto-select first cluster when clusters are available
   useEffect(() => {

@@ -3,17 +3,35 @@ import { NodeMetric, NamespaceMetric } from '../types';
 
 class MetricsService {
   /**
+   * Fetch available cluster names from the API
+   */
+  async getClusters(): Promise<string[]> {
+    try {
+      const response = await metricsHttp.get<string[]>('/api/metrics/clusters');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch clusters:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch node metrics from the API
    * @param hours - Number of hours of data to fetch (default: 24)
    * @param limit - Maximum number of records to return (default: 100)
+   * @param clusterName - Name of the cluster to filter by (optional)
    */
-  async getNodeMetrics(hours: number = 24, limit: number = 100): Promise<NodeMetric[]> {
+  async getNodeMetrics(hours: number = 24, limit: number = 100, clusterName?: string): Promise<NodeMetric[]> {
     try {
+      const params: { hours: number; limit: number; clusterName?: string } = {
+        hours,
+        limit
+      };
+      if (clusterName) {
+        params.clusterName = clusterName;
+      }
       const response = await metricsHttp.get<NodeMetric[]>('/api/Metrics/node', {
-        params: {
-          hours,
-          limit
-        }
+        params
       });
       return response.data;
     } catch (error) {
@@ -26,14 +44,19 @@ class MetricsService {
    * Fetch namespace/pod metrics from the API
    * @param hours - Number of hours of data to fetch (default: 24)
    * @param limit - Maximum number of records to return (default: 100)
+   * @param clusterName - Name of the cluster to filter by (optional)
    */
-  async getNamespaceMetrics(hours: number = 24, limit: number = 100): Promise<NamespaceMetric[]> {
+  async getNamespaceMetrics(hours: number = 24, limit: number = 100, clusterName?: string): Promise<NamespaceMetric[]> {
     try {
+      const params: { hours: number; limit: number; clusterName?: string } = {
+        hours,
+        limit
+      };
+      if (clusterName) {
+        params.clusterName = clusterName;
+      }
       const response = await metricsHttp.get<NamespaceMetric[]>('/api/Metrics/namespace', {
-        params: {
-          hours,
-          limit
-        }
+        params
       });
       return response.data;
     } catch (error) {
