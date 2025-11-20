@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   CartesianGrid, Legend 
 } from 'recharts';
 import { 
-  Package, Cpu, HardDrive, RefreshCw, Clock, 
-  Activity, AlertCircle, Layers, Network
+  Package, Cpu, HardDrive, RefreshCw, 
+  Activity, AlertCircle, Layers, ChevronDown, X
 } from 'lucide-react';
 import { NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -20,8 +20,9 @@ export function ApplicationMetrics() {
   const [hours, setHours] = useState(24);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<string | null>(null);
-  const [selectedPod, setSelectedPod] = useState<string | null>(null);
+  const [selectedPods, setSelectedPods] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPodDropdownOpen, setIsPodDropdownOpen] = useState(false);
 
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -46,6 +47,17 @@ export function ApplicationMetrics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hours]);
 
+  // Close pod dropdown on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPodDropdownOpen) {
+        setIsPodDropdownOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isPodDropdownOpen]);
+
   // Get unique clusters
   const uniqueClusters = useMemo(() => {
     const clusters = new Set(namespaceMetrics.map(m => m.clusterName));
@@ -54,11 +66,8 @@ export function ApplicationMetrics() {
 
   // Filter metrics by selected cluster
   const filteredMetrics = useMemo(() => {
-    let metrics = namespaceMetrics;
-    if (selectedCluster) {
-      metrics = metrics.filter(m => m.clusterName === selectedCluster);
-    }
-    return metrics;
+    if (!selectedCluster) return [];
+    return namespaceMetrics.filter(m => m.clusterName === selectedCluster);
   }, [namespaceMetrics, selectedCluster]);
 
   // Get unique namespaces (from filtered metrics)
@@ -77,12 +86,29 @@ export function ApplicationMetrics() {
     return Array.from(pods).sort();
   }, [filteredMetrics, selectedNamespace]);
 
+  // Auto-select first cluster when clusters are available
+  useEffect(() => {
+    if (uniqueClusters.length > 0 && !selectedCluster) {
+      setSelectedCluster(uniqueClusters[0]);
+    }
+  }, [uniqueClusters, selectedCluster]);
+
+  // Auto-select first namespace when namespaces are available and cluster is selected
+  useEffect(() => {
+    if (uniqueNamespaces.length > 0 && selectedCluster && !selectedNamespace) {
+      setSelectedNamespace(uniqueNamespaces[0]);
+    }
+  }, [uniqueNamespaces, selectedCluster, selectedNamespace]);
+
+
   // Get latest metrics for each pod (from filtered metrics)
   const latestPodMetrics = useMemo(() => {
+    if (!selectedCluster || !selectedNamespace) return [];
+    
     const podMap = new Map<string, NamespaceMetric>();
     filteredMetrics.forEach(metric => {
-      if (selectedNamespace && metric.namespace !== selectedNamespace) return;
-      if (selectedPod && metric.pod !== selectedPod) return;
+      if (metric.namespace !== selectedNamespace) return;
+      if (selectedPods.length > 0 && !selectedPods.includes(metric.pod)) return;
 
       const key = `${metric.namespace}/${metric.pod}/${metric.container}`;
       const existing = podMap.get(key);
@@ -95,10 +121,14 @@ export function ApplicationMetrics() {
       if (a.pod !== b.pod) return a.pod.localeCompare(b.pod);
       return a.container.localeCompare(b.container);
     });
-  }, [filteredMetrics, selectedNamespace, selectedPod]);
+  }, [filteredMetrics, selectedCluster, selectedNamespace, selectedPods]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
+    if (!selectedCluster || !selectedNamespace) {
+      return [];
+    }
+
     const dataMap = new Map<string, {
       timestamp: string;
       timestampValue: number;
@@ -106,8 +136,9 @@ export function ApplicationMetrics() {
     }>();
 
     const metricsToProcess = filteredMetrics.filter(m => {
-      if (selectedNamespace && m.namespace !== selectedNamespace) return false;
-      if (selectedPod && m.pod !== selectedPod) return false;
+      if (m.clusterName !== selectedCluster) return false;
+      if (m.namespace !== selectedNamespace) return false;
+      if (selectedPods.length > 0 && !selectedPods.includes(m.pod)) return false;
       return true;
     });
 
@@ -136,7 +167,24 @@ export function ApplicationMetrics() {
 
     return Array.from(dataMap.values())
       .sort((a, b) => (a.timestampValue as number) - (b.timestampValue as number));
-  }, [filteredMetrics, selectedNamespace, selectedPod]);
+  }, [filteredMetrics, selectedCluster, selectedNamespace, selectedPods]);
+
+  // Get containers that have data in chartData for chart rendering
+  const chartContainers = useMemo(() => {
+    if (chartData.length === 0) return [];
+    
+    const containerKeys = new Set<string>();
+    chartData.forEach(dataPoint => {
+      Object.keys(dataPoint).forEach(key => {
+        if (key.endsWith('_cpu') || key.endsWith('_memory')) {
+          const containerKey = key.replace(/_cpu$|_memory$/, '');
+          containerKeys.add(containerKey);
+        }
+      });
+    });
+    
+    return Array.from(containerKeys).sort();
+  }, [chartData]);
 
   // Calculate namespace-wide statistics
   const namespaceStats = useMemo(() => {
@@ -176,8 +224,6 @@ export function ApplicationMetrics() {
     // Count unique pods and containers per namespace
     latestPodMetrics.forEach(metric => {
       const stats = statsMap.get(metric.namespace)!;
-      const podKey = `${metric.namespace}/${metric.pod}`;
-      const containerKey = `${metric.namespace}/${metric.pod}/${metric.container}`;
       
       // This is a simplified count - in a real scenario you'd track unique pods/containers
       stats.containerCount++;
@@ -270,15 +316,15 @@ export function ApplicationMetrics() {
             <select
               value={selectedCluster || ''}
               onChange={(e) => {
-                setSelectedCluster(e.target.value || null);
+                setSelectedCluster(e.target.value);
                 setSelectedNamespace(null); // Clear namespace selection when cluster changes
-                setSelectedPod(null); // Clear pod selection when cluster changes
+                setSelectedPods([]); // Clear pod selection when cluster changes
+                setIsPodDropdownOpen(false);
               }}
               className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
                        dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                        focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
             >
-              <option value="">All Clusters</option>
               {uniqueClusters.map(cluster => (
                 <option key={cluster} value={cluster}>{cluster}</option>
               ))}
@@ -359,101 +405,130 @@ export function ApplicationMetrics() {
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filters:</span>
             
             {/* Namespace Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Namespace:</span>
-              <button
-                onClick={() => {
-                  setSelectedNamespace(null);
-                  setSelectedPod(null);
-                }}
-                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                  selectedNamespace === null
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                All
-              </button>
-              {uniqueNamespaces.map(ns => (
-                <button
-                  key={ns}
-                  onClick={() => {
-                    setSelectedNamespace(ns);
-                    setSelectedPod(null);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                    selectedNamespace === ns
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {ns}
-                </button>
-              ))}
-            </div>
+            {selectedCluster && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Namespace:</span>
+                {uniqueNamespaces.map(ns => (
+                  <button
+                    key={ns}
+                    onClick={() => {
+                      setSelectedNamespace(ns);
+                      setSelectedPods([]);
+                      setIsPodDropdownOpen(false);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                      selectedNamespace === ns
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {ns}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Pod Filter (only if namespace is selected) */}
             {selectedNamespace && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Pod:</span>
-                {uniquePods.length > 15 ? (
-                  // Use dropdown for many pods
-                  <select
-                    value={selectedPod || ''}
-                    onChange={(e) => setSelectedPod(e.target.value || null)}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsPodDropdownOpen(!isPodDropdownOpen)}
                     className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
                              dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                             focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                             focus:ring-2 focus:ring-blue-500 min-w-[200px] text-left flex items-center justify-between gap-2"
                   >
-                    <option value="">All Pods</option>
-                    {uniquePods.map(pod => (
-                      <option key={pod} value={pod}>{pod}</option>
-                    ))}
-                  </select>
-                ) : (
-                  // Use buttons for few pods
-                  <>
-                    <button
-                      onClick={() => setSelectedPod(null)}
-                      className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                        selectedPod === null
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      All
-                    </button>
-                    <div className="flex items-center gap-2 flex-wrap max-w-4xl">
-                      {uniquePods.map(pod => (
-                        <button
-                          key={pod}
-                          onClick={() => setSelectedPod(pod)}
-                          className={`px-3 py-1 rounded-lg text-sm transition-colors whitespace-nowrap ${
-                            selectedPod === pod
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                          }`}
-                        >
-                          {pod}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+                    <span className="truncate">
+                      {selectedPods.length === 0 
+                        ? 'All Pods' 
+                        : selectedPods.length === 1 
+                          ? selectedPods[0]
+                          : `${selectedPods.length} pods selected`}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isPodDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {isPodDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setIsPodDropdownOpen(false)}
+                      />
+                      <div className="absolute z-20 mt-1 w-full max-w-[300px] dark:bg-gray-800 bg-white border 
+                                    dark:border-gray-700 border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden
+                                    flex flex-col">
+                        <div className="p-2 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between gap-2">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPods([...uniquePods])}
+                              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            >
+                              Select All
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPods([])}
+                              className="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                            >
+                              Clear All
+                            </button>
+                          </div>
+                          {selectedPods.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPods([])}
+                              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="overflow-y-auto max-h-48 p-2">
+                          {uniquePods.map(pod => (
+                            <label
+                              key={pod}
+                              className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedPods.includes(pod)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedPods([...selectedPods, pod]);
+                                  } else {
+                                    setSelectedPods(selectedPods.filter(p => p !== pod));
+                                  }
+                                }}
+                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded 
+                                         focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 
+                                         focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                              />
+                              <span className="text-sm dark:text-white text-gray-900 truncate">{pod}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CPU Usage Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4 flex items-center gap-2">
-              <Cpu className="w-5 h-5" />
-              CPU Usage Over Time
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
+        {selectedCluster && selectedNamespace && chartData.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CPU Usage Chart */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4 flex items-center gap-2">
+                <Cpu className="w-5 h-5" />
+                CPU Usage Over Time
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis 
@@ -493,22 +568,20 @@ export function ApplicationMetrics() {
                   formatter={(value: number) => `${value.toFixed(4)} cores`}
                 />
                 <Legend />
-                {Array.from(new Set(latestPodMetrics.map(m => `${m.namespace}/${m.pod}/${m.container}`)))
-                  .slice(0, 10) // Limit to 10 lines for readability
-                  .map((key, index) => {
-                    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A855F7', '#E11D48'];
-                    return (
-                      <Line
-                        key={`${key}_cpu`}
-                        type="monotone"
-                        dataKey={`${key}_cpu`}
-                        stroke={colors[index % colors.length]}
-                        strokeWidth={2}
-                        dot={false}
-                        name={key.split('/').pop()}
-                      />
-                    );
-                  })}
+                {chartContainers.map((key, index) => {
+                  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A855F7', '#E11D48'];
+                  return (
+                    <Line
+                      key={`${key}_cpu`}
+                      type="monotone"
+                      dataKey={`${key}_cpu`}
+                      stroke={colors[index % colors.length]}
+                      strokeWidth={2}
+                      dot={false}
+                      name={key.split('/').pop()}
+                    />
+                  );
+                })}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -559,26 +632,25 @@ export function ApplicationMetrics() {
                   formatter={(value: number) => `${value.toFixed(2)} MB`}
                 />
                 <Legend />
-                {Array.from(new Set(latestPodMetrics.map(m => `${m.namespace}/${m.pod}/${m.container}`)))
-                  .slice(0, 10) // Limit to 10 lines for readability
-                  .map((key, index) => {
-                    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A855F7', '#E11D48'];
-                    return (
-                      <Line
-                        key={`${key}_memory`}
-                        type="monotone"
-                        dataKey={`${key}_memory`}
-                        stroke={colors[index % colors.length]}
-                        strokeWidth={2}
-                        dot={false}
-                        name={key.split('/').pop()}
-                      />
-                    );
-                  })}
+                {chartContainers.map((key, index) => {
+                  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A855F7', '#E11D48'];
+                  return (
+                    <Line
+                      key={`${key}_memory`}
+                      type="monotone"
+                      dataKey={`${key}_memory`}
+                      stroke={colors[index % colors.length]}
+                      strokeWidth={2}
+                      dot={false}
+                      name={key.split('/').pop()}
+                    />
+                  );
+                })}
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
         {/* Pod Details Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
