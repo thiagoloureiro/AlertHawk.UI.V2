@@ -51,9 +51,16 @@ export function Metrics() {
     return Array.from(clusters).sort();
   }, [nodeMetrics]);
 
+  // Auto-select first cluster when clusters are available
+  useEffect(() => {
+    if (uniqueClusters.length > 0 && !selectedCluster) {
+      setSelectedCluster(uniqueClusters[0]);
+    }
+  }, [uniqueClusters, selectedCluster]);
+
   // Filter metrics by selected cluster
   const filteredMetrics = useMemo(() => {
-    if (!selectedCluster) return nodeMetrics;
+    if (!selectedCluster) return [];
     return nodeMetrics.filter(m => m.clusterName === selectedCluster);
   }, [nodeMetrics, selectedCluster]);
 
@@ -209,14 +216,13 @@ export function Metrics() {
             <select
               value={selectedCluster || ''}
               onChange={(e) => {
-                setSelectedCluster(e.target.value || null);
+                setSelectedCluster(e.target.value);
                 setSelectedNode(null); // Clear node selection when cluster changes
               }}
               className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
                        dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                        focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
             >
-              <option value="">All Clusters</option>
               {uniqueClusters.map(cluster => (
                 <option key={cluster} value={cluster}>{cluster}</option>
               ))}
