@@ -13,6 +13,25 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Kubernetes Metrics Monitoring",
+    description: "New dedicated metrics pages for monitoring Kubernetes cluster nodes and namespaces with comprehensive CPU and memory tracking powered by the new alerthawk-metrics microservice.",
+    date: "November 19th, 2025",
+    features: [
+      "New Cluster Nodes metrics page for monitoring node-level CPU and memory usage across Kubernetes clusters",
+      "New Application Metrics page for tracking pod and container resource consumption by namespace",
+      "Integration with the new alerthawk-metrics microservice for dedicated metrics collection and storage",
+      "Cluster filtering to view metrics for specific Kubernetes clusters",
+      "Time range selection with options for 1 hour, 6 hours, 24 hours, 48 hours, and 7 days",
+      "Real-time charts showing CPU and memory usage trends over time",
+      "Detailed tables with color-coded usage indicators (green/yellow/red based on thresholds)",
+      "Node-level metrics including CPU cores usage, memory capacity, and utilization percentages",
+      "Namespace-level aggregation showing total pods, containers, and resource consumption",
+      "Pod and container filtering for granular monitoring within namespaces",
+      "Automatic refresh functionality to keep metrics up-to-date",
+      "Dark theme support with responsive design for all screen sizes"
+    ]
+  },
+  {
     title: "Dashboard Builder & Custom Widgets",
     description: "Revolutionary dashboard builder with drag-and-drop widgets, real-time data visualization, and customizable monitoring dashboards.",
     date: "October 4th, 2025",
