@@ -92,8 +92,9 @@ export function ApplicationMetrics() {
 
   // Fetch namespaces
   const fetchNamespaces = async () => {
+    if (!selectedCluster) return;
     try {
-      const namespaceList = await metricsService.getNamespaces();
+      const namespaceList = await metricsService.getNamespaces(selectedCluster);
       setNamespaces(namespaceList);
     } catch (err) {
       console.error('Failed to fetch namespaces:', err);
@@ -127,11 +128,18 @@ export function ApplicationMetrics() {
     return Array.from(pods).sort();
   }, [filteredMetrics, selectedNamespace]);
 
-  // Fetch clusters and namespaces on mount
+  // Fetch clusters on mount
   useEffect(() => {
     fetchClusters();
-    fetchNamespaces();
   }, []);
+
+  // Fetch namespaces when cluster is selected
+  useEffect(() => {
+    if (selectedCluster) {
+      fetchNamespaces();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCluster]);
 
   // Auto-select first cluster when clusters are available
   useEffect(() => {
