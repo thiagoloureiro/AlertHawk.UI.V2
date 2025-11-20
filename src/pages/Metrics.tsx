@@ -371,7 +371,19 @@ export function Metrics() {
                     backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '8px',
-                    color: '#F9FAFB'
+                    color: '#F9FAFB',
+                    fontSize: '11px',
+                    padding: '8px'
+                  }}
+                  itemStyle={{
+                    padding: '2px 4px',
+                    fontSize: '11px'
+                  }}
+                  labelStyle={{
+                    fontSize: '11px',
+                    marginBottom: '4px',
+                    paddingBottom: '4px',
+                    borderBottom: '1px solid #374151'
                   }}
                   formatter={(value: number) => `${value.toFixed(2)}%`}
                 />
@@ -421,7 +433,19 @@ export function Metrics() {
                     backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '8px',
-                    color: '#F9FAFB'
+                    color: '#F9FAFB',
+                    fontSize: '11px',
+                    padding: '8px'
+                  }}
+                  itemStyle={{
+                    padding: '2px 4px',
+                    fontSize: '11px'
+                  }}
+                  labelStyle={{
+                    fontSize: '11px',
+                    marginBottom: '4px',
+                    paddingBottom: '4px',
+                    borderBottom: '1px solid #374151'
                   }}
                   formatter={(value: number) => `${value.toFixed(2)}%`}
                 />
