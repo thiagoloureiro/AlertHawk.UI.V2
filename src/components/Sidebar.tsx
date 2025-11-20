@@ -29,7 +29,7 @@ interface SidebarProps {
 const baseMenuItems: MenuItem[] = [
   { id: '1', name: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
   { id: '2', name: 'Dashboard Builder', icon: 'BarChart3', path: '/dashboard-builder' },
-  { id: '3', name: 'Metrics', icon: 'LineChart', path: '/metrics' },
+  { id: '3', name: 'Cluster Metrics', icon: 'LineChart', path: '/metrics' },
   { id: '4', name: 'Application Metrics', icon: 'Package', path: '/application-metrics' },
   { id: '5', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '6', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
