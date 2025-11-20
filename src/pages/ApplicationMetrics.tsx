@@ -17,7 +17,7 @@ export function ApplicationMetrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hours, setHours] = useState(24);
+  const [hours, setHours] = useState(1);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<string | null>(null);
   const [selectedPods, setSelectedPods] = useState<string[]>([]);
@@ -25,6 +25,7 @@ export function ApplicationMetrics() {
   const [isPodDropdownOpen, setIsPodDropdownOpen] = useState(false);
   const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | null>(null);
   const [clusters, setClusters] = useState<string[]>([]);
+  const [namespaces, setNamespaces] = useState<string[]>([]);
 
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -32,7 +33,12 @@ export function ApplicationMetrics() {
       if (showLoading) setIsLoading(true);
       else setIsRefreshing(true);
       setError(null);
-      const metrics = await metricsService.getNamespaceMetrics(hours, 1000, selectedCluster || undefined);
+      const metrics = await metricsService.getNamespaceMetrics(
+        hours, 
+        1000, 
+        selectedCluster || undefined,
+        selectedNamespace || undefined
+      );
       setNamespaceMetrics(metrics);
     } catch (err) {
       console.error('Failed to fetch namespace metrics:', err);
@@ -45,11 +51,11 @@ export function ApplicationMetrics() {
   };
 
   useEffect(() => {
-    if (selectedCluster) {
+    if (selectedCluster && selectedNamespace) {
       fetchMetrics();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hours, selectedCluster]);
+  }, [hours, selectedCluster, selectedNamespace]);
 
   // Close pod dropdown on Escape key
   useEffect(() => {
@@ -84,6 +90,17 @@ export function ApplicationMetrics() {
     }
   };
 
+  // Fetch namespaces
+  const fetchNamespaces = async () => {
+    try {
+      const namespaceList = await metricsService.getNamespaces();
+      setNamespaces(namespaceList);
+    } catch (err) {
+      console.error('Failed to fetch namespaces:', err);
+      toast.error('Failed to load namespaces', { position: 'bottom-right' });
+    }
+  };
+
   // Get unique clusters (from fetched clusters list)
   const uniqueClusters = useMemo(() => {
     return [...clusters].sort();
@@ -95,11 +112,10 @@ export function ApplicationMetrics() {
     return namespaceMetrics.filter(m => m.clusterName === selectedCluster);
   }, [namespaceMetrics, selectedCluster]);
 
-  // Get unique namespaces (from filtered metrics)
+  // Get unique namespaces (from fetched namespaces list)
   const uniqueNamespaces = useMemo(() => {
-    const namespaces = new Set(filteredMetrics.map(m => m.namespace));
-    return Array.from(namespaces).sort();
-  }, [filteredMetrics]);
+    return [...namespaces].sort();
+  }, [namespaces]);
 
   // Get unique pods (filtered by namespace if selected, from filtered metrics)
   const uniquePods = useMemo(() => {
@@ -111,9 +127,10 @@ export function ApplicationMetrics() {
     return Array.from(pods).sort();
   }, [filteredMetrics, selectedNamespace]);
 
-  // Fetch clusters on mount
+  // Fetch clusters and namespaces on mount
   useEffect(() => {
     fetchClusters();
+    fetchNamespaces();
   }, []);
 
   // Auto-select first cluster when clusters are available

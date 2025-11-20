@@ -17,7 +17,7 @@ export function Metrics() {
   const [nodeMetrics, setNodeMetrics] = useState<NodeMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hours, setHours] = useState(24);
+  const [hours, setHours] = useState(1);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);

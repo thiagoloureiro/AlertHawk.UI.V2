@@ -16,6 +16,19 @@ class MetricsService {
   }
 
   /**
+   * Fetch available namespace names from the API
+   */
+  async getNamespaces(): Promise<string[]> {
+    try {
+      const response = await metricsHttp.get<string[]>('/api/metrics/namespaces');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch namespaces:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch node metrics from the API
    * @param hours - Number of hours of data to fetch (default: 24)
    * @param limit - Maximum number of records to return (default: 100)
@@ -45,15 +58,19 @@ class MetricsService {
    * @param hours - Number of hours of data to fetch (default: 24)
    * @param limit - Maximum number of records to return (default: 100)
    * @param clusterName - Name of the cluster to filter by (optional)
+   * @param namespace - Name of the namespace to filter by (optional)
    */
-  async getNamespaceMetrics(hours: number = 24, limit: number = 100, clusterName?: string): Promise<NamespaceMetric[]> {
+  async getNamespaceMetrics(hours: number = 24, limit: number = 100, clusterName?: string, namespace?: string): Promise<NamespaceMetric[]> {
     try {
-      const params: { hours: number; limit: number; clusterName?: string } = {
+      const params: { hours: number; limit: number; clusterName?: string; namespace?: string } = {
         hours,
         limit
       };
       if (clusterName) {
         params.clusterName = clusterName;
+      }
+      if (namespace) {
+        params.namespace = namespace;
       }
       const response = await metricsHttp.get<NamespaceMetric[]>('/api/Metrics/namespace', {
         params
