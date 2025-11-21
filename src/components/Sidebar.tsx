@@ -101,22 +101,35 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
+          const isNew = item.id === '3' || item.id === '4'; // Cluster Metrics and Application Metrics
           return (
             <NavLink
               key={item.id}
               to={item.path}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 mx-3 px-3 py-3 rounded-lg transition-colors text-gray-700 dark:text-white",
+                "flex items-center gap-3 mx-3 px-3 py-3 rounded-lg transition-colors text-gray-700 dark:text-white relative",
                 isActive 
                   ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white" 
                   : "hover:bg-gray-100 dark:hover:bg-gray-800"
               )}
             >
-              <Icon className="w-5 h-5 flex-none" />
+              <div className="relative flex-none">
+                <Icon className="w-5 h-5" />
+                {isNew && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                )}
+              </div>
               {!isCollapsed && (
-                <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-                  {item.name}
-                </span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                    {item.name}
+                  </span>
+                  {isNew && (
+                    <span className="px-1.5 py-0.5 text-xs font-semibold bg-blue-500 text-white rounded flex-shrink-0">
+                      NEW
+                    </span>
+                  )}
+                </div>
               )}
             </NavLink>
           );

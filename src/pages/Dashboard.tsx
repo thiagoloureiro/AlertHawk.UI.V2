@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MetricsList } from '../components/MetricsList';
 import { MetricDetails } from '../components/MetricDetails';
 import { CertificateExpirationModal } from '../components/CertificateExpirationModal';
+import { WelcomeMetricsModal, shouldShowMetricsWelcome } from '../components/WelcomeMetricsModal';
 import { Monitor, MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';
 
@@ -12,11 +13,19 @@ export function Dashboard() {
   const [expiringMonitors, setExpiringMonitors] = useState<Monitor[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [updatedMonitor, setUpdatedMonitor] = useState<{ monitor: Monitor; timestamp: number } | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const handleMetricSelect = (metric: Monitor | null, group?: MonitorGroup) => {
     setSelectedMetric(metric);
     setSelectedGroup(group);
   };
+
+  // Show welcome modal on first visit
+  useEffect(() => {
+    if (shouldShowMetricsWelcome()) {
+      setShowWelcome(true);
+    }
+  }, []);
 
   // Check for certificate expiration warnings
   useEffect(() => {
@@ -97,6 +106,11 @@ export function Dashboard() {
         monitors={expiringMonitors}
         onDontShowAgain={handleDontShowAgain}
       />
+
+      {/* Welcome Modal */}
+      {showWelcome && (
+        <WelcomeMetricsModal onClose={() => setShowWelcome(false)} />
+      )}
     </div>
   );
 } 
