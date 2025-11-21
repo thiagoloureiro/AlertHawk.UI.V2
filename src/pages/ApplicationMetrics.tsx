@@ -193,7 +193,7 @@ export function ApplicationMetrics() {
     const dataMap = new Map<string, {
       timestamp: string;
       timestampValue: number;
-      [key: string]: string | number;
+      [key: string]: string | number | null;
     }>();
 
     const metricsToProcess = filteredMetrics.filter(m => {
@@ -203,15 +203,26 @@ export function ApplicationMetrics() {
       return true;
     });
 
-    metricsToProcess.forEach(metric => {
+    // Optimized single pass: build data map directly
+    const timestampMap = new Map<string, number>(); // timeKey -> timestampValue
+
+    // Single pass: build data map and collect timestamps
+    for (const metric of metricsToProcess) {
       const date = getLocalDateFromUTC(metric.timestamp);
-      const timestampValue = date ? date.getTime() : new Date(metric.timestamp).getTime();
       const timeKey = date ? formatCompactDate(date) : metric.timestamp;
-
-      if (!dataMap.has(timeKey)) {
-        dataMap.set(timeKey, { timestamp: timeKey, timestampValue });
+      const timestampValue = date ? date.getTime() : new Date(metric.timestamp).getTime();
+      
+      if (!timestampMap.has(timeKey)) {
+        timestampMap.set(timeKey, timestampValue);
       }
-
+      
+      if (!dataMap.has(timeKey)) {
+        dataMap.set(timeKey, {
+          timestamp: timeKey,
+          timestampValue
+        });
+      }
+      
       const entry = dataMap.get(timeKey)!;
       const key = `${metric.namespace}/${metric.pod}/${metric.container}`;
       
@@ -220,7 +231,7 @@ export function ApplicationMetrics() {
       
       // Memory usage (in MB for readability)
       entry[`${key}_memory`] = metric.memoryUsageBytes / (1024 * 1024);
-    });
+    }
 
     return Array.from(dataMap.values())
       .sort((a, b) => (a.timestampValue as number) - (b.timestampValue as number));
@@ -652,6 +663,7 @@ export function ApplicationMetrics() {
                       stroke={colors[index % colors.length]}
                       strokeWidth={2}
                       dot={false}
+                      connectNulls={true}
                       name={key.split('/').pop()}
                     />
                   );
@@ -725,6 +737,7 @@ export function ApplicationMetrics() {
                       stroke={colors[index % colors.length]}
                       strokeWidth={2}
                       dot={false}
+                      connectNulls={true}
                       name={key.split('/').pop()}
                     />
                   );

@@ -124,24 +124,38 @@ export function Metrics() {
     const dataMap = new Map<string, {
       timestamp: string;
       timestampValue: number;
-      [key: string]: string | number;
+      [key: string]: string | number | null;
     }>();
 
     const nodesToProcess = selectedNode 
       ? [selectedNode] 
       : uniqueNodes;
 
-    filteredMetrics.forEach(metric => {
-      if (!nodesToProcess.includes(metric.nodeName)) return;
+    // Create a Set for faster lookup
+    const nodesToProcessSet = new Set(nodesToProcess);
+
+    // Optimized single pass: build data map directly
+    const timestampMap = new Map<string, number>(); // timeKey -> timestampValue
+
+    // Single pass: build data map
+    for (const metric of filteredMetrics) {
+      if (!nodesToProcessSet.has(metric.nodeName)) continue;
 
       const date = getLocalDateFromUTC(metric.timestamp);
-      const timestampValue = date ? date.getTime() : new Date(metric.timestamp).getTime();
       const timeKey = date ? formatCompactDate(date) : metric.timestamp;
-
-      if (!dataMap.has(timeKey)) {
-        dataMap.set(timeKey, { timestamp: timeKey, timestampValue });
+      const timestampValue = date ? date.getTime() : new Date(metric.timestamp).getTime();
+      
+      if (!timestampMap.has(timeKey)) {
+        timestampMap.set(timeKey, timestampValue);
       }
-
+      
+      if (!dataMap.has(timeKey)) {
+        dataMap.set(timeKey, {
+          timestamp: timeKey,
+          timestampValue
+        });
+      }
+      
       const entry = dataMap.get(timeKey)!;
       const nodeKey = metric.nodeName;
       
@@ -149,7 +163,7 @@ export function Metrics() {
       entry[`${nodeKey}_cpu`] = ((metric.cpuUsageCores / metric.cpuCapacityCores) * 100);
       // Memory percentage
       entry[`${nodeKey}_memory`] = ((metric.memoryUsageBytes / metric.memoryCapacityBytes) * 100);
-    });
+    }
 
     return Array.from(dataMap.values())
       .sort((a, b) => (a.timestampValue as number) - (b.timestampValue as number));
@@ -450,6 +464,7 @@ export function Metrics() {
                       stroke={colors[index % colors.length]}
                       strokeWidth={2}
                       dot={false}
+                      connectNulls={true}
                       name={`${node} CPU`}
                     />
                   );
@@ -521,6 +536,7 @@ export function Metrics() {
                       stroke={colors[index % colors.length]}
                       strokeWidth={2}
                       dot={false}
+                      connectNulls={true}
                       name={`${node} Memory`}
                     />
                   );
@@ -722,6 +738,7 @@ export function Metrics() {
                         stroke={colors[index % colors.length]}
                         strokeWidth={2}
                         dot={false}
+                        connectNulls={true}
                         name={`${node} ${expandedChart === 'cpu' ? 'CPU' : 'Memory'}`}
                       />
                     );
