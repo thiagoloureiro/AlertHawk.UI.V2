@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   Package, Cpu, HardDrive, RefreshCw, 
-  Activity, AlertCircle, Layers, ChevronDown, X, Maximize2, Minimize2
+  Activity, AlertCircle, Layers, ChevronDown, X, Maximize2, Minimize2, Search
 } from 'lucide-react';
 import { NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -24,6 +24,7 @@ export function ApplicationMetrics() {
   const [selectedPods, setSelectedPods] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPodDropdownOpen, setIsPodDropdownOpen] = useState(false);
+  const [podSearchFilter, setPodSearchFilter] = useState('');
   const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | null>(null);
   const [clusters, setClusters] = useState<string[]>([]);
   const [namespaces, setNamespaces] = useState<string[]>([]);
@@ -133,6 +134,15 @@ export function ApplicationMetrics() {
     );
     return Array.from(pods).sort();
   }, [filteredMetrics, selectedNamespace]);
+
+  // Filter pods based on search text
+  const filteredPods = useMemo(() => {
+    if (!podSearchFilter.trim()) {
+      return uniquePods;
+    }
+    const searchLower = podSearchFilter.toLowerCase();
+    return uniquePods.filter(pod => pod.toLowerCase().includes(searchLower));
+  }, [uniquePods, podSearchFilter]);
 
   // Fetch clusters on mount
   useEffect(() => {
@@ -503,7 +513,12 @@ export function ApplicationMetrics() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setIsPodDropdownOpen(!isPodDropdownOpen)}
+                    onClick={() => {
+                      setIsPodDropdownOpen(!isPodDropdownOpen);
+                      if (!isPodDropdownOpen) {
+                        setPodSearchFilter('');
+                      }
+                    }}
                     className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
                              dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                              focus:ring-2 focus:ring-blue-500 min-w-[200px] text-left flex items-center justify-between gap-2"
@@ -554,8 +569,42 @@ export function ApplicationMetrics() {
                             </button>
                           )}
                         </div>
+                        <div className="p-2 border-b dark:border-gray-700 border-gray-200">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search pods..."
+                              value={podSearchFilter}
+                              onChange={(e) => setPodSearchFilter(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full pl-8 pr-3 py-1.5 text-sm dark:bg-gray-700 bg-gray-50 border 
+                                       dark:border-gray-600 border-gray-300 rounded-lg 
+                                       dark:text-white text-gray-900 
+                                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                                       placeholder-gray-400 dark:placeholder-gray-500"
+                            />
+                            {podSearchFilter && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPodSearchFilter('');
+                                }}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                         <div className="overflow-y-auto max-h-48 p-2">
-                          {uniquePods.map(pod => (
+                          {filteredPods.length === 0 ? (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                              No pods found
+                            </div>
+                          ) : (
+                            filteredPods.map(pod => (
                             <label
                               key={pod}
                               className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
@@ -576,7 +625,8 @@ export function ApplicationMetrics() {
                               />
                               <span className="text-sm dark:text-white text-gray-900 truncate">{pod}</span>
                             </label>
-                          ))}
+                            ))
+                          )}
                         </div>
                       </div>
                     </>
@@ -948,6 +998,7 @@ export function ApplicationMetrics() {
                         stroke={colors[index % colors.length]}
                         strokeWidth={2}
                         dot={false}
+                        connectNulls={true}
                         name={key.split('/').pop()}
                       />
                     );
