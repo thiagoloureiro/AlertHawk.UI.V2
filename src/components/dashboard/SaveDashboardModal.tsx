@@ -97,7 +97,7 @@ export function SaveDashboardModal({ isOpen, onClose, onSave, widgets, currentDa
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="w-full max-w-md dark:bg-gray-900 bg-gray-50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between p-6 border-b dark:border-gray-700 border-gray-200">
           <div className="flex items-center gap-3">
             <Save className="w-6 h-6 text-blue-600 dark:text-blue-400" />

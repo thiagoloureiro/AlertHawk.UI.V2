@@ -151,7 +151,7 @@ const updates: Update[] = [
 export function WhatsNewModal({ onClose }: WhatsNewModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-2xl dark:bg-gray-800 bg-white rounded-lg shadow-lg max-h-[80vh] overflow-hidden">
+      <div className="w-full max-w-2xl dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg max-h-[80vh] overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-500" />

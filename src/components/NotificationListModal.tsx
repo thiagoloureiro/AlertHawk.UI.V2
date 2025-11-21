@@ -109,7 +109,7 @@ export function NotificationListModal({ monitorId, onClose }: NotificationListMo
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
-      <div className="w-full max-w-3xl dark:bg-gray-800 bg-white rounded-lg shadow-lg max-h-[80vh]">
+      <div className="w-full max-w-3xl dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg max-h-[80vh]">
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
           <h2 className="text-lg font-medium dark:text-white">Monitor Notifications</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">

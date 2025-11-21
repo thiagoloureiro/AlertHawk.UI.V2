@@ -4,11 +4,11 @@ import { TopBar } from './TopBar';
 
 interface LayoutProps {
   children: React.ReactNode;
-  isDarkTheme: boolean;
-  onThemeToggle: () => void;
+  theme: 'light' | 'dark' | 'darcula' | 'monokai';
+  onThemeChange: (theme: 'light' | 'dark' | 'darcula' | 'monokai') => void;
 }
 
-export function Layout({ children, isDarkTheme, onThemeToggle }: LayoutProps) {
+export function Layout({ children, theme, onThemeChange }: LayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved !== null ? JSON.parse(saved) : false;
@@ -24,8 +24,8 @@ export function Layout({ children, isDarkTheme, onThemeToggle }: LayoutProps) {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar 
-          isDarkTheme={isDarkTheme}
-          onThemeToggle={onThemeToggle}
+          theme={theme}
+          onThemeChange={onThemeChange}
         />
         <main className="flex-1 overflow-auto">
           {children}

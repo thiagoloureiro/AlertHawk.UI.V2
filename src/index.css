@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *, .darcula *, .monokai *));
+@custom-variant darcula (&:is(.darcula *));
+@custom-variant monokai (&:is(.monokai *));
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
@@ -67,4 +69,219 @@
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
+}
+
+/* Darcula Theme Styles */
+.darcula {
+  color-scheme: dark;
+}
+
+.darcula body {
+  background-color: #2B2B2B;
+  color: #A9B7C6;
+}
+
+.darcula .bg-white {
+  background-color: #3C3F41 !important;
+}
+
+.darcula .bg-gray-50 {
+  background-color: #2B2B2B !important;
+}
+
+.darcula .bg-gray-100 {
+  background-color: #3C3F41 !important;
+}
+
+.darcula .bg-gray-200 {
+  background-color: #4E5254 !important;
+}
+
+.darcula .bg-gray-800 {
+  background-color: #3C3F41 !important;
+}
+
+.darcula .bg-gray-900 {
+  background-color: #2B2B2B !important;
+}
+
+.darcula .text-gray-900 {
+  color: #A9B7C6 !important;
+}
+
+.darcula .text-gray-700 {
+  color: #A9B7C6 !important;
+}
+
+.darcula .text-gray-600 {
+  color: #808080 !important;
+}
+
+.darcula .text-gray-500 {
+  color: #808080 !important;
+}
+
+.darcula .text-gray-400 {
+  color: #808080 !important;
+}
+
+.darcula .text-white {
+  color: #A9B7C6 !important;
+}
+
+.darcula .border-gray-200 {
+  border-color: #3C3F41 !important;
+}
+
+.darcula .border-gray-700 {
+  border-color: #4E5254 !important;
+}
+
+.darcula .hover\:bg-gray-100:hover {
+  background-color: #4E5254 !important;
+}
+
+.darcula .hover\:bg-gray-800:hover {
+  background-color: #4E5254 !important;
+}
+
+.darcula ::-webkit-scrollbar-track {
+  background-color: #3C3F41 !important;
+}
+
+.darcula ::-webkit-scrollbar-thumb {
+  background-color: #4E5254 !important;
+}
+
+.darcula ::-webkit-scrollbar-thumb:hover {
+  background-color: #5A5D5F !important;
+}
+
+/* Darcula button text fixes */
+.darcula button.text-white,
+.darcula .text-white button,
+.darcula button[class*="text-white"] {
+  color: #A9B7C6 !important;
+}
+
+/* Buttons with blue backgrounds should have bright text */
+.darcula button.bg-blue-500,
+.darcula button.bg-blue-600,
+.darcula button[class*="bg-blue-500"],
+.darcula button[class*="bg-blue-600"],
+.darcula .bg-blue-500,
+.darcula .bg-blue-600 {
+  color: #FFFFFF !important;
+}
+
+.darcula button.bg-blue-500 *,
+.darcula button.bg-blue-600 *,
+.darcula button[class*="bg-blue-500"] *,
+.darcula button[class*="bg-blue-600"] * {
+  color: #FFFFFF !important;
+}
+
+.darcula button.text-gray-700,
+.darcula button.text-gray-900,
+.darcula .text-gray-700 button,
+.darcula .text-gray-900 button {
+  color: #A9B7C6 !important;
+}
+
+.darcula button.text-gray-500,
+.darcula button.text-gray-400,
+.darcula .text-gray-500 button,
+.darcula .text-gray-400 button {
+  color: #A9B7C6 !important;
+}
+
+/* Ensure buttons with colored backgrounds have visible text */
+.darcula button[class*="bg-"]:not([class*="bg-gray"]):not([class*="bg-blue"]) {
+  color: #A9B7C6 !important;
+}
+
+/* Monokai Theme Styles */
+.monokai {
+  color-scheme: dark;
+}
+
+.monokai body {
+  background-color: #272822;
+  color: #F8F8F2;
+}
+
+.monokai .bg-white {
+  background-color: #3E3D32 !important;
+}
+
+.monokai .bg-gray-50 {
+  background-color: #272822 !important;
+}
+
+.monokai .bg-gray-100 {
+  background-color: #3E3D32 !important;
+}
+
+.monokai .bg-gray-200 {
+  background-color: #49483E !important;
+}
+
+.monokai .bg-gray-800 {
+  background-color: #3E3D32 !important;
+}
+
+.monokai .bg-gray-900 {
+  background-color: #272822 !important;
+}
+
+.monokai .text-gray-900 {
+  color: #F8F8F2 !important;
+}
+
+.monokai .text-gray-700 {
+  color: #F8F8F2 !important;
+}
+
+.monokai .text-gray-600 {
+  color: #75715E !important;
+}
+
+.monokai .text-gray-500 {
+  color: #75715E !important;
+}
+
+.monokai .text-gray-400 {
+  color: #75715E !important;
+}
+
+.monokai .text-white {
+  color: #F8F8F2 !important;
+}
+
+.monokai .border-gray-200 {
+  border-color: #3E3D32 !important;
+}
+
+.monokai .border-gray-700 {
+  border-color: #49483E !important;
+}
+
+.monokai .hover\:bg-gray-100:hover {
+  background-color: #49483E !important;
+}
+
+.monokai .hover\:bg-gray-800:hover {
+  background-color: #49483E !important;
+}
+
+.monokai ::-webkit-scrollbar-track {
+  background-color: #3E3D32 !important;
+}
+
+.monokai ::-webkit-scrollbar-thumb {
+  background-color: #49483E !important;
+}
+
+.monokai ::-webkit-scrollbar-thumb:hover {
+  background-color: #575651 !important;
 }

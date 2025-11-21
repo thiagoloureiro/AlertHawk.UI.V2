@@ -81,13 +81,13 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
 
   return (
     <div 
-      className={`bg-gray-900 text-white transition-all duration-300 ease-in-out flex flex-col
+      className={`bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out flex flex-col
         ${isCollapsed ? 'w-[60px]' : 'w-[250px]'}`}
     >
       <div className="flex-none p-4">
         <button
           onClick={toggleSidebar}
-          className="w-full flex items-center justify-center p-2 hover:bg-gray-800 rounded-lg transition-colors"
+          className="w-full flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-700 dark:text-white"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -106,8 +106,10 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
               key={item.id}
               to={item.path}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 mx-3 px-3 py-3 rounded-lg transition-colors",
-                isActive ? "bg-gray-800" : "hover:bg-gray-800"
+                "flex items-center gap-3 mx-3 px-3 py-3 rounded-lg transition-colors text-gray-700 dark:text-white",
+                isActive 
+                  ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white" 
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
               )}
             >
               <Icon className="w-5 h-5 flex-none" />

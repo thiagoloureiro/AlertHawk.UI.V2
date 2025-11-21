@@ -53,7 +53,7 @@ export function GroupFilterModal({ groups, selectedGroups, onClose, onApply }: G
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md shadow-xl">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg w-full max-w-md shadow-xl">
         {/* Header */}
         <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
           <div className="flex items-center justify-between">
@@ -136,7 +136,7 @@ export function GroupFilterModal({ groups, selectedGroups, onClose, onApply }: G
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t dark:border-gray-700 border-gray-200 bg-gray-50 dark:bg-gray-800/50">
+        <div className="px-6 py-4 border-t dark:border-gray-700 border-gray-200 bg-gray-50 dark:bg-gray-900/50">
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
