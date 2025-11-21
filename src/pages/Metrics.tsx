@@ -430,6 +430,7 @@ export function Metrics() {
                 <YAxis 
                   stroke="#6B7280"
                   fontSize={12}
+                  domain={[0, 100]}
                   label={{ value: 'CPU %', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
@@ -502,6 +503,7 @@ export function Metrics() {
                 <YAxis 
                   stroke="#6B7280"
                   fontSize={12}
+                  domain={[0, 100]}
                   label={{ value: 'Memory %', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
@@ -700,6 +702,7 @@ export function Metrics() {
                   <YAxis 
                     stroke="#6B7280"
                     fontSize={12}
+                    domain={[0, 100]}
                     label={{ 
                       value: expandedChart === 'cpu' ? 'CPU %' : 'Memory %', 
                       angle: -90, 
