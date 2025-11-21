@@ -157,6 +157,49 @@
   background-color: #5A5D5F !important;
 }
 
+/* Darcula button text fixes */
+.darcula button.text-white,
+.darcula .text-white button,
+.darcula button[class*="text-white"] {
+  color: #A9B7C6 !important;
+}
+
+/* Buttons with blue backgrounds should have bright text */
+.darcula button.bg-blue-500,
+.darcula button.bg-blue-600,
+.darcula button[class*="bg-blue-500"],
+.darcula button[class*="bg-blue-600"],
+.darcula .bg-blue-500,
+.darcula .bg-blue-600 {
+  color: #FFFFFF !important;
+}
+
+.darcula button.bg-blue-500 *,
+.darcula button.bg-blue-600 *,
+.darcula button[class*="bg-blue-500"] *,
+.darcula button[class*="bg-blue-600"] * {
+  color: #FFFFFF !important;
+}
+
+.darcula button.text-gray-700,
+.darcula button.text-gray-900,
+.darcula .text-gray-700 button,
+.darcula .text-gray-900 button {
+  color: #A9B7C6 !important;
+}
+
+.darcula button.text-gray-500,
+.darcula button.text-gray-400,
+.darcula .text-gray-500 button,
+.darcula .text-gray-400 button {
+  color: #A9B7C6 !important;
+}
+
+/* Ensure buttons with colored backgrounds have visible text */
+.darcula button[class*="bg-"]:not([class*="bg-gray"]):not([class*="bg-blue"]) {
+  color: #A9B7C6 !important;
+}
+
 /* Monokai Theme Styles */
 .monokai {
   color-scheme: dark;

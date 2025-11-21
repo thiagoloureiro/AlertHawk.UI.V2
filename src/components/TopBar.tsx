@@ -265,7 +265,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
             {getThemeIcon()}
           </button>
           {showThemeMenu && (
-            <div className="absolute top-full right-0 mt-1 w-40 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200 z-50">
+            <div className="absolute top-full right-0 mt-1 w-40 py-1 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200 z-50">
               {themes.map((t) => (
                 <button
                   key={t.value}
@@ -318,7 +318,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-1 w-48 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200">
+            <div className="absolute top-full right-0 mt-1 w-48 py-1 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200">
               {userInfo?.isAdmin && (
                 <div className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
                   Administrator

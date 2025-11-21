@@ -289,7 +289,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-2xl max-h-[90vh] dark:bg-gray-800 bg-white rounded-lg shadow-lg flex flex-col">
+      <div className="w-full max-w-2xl max-h-[90vh] dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg flex flex-col">
         <div className="flex-none flex items-center justify-between p-4 border-b dark:border-gray-700">
           <h2 className="text-lg font-medium dark:text-white">
             {isEditing ? 'Edit Monitor' : 'Add New Monitor'}

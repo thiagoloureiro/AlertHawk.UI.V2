@@ -551,7 +551,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-[70%] dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative">
+      <div className="w-full max-w-[70%] dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
@@ -699,7 +699,7 @@ interface DeleteConfirmationProps {
 function DeleteConfirmation({ notification, onConfirm, onCancel, isDeleting }: DeleteConfirmationProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative">
+      <div className="w-full max-w-md dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700

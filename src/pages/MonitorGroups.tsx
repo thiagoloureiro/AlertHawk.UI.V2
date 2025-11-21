@@ -18,7 +18,7 @@ interface DeleteConfirmationProps {
 function DeleteConfirmation({ group, onConfirm, onCancel, isDeleting }: DeleteConfirmationProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+      <div className="w-full max-w-md dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6">
         <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
           Delete Monitor Group
         </h3>
@@ -408,7 +408,7 @@ export function MonitorGroups() {
       {/* Group Form Dialog */}
       {showGroupForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+          <div className="w-full max-w-md dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6">
             <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
               {formMode === 'edit' ? 'Edit Group' : 'Create New Group'}
             </h3>
