@@ -166,16 +166,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
   }, []);
 
   const getThemeIcon = () => {
-    switch (theme) {
-      case 'light':
-        return <Sun className="w-5 h-5 text-gray-500" />;
-      case 'dark':
-        return <Moon className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
-      case 'darcula':
-        return <Palette className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
-      case 'monokai':
-        return <Palette className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
-    }
+    return <Palette className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
   };
 
   const themes = [
