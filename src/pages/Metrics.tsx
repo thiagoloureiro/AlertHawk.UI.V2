@@ -338,20 +338,23 @@ export function Metrics() {
           </div>
           <div className="flex items-center gap-4">
             {/* Cluster Selector */}
-            <select
-              value={selectedCluster || ''}
-              onChange={(e) => {
-                setSelectedCluster(e.target.value);
-                setSelectedNode(null); // Clear node selection when cluster changes
-              }}
-              className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                       focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
-            >
-              {uniqueClusters.map(cluster => (
-                <option key={cluster} value={cluster}>{cluster}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Cluster:</span>
+              <select
+                value={selectedCluster || ''}
+                onChange={(e) => {
+                  setSelectedCluster(e.target.value);
+                  setSelectedNode(null); // Clear node selection when cluster changes
+                }}
+                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
+                         dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                         focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
+              >
+                {uniqueClusters.map(cluster => (
+                  <option key={cluster} value={cluster}>{cluster}</option>
+                ))}
+              </select>
+            </div>
             {/* Time Range Selector */}
             <select
               value={hours}

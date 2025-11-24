@@ -471,22 +471,25 @@ export function ApplicationMetrics() {
           </div>
           <div className="flex items-center gap-4">
             {/* Cluster Selector */}
-            <select
-              value={selectedCluster || ''}
-              onChange={(e) => {
-                setSelectedCluster(e.target.value);
-                setSelectedNamespace(null); // Clear namespace selection when cluster changes
-                setSelectedPods([]); // Clear pod selection when cluster changes
-                setIsPodDropdownOpen(false);
-              }}
-              className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                       focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
-            >
-              {uniqueClusters.map(cluster => (
-                <option key={cluster} value={cluster}>{cluster}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Cluster:</span>
+              <select
+                value={selectedCluster || ''}
+                onChange={(e) => {
+                  setSelectedCluster(e.target.value);
+                  setSelectedNamespace(null); // Clear namespace selection when cluster changes
+                  setSelectedPods([]); // Clear pod selection when cluster changes
+                  setIsPodDropdownOpen(false);
+                }}
+                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
+                         dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                         focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
+              >
+                {uniqueClusters.map(cluster => (
+                  <option key={cluster} value={cluster}>{cluster}</option>
+                ))}
+              </select>
+            </div>
             {/* Time Range Selector */}
             <select
               value={hours}
@@ -566,23 +569,22 @@ export function ApplicationMetrics() {
             {selectedCluster && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Namespace:</span>
-                {uniqueNamespaces.map(ns => (
-                  <button
-                    key={ns}
-                    onClick={() => {
-                      setSelectedNamespace(ns);
-                      setSelectedPods([]);
-                      setIsPodDropdownOpen(false);
-                    }}
-                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                      selectedNamespace === ns
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {ns}
-                  </button>
-                ))}
+                <select
+                  value={selectedNamespace || ''}
+                  onChange={(e) => {
+                    setSelectedNamespace(e.target.value || null);
+                    setSelectedPods([]);
+                    setIsPodDropdownOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
+                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                           focus:ring-2 focus:ring-blue-500 flex items-center gap-2 min-w-[200px]"
+                >
+                  <option value="">Select Namespace</option>
+                  {uniqueNamespaces.map(ns => (
+                    <option key={ns} value={ns}>{ns}</option>
+                  ))}
+                </select>
               </div>
             )}
 
