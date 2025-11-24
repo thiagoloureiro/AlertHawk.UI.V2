@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, AlertCircle, Check, Loader2, Edit, Trash2, X, Users } from 'lucide-react';
+import { Search, AlertCircle, Check, Loader2, Edit, Trash2, X, Users, Server } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
-import userService, { UserListItem, UserGroup } from '../services/userService';
+import userService, { UserListItem, UserGroup, UserCluster } from '../services/userService';
 import monitorService, { MonitorGroup } from '../services/monitorService';
+import metricsService from '../services/metricsService';
 import { toast } from 'react-hot-toast';
 import { Switch } from '../components/ui/switch';
 
@@ -26,6 +27,14 @@ export function UserManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showClusterModal, setShowClusterModal] = useState(false);
+  const [selectedUserForClusters, setSelectedUserForClusters] = useState<UserListItem | null>(null);
+  const [allClusters, setAllClusters] = useState<string[]>([]);
+  const [userClusters, setUserClusters] = useState<UserCluster[]>([]);
+  const [selectedClusters, setSelectedClusters] = useState<Set<string>>(new Set());
+  const [isLoadingClusters, setIsLoadingClusters] = useState(false);
+  const [isSavingClusters, setIsSavingClusters] = useState(false);
+  const [clusterValidationError, setClusterValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -100,6 +109,28 @@ export function UserManagement() {
     }
   };
 
+  const handleEditClusters = async (user: UserListItem) => {
+    setSelectedUserForClusters(user);
+    setShowClusterModal(true);
+    setIsLoadingClusters(true);
+    
+    try {
+      const [userClustersData, allClustersData] = await Promise.all([
+        userService.getUserClusters(user.id),
+        metricsService.getClusters()
+      ]);
+      
+      setSelectedClusters(new Set(userClustersData.map(uc => uc.clusterName)));
+      setUserClusters(userClustersData);
+      setAllClusters(allClustersData);
+    } catch (err: any) {
+      console.error('Failed to load user clusters:', err);
+      toast.error('Failed to load user clusters', { position: 'bottom-right' });
+    } finally {
+      setIsLoadingClusters(false);
+    }
+  };
+
   const handleDelete = (user: UserListItem) => {
     setUserToDelete(user);
     setShowDeleteConfirmation(true);
@@ -112,6 +143,14 @@ export function UserManagement() {
 
   const handleRemoveAll = () => {
     setSelectedGroups(new Set());
+  };
+
+  const handleSelectAllClusters = () => {
+    setSelectedClusters(new Set(allClusters));
+  };
+
+  const handleRemoveAllClusters = () => {
+    setSelectedClusters(new Set());
   };
 
   const sortedGroups = useMemo(() => {
@@ -241,6 +280,14 @@ export function UserManagement() {
                           title="Edit User Groups"
                         >
                           <Users className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEditClusters(user)}
+                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                   transition-colors duration-200 text-purple-500 dark:text-purple-400"
+                          title="Edit User Clusters"
+                        >
+                          <Server className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
@@ -516,6 +563,170 @@ export function UserManagement() {
                                disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isSaving ? (
+                        <>
+                          <LoadingSpinner size="sm" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Cluster Management Modal */}
+      {showClusterModal && selectedUserForClusters && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-2xl dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative max-h-[80vh] flex flex-col">
+            <button
+              onClick={() => {
+                setShowClusterModal(false);
+                setSelectedUserForClusters(null);
+                setClusterValidationError(null);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                       transition-colors duration-200 text-gray-500 dark:text-gray-400"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Edit User Clusters - {selectedUserForClusters.username}
+            </h3>
+
+            {isLoadingClusters ? (
+              <div className="flex items-center justify-center py-8">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto pr-2">
+                  <div className="flex justify-end gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllClusters}
+                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveAllClusters}
+                      className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      Remove All
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {allClusters.map(cluster => {
+                      const isChecked = selectedClusters.has(cluster);
+                      const toggleCluster = () => {
+                        setSelectedClusters(prev => {
+                          const newSet = new Set(prev);
+                          if (isChecked) {
+                            newSet.delete(cluster);
+                          } else {
+                            newSet.add(cluster);
+                          }
+                          return newSet;
+                        });
+                      };
+
+                      return (
+                        <div
+                          key={cluster}
+                          onClick={toggleCluster}
+                          className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 
+                                   bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
+                                   transition-colors duration-200"
+                        >
+                          <div>
+                            <h4 className="font-medium dark:text-white text-gray-900">{cluster}</h4>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={toggleCluster}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCluster();
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500
+                                       cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                  {/* Show validation error if present */}
+                  {clusterValidationError && (
+                    <div className="text-sm text-red-500 dark:text-red-400 mb-2">
+                      {clusterValidationError}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setShowClusterModal(false);
+                        setSelectedUserForClusters(null);
+                        setClusterValidationError(null);
+                      }}
+                      className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                               dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!selectedUserForClusters) return;
+                        
+                        // Clear any previous validation error
+                        setClusterValidationError(null);
+                        
+                        setIsSavingClusters(true);
+                        try {
+                          const success = await userService.updateUserClusters(
+                            selectedUserForClusters.id, 
+                            Array.from(selectedClusters)
+                          );
+                          
+                          if (success) {
+                            toast.success('User clusters updated successfully', { position: 'bottom-right' });
+                            setShowClusterModal(false);
+                            setSelectedUserForClusters(null);
+                            setClusterValidationError(null);
+                          } else {
+                            toast.error('Failed to update user clusters', { position: 'bottom-right' });
+                          }
+                        } catch (error) {
+                          toast.error('Failed to update user clusters', { position: 'bottom-right' });
+                        } finally {
+                          setIsSavingClusters(false);
+                        }
+                      }}
+                      disabled={isSavingClusters}
+                      className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isSavingClusters ? (
                         <>
                           <LoadingSpinner size="sm" />
                           Saving...

@@ -13,6 +13,11 @@ export interface UserGroup {
   groupMonitorId: number;
 }
 
+export interface UserCluster {
+  userId: string;
+  clusterName: string;
+}
+
 export class UserService {
   private static instance: UserService;
   private baseUrl: string;
@@ -74,6 +79,29 @@ export class UserService {
       return true;
     } catch (error) {
       console.error('Failed to update user:', error);
+      return false;
+    }
+  }
+
+  async getUserClusters(userId: string): Promise<UserCluster[]> {
+    try {
+      const response = await authHttp.get<UserCluster[]>(`/api/UserClusters/GetAllByUserId/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user clusters:', error);
+      return [];
+    }
+  }
+
+  async updateUserClusters(userId: string, clusters: string[]): Promise<boolean> {
+    try {
+      await authHttp.post('/api/UserClusters/CreateOrUpdate', {
+        userId,
+        clusters
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to update user clusters:', error);
       return false;
     }
   }

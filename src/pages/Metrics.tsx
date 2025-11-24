@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { NodeMetric } from '../types';
 import metricsService from '../services/metricsService';
+import userService from '../services/userService';
 import { LoadingSpinner } from '../components/ui';
 import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
@@ -24,6 +25,8 @@ export function Metrics() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | null>(null);
   const [clusters, setClusters] = useState<string[]>([]);
+  const [userClusters, setUserClusters] = useState<string[]>([]);
+  const [clustersLoaded, setClustersLoaded] = useState(false);
 
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -65,6 +68,12 @@ export function Metrics() {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [expandedChart]);
 
+  // Get current user info
+  const getCurrentUser = () => {
+    const stored = localStorage.getItem('userInfo');
+    return stored ? JSON.parse(stored) : null;
+  };
+
   // Fetch clusters
   const fetchClusters = async () => {
     try {
@@ -76,20 +85,60 @@ export function Metrics() {
     }
   };
 
-  // Get unique clusters (from fetched clusters list)
-  const uniqueClusters = useMemo(() => {
-    return [...clusters].sort();
-  }, [clusters]);
+  // Fetch user clusters
+  const fetchUserClusters = async () => {
+    const user = getCurrentUser();
+    if (!user?.id) {
+      return;
+    }
+    
+    try {
+      const userClustersData = await userService.getUserClusters(user.id);
+      setUserClusters(userClustersData.map(uc => uc.clusterName));
+    } catch (err) {
+      console.error('Failed to fetch user clusters:', err);
+      // Don't show error toast here as it's not critical - user might be admin
+    }
+  };
 
-  // Fetch clusters on mount
+  // Get unique clusters (filtered by user permissions)
+  const uniqueClusters = useMemo(() => {
+    const user = getCurrentUser();
+    
+    // If user is admin, show all clusters
+    if (user?.isAdmin) {
+      return [...clusters].sort();
+    }
+    
+    // Otherwise, filter to only show clusters user has permission to view
+    if (userClusters.length === 0) {
+      return [];
+    }
+    
+    return clusters.filter(cluster => userClusters.includes(cluster)).sort();
+  }, [clusters, userClusters]);
+
+  // Fetch clusters and user clusters on mount
   useEffect(() => {
-    fetchClusters();
+    const loadData = async () => {
+      await Promise.all([fetchClusters(), fetchUserClusters()]);
+      setClustersLoaded(true);
+    };
+    loadData();
   }, []);
 
-  // Auto-select first cluster when clusters are available
+  // Auto-select first cluster when clusters are available, or clear selection if current cluster is not permitted
   useEffect(() => {
-    if (uniqueClusters.length > 0 && !selectedCluster) {
-      setSelectedCluster(uniqueClusters[0]);
+    if (uniqueClusters.length > 0) {
+      if (!selectedCluster) {
+        setSelectedCluster(uniqueClusters[0]);
+      } else if (!uniqueClusters.includes(selectedCluster)) {
+        // Current selection is not in permitted clusters, select first available
+        setSelectedCluster(uniqueClusters[0]);
+      }
+    } else if (selectedCluster) {
+      // No permitted clusters available, clear selection
+      setSelectedCluster(null);
     }
   }, [uniqueClusters, selectedCluster]);
 
@@ -224,10 +273,37 @@ export function Metrics() {
     return 'bg-green-500';
   };
 
-  if (isLoading) {
+  // Check if user has no cluster permissions
+  const user = getCurrentUser();
+  const hasNoPermissions = clustersLoaded && uniqueClusters.length === 0 && !user?.isAdmin;
+
+  // If no permissions and clusters are loaded, stop showing loading state
+  useEffect(() => {
+    if (hasNoPermissions && isLoading) {
+      setIsLoading(false);
+    }
+  }, [hasNoPermissions, isLoading]);
+
+  if (isLoading && !hasNoPermissions) {
     return (
       <div className="h-full flex items-center justify-center">
         <LoadingSpinner text="Loading metrics..." />
+      </div>
+    );
+  }
+
+  if (hasNoPermissions) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
+            No Cluster Permissions
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You don't have permission to view any clusters. Please contact your administrator to request access to cluster metrics.
+          </p>
+        </div>
       </div>
     );
   }
