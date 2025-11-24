@@ -700,12 +700,6 @@ export function UserManagement() {
                         
                         // Clear any previous validation error
                         setClusterValidationError(null);
-
-                        // Check if at least one cluster is selected
-                        if (selectedClusters.size === 0) {
-                          setClusterValidationError('Please select at least one cluster');
-                          return;
-                        }
                         
                         setIsSavingClusters(true);
                         try {
@@ -728,7 +722,7 @@ export function UserManagement() {
                           setIsSavingClusters(false);
                         }
                       }}
-                      disabled={isSavingClusters || selectedClusters.size === 0}
+                      disabled={isSavingClusters}
                       className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
                                disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
