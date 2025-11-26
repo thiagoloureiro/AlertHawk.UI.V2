@@ -26,6 +26,31 @@
   body {
     @apply antialiased;
   }
+  
+  /* Tooltip colors for charts - theme aware */
+  :root {
+    --tooltip-bg: #1F2937;
+    --tooltip-border: #374151;
+    --tooltip-text: #F9FAFB;
+  }
+  
+  .dark {
+    --tooltip-bg: #1F2937;
+    --tooltip-border: #374151;
+    --tooltip-text: #F9FAFB;
+  }
+  
+  .darcula {
+    --tooltip-bg: #3C3F41;
+    --tooltip-border: #5A5D5F;
+    --tooltip-text: #A9B7C6;
+  }
+  
+  .monokai {
+    --tooltip-bg: #3E3D32;
+    --tooltip-border: #575651;
+    --tooltip-text: #F8F8F2;
+  }
 }
 
 /* Smooth theme transitions */

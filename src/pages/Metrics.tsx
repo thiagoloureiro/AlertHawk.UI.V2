@@ -23,7 +23,7 @@ export function Metrics() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | null>(null);
+  const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | 'cpu-pie' | 'memory-pie' | null>(null);
   const [clusters, setClusters] = useState<string[]>([]);
   const [userClusters, setUserClusters] = useState<string[]>([]);
   const [clustersLoaded, setClustersLoaded] = useState(false);
@@ -786,27 +786,60 @@ export function Metrics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* CPU Distribution Pie Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Cpu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold dark:text-white text-gray-900">
-                  CPU Distribution by Namespace
-                </h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <h3 className="text-lg font-semibold dark:text-white text-gray-900">
+                    CPU Distribution by Namespace
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setExpandedChart('cpu-pie')}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Expand chart"
+                >
+                  <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
               </div>
               {cpuPieData.length > 0 ? (
                 <div className="flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={500}>
                     <PieChart>
                       <Pie
                         data={cpuPieData}
                         cx="50%"
-                        cy="50%"
+                        cy="45%"
                         labelLine={false}
                         label={(entry: any) => {
                           const total = cpuPieData.reduce((sum, d) => sum + d.value, 0);
                           const percentage = total > 0 ? (entry.value / total) * 100 : 0;
-                          return percentage > 5 ? `${entry.name}: ${percentage.toFixed(1)}%` : '';
+                          if (percentage <= 3) return '';
+                          
+                          // Calculate position outside the pie segment
+                          const RADIAN = Math.PI / 180;
+                          const radius = entry.outerRadius + 10; // Position outside the pie
+                          const x = entry.cx + radius * Math.cos(-entry.midAngle * RADIAN);
+                          const y = entry.cy + radius * Math.sin(-entry.midAngle * RADIAN);
+                          
+                          // Get color from the data entry
+                          const colorIndex = cpuPieData.findIndex(d => d.name === entry.name);
+                          const fillColor = colorIndex >= 0 ? COLORS[colorIndex % COLORS.length] : '#8884d8';
+                          
+                          return (
+                            <text 
+                              x={x} 
+                              y={y} 
+                              fill={fillColor}
+                              textAnchor={entry.midAngle < 90 || entry.midAngle > 270 ? 'start' : 'end'}
+                              dominantBaseline="central"
+                              style={{ fontSize: '11px', fontWeight: '500' }}
+                            >
+                              {`${entry.name}: ${percentage.toFixed(1)}%`}
+                            </text>
+                          );
                         }}
-                        outerRadius={100}
+                        outerRadius={140}
+                        innerRadius={30}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -816,12 +849,18 @@ export function Metrics() {
                       </Pie>
                       <Tooltip 
                         contentStyle={{
-                          backgroundColor: '#1F2937',
-                          border: '1px solid #374151',
+                          backgroundColor: 'var(--tooltip-bg, #1F2937)',
+                          border: '1px solid var(--tooltip-border, #374151)',
                           borderRadius: '8px',
-                          color: '#F9FAFB',
+                          color: 'var(--tooltip-text, #F9FAFB)',
                           fontSize: '11px',
                           padding: '8px'
+                        }}
+                        itemStyle={{
+                          color: 'var(--tooltip-text, #F9FAFB)'
+                        }}
+                        labelStyle={{
+                          color: 'var(--tooltip-text, #F9FAFB)'
                         }}
                         formatter={(value: number) => {
                           const total = cpuPieData.reduce((sum, d) => sum + d.value, 0);
@@ -830,17 +869,56 @@ export function Metrics() {
                         }}
                       />
                       <Legend 
-                        wrapperStyle={{ fontSize: '11px' }}
-                        formatter={(value) => {
-                          const data = cpuPieData.find(d => d.name === value);
-                          return data ? `${value} (${data.percentage.toFixed(1)}%)` : value;
+                        content={(props) => {
+                          const { payload } = props;
+                          if (!payload) return null;
+                          const midPoint = Math.ceil(payload.length / 2);
+                          const leftColumn = payload.slice(0, midPoint);
+                          const rightColumn = payload.slice(midPoint);
+                          
+                          return (
+                            <div className="flex justify-center gap-8 pt-4">
+                              <div className="flex flex-col gap-1">
+                                {leftColumn.map((entry: any, index: number) => {
+                                  const data = cpuPieData.find(d => d.name === entry.value);
+                                  return (
+                                    <div key={`legend-${index}`} className="flex items-center gap-2 text-xs">
+                                      <div 
+                                        className="w-3 h-3 rounded-sm" 
+                                        style={{ backgroundColor: entry.color }}
+                                      />
+                                      <span className="dark:text-gray-300 text-gray-700">
+                                        {entry.value} ({data ? data.percentage.toFixed(1) : '0'}%)
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                {rightColumn.map((entry: any, index: number) => {
+                                  const data = cpuPieData.find(d => d.name === entry.value);
+                                  return (
+                                    <div key={`legend-${midPoint + index}`} className="flex items-center gap-2 text-xs">
+                                      <div 
+                                        className="w-3 h-3 rounded-sm" 
+                                        style={{ backgroundColor: entry.color }}
+                                      />
+                                      <span className="dark:text-gray-300 text-gray-700">
+                                        {entry.value} ({data ? data.percentage.toFixed(1) : '0'}%)
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
                         }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center h-[500px] text-gray-500 dark:text-gray-400">
                   No CPU usage data available
                 </div>
               )}
@@ -848,27 +926,60 @@ export function Metrics() {
 
             {/* Memory Distribution Pie Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <HardDrive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold dark:text-white text-gray-900">
-                  Memory Distribution by Namespace
-                </h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <HardDrive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <h3 className="text-lg font-semibold dark:text-white text-gray-900">
+                    Memory Distribution by Namespace
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setExpandedChart('memory-pie')}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Expand chart"
+                >
+                  <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
               </div>
               {memoryPieData.length > 0 ? (
                 <div className="flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={500}>
                     <PieChart>
                       <Pie
                         data={memoryPieData}
                         cx="50%"
-                        cy="50%"
+                        cy="45%"
                         labelLine={false}
                         label={(entry: any) => {
                           const total = memoryPieData.reduce((sum, d) => sum + d.value, 0);
                           const percentage = total > 0 ? (entry.value / total) * 100 : 0;
-                          return percentage > 5 ? `${entry.name}: ${percentage.toFixed(1)}%` : '';
+                          if (percentage <= 3) return '';
+                          
+                          // Calculate position outside the pie segment
+                          const RADIAN = Math.PI / 180;
+                          const radius = entry.outerRadius + 10; // Position outside the pie
+                          const x = entry.cx + radius * Math.cos(-entry.midAngle * RADIAN);
+                          const y = entry.cy + radius * Math.sin(-entry.midAngle * RADIAN);
+                          
+                          // Get color from the data entry
+                          const colorIndex = memoryPieData.findIndex(d => d.name === entry.name);
+                          const fillColor = colorIndex >= 0 ? COLORS[colorIndex % COLORS.length] : '#8884d8';
+                          
+                          return (
+                            <text 
+                              x={x} 
+                              y={y} 
+                              fill={fillColor}
+                              textAnchor={entry.midAngle < 90 || entry.midAngle > 270 ? 'start' : 'end'}
+                              dominantBaseline="central"
+                              style={{ fontSize: '11px', fontWeight: '500' }}
+                            >
+                              {`${entry.name}: ${percentage.toFixed(1)}%`}
+                            </text>
+                          );
                         }}
-                        outerRadius={100}
+                        outerRadius={140}
+                        innerRadius={30}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -878,12 +989,18 @@ export function Metrics() {
                       </Pie>
                       <Tooltip 
                         contentStyle={{
-                          backgroundColor: '#1F2937',
-                          border: '1px solid #374151',
+                          backgroundColor: 'var(--tooltip-bg, #1F2937)',
+                          border: '1px solid var(--tooltip-border, #374151)',
                           borderRadius: '8px',
-                          color: '#F9FAFB',
+                          color: 'var(--tooltip-text, #F9FAFB)',
                           fontSize: '11px',
                           padding: '8px'
+                        }}
+                        itemStyle={{
+                          color: 'var(--tooltip-text, #F9FAFB)'
+                        }}
+                        labelStyle={{
+                          color: 'var(--tooltip-text, #F9FAFB)'
                         }}
                         formatter={(value: number) => {
                           const total = memoryPieData.reduce((sum, d) => sum + d.value, 0);
@@ -892,17 +1009,56 @@ export function Metrics() {
                         }}
                       />
                       <Legend 
-                        wrapperStyle={{ fontSize: '11px' }}
-                        formatter={(value) => {
-                          const data = memoryPieData.find(d => d.name === value);
-                          return data ? `${value} (${data.percentage.toFixed(1)}%)` : value;
+                        content={(props) => {
+                          const { payload } = props;
+                          if (!payload) return null;
+                          const midPoint = Math.ceil(payload.length / 2);
+                          const leftColumn = payload.slice(0, midPoint);
+                          const rightColumn = payload.slice(midPoint);
+                          
+                          return (
+                            <div className="flex justify-center gap-8 pt-4">
+                              <div className="flex flex-col gap-1">
+                                {leftColumn.map((entry: any, index: number) => {
+                                  const data = memoryPieData.find(d => d.name === entry.value);
+                                  return (
+                                    <div key={`legend-${index}`} className="flex items-center gap-2 text-xs">
+                                      <div 
+                                        className="w-3 h-3 rounded-sm" 
+                                        style={{ backgroundColor: entry.color }}
+                                      />
+                                      <span className="dark:text-gray-300 text-gray-700">
+                                        {entry.value} ({data ? data.percentage.toFixed(1) : '0'}%)
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                {rightColumn.map((entry: any, index: number) => {
+                                  const data = memoryPieData.find(d => d.name === entry.value);
+                                  return (
+                                    <div key={`legend-${midPoint + index}`} className="flex items-center gap-2 text-xs">
+                                      <div 
+                                        className="w-3 h-3 rounded-sm" 
+                                        style={{ backgroundColor: entry.color }}
+                                      />
+                                      <span className="dark:text-gray-300 text-gray-700">
+                                        {entry.value} ({data ? data.percentage.toFixed(1) : '0'}%)
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
                         }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center h-[500px] text-gray-500 dark:text-gray-400">
                   No memory usage data available
                 </div>
               )}
@@ -1228,10 +1384,20 @@ export function Metrics() {
                     <Cpu className="w-6 h-6" />
                     CPU Usage Over Time
                   </>
-                ) : (
+                ) : expandedChart === 'memory' ? (
                   <>
                     <HardDrive className="w-6 h-6" />
                     Memory Usage Over Time
+                  </>
+                ) : expandedChart === 'cpu-pie' ? (
+                  <>
+                    <Cpu className="w-6 h-6" />
+                    CPU Distribution by Namespace
+                  </>
+                ) : (
+                  <>
+                    <HardDrive className="w-6 h-6" />
+                    Memory Distribution by Namespace
                   </>
                 )}
               </h3>
@@ -1244,8 +1410,130 @@ export function Metrics() {
               </button>
             </div>
             <div className="flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+              {expandedChart === 'cpu-pie' || expandedChart === 'memory-pie' ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={expandedChart === 'cpu-pie' ? cpuPieData : memoryPieData}
+                      cx="50%"
+                      cy="45%"
+                      labelLine={false}
+                      label={(entry: any) => {
+                        const data = expandedChart === 'cpu-pie' ? cpuPieData : memoryPieData;
+                        const total = data.reduce((sum, d) => sum + d.value, 0);
+                        const percentage = total > 0 ? (entry.value / total) * 100 : 0;
+                        if (percentage <= 3) return '';
+                        
+                        // Calculate position outside the pie segment
+                        const RADIAN = Math.PI / 180;
+                        const radius = entry.outerRadius + 15; // Position outside the pie (larger for fullscreen)
+                        const x = entry.cx + radius * Math.cos(-entry.midAngle * RADIAN);
+                        const y = entry.cy + radius * Math.sin(-entry.midAngle * RADIAN);
+                        
+                        // Get color from the data entry
+                        const colorIndex = data.findIndex(d => d.name === entry.name);
+                        const fillColor = colorIndex >= 0 ? COLORS[colorIndex % COLORS.length] : '#8884d8';
+                        
+                        return (
+                          <text 
+                            x={x} 
+                            y={y} 
+                            fill={fillColor}
+                            textAnchor={entry.midAngle < 90 || entry.midAngle > 270 ? 'start' : 'end'}
+                            dominantBaseline="central"
+                            style={{ fontSize: '12px', fontWeight: '500' }}
+                          >
+                            {`${entry.name}: ${percentage.toFixed(1)}%`}
+                          </text>
+                        );
+                      }}
+                      outerRadius={180}
+                      innerRadius={50}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {(expandedChart === 'cpu-pie' ? cpuPieData : memoryPieData).map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'var(--tooltip-bg, #1F2937)',
+                        border: '1px solid var(--tooltip-border, #374151)',
+                        borderRadius: '8px',
+                        color: 'var(--tooltip-text, #F9FAFB)',
+                        fontSize: '11px',
+                        padding: '8px'
+                      }}
+                      itemStyle={{
+                        color: 'var(--tooltip-text, #F9FAFB)'
+                      }}
+                      labelStyle={{
+                        color: 'var(--tooltip-text, #F9FAFB)'
+                      }}
+                      formatter={(value: number) => {
+                        const data = expandedChart === 'cpu-pie' ? cpuPieData : memoryPieData;
+                        const total = data.reduce((sum, d) => sum + d.value, 0);
+                        const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
+                        if (expandedChart === 'cpu-pie') {
+                          return `${(value as number).toFixed(4)} cores (${percentage.toFixed(1)}%)`;
+                        } else {
+                          return `${formatBytes(value as number)} (${percentage.toFixed(1)}%)`;
+                        }
+                      }}
+                    />
+                    <Legend 
+                      content={(props) => {
+                        const { payload } = props;
+                        if (!payload) return null;
+                        const data = expandedChart === 'cpu-pie' ? cpuPieData : memoryPieData;
+                        const midPoint = Math.ceil(payload.length / 2);
+                        const leftColumn = payload.slice(0, midPoint);
+                        const rightColumn = payload.slice(midPoint);
+                        
+                        return (
+                          <div className="flex justify-center gap-8 pt-4">
+                            <div className="flex flex-col gap-1">
+                              {leftColumn.map((entry: any, index: number) => {
+                                const dataEntry = data.find(d => d.name === entry.value);
+                                return (
+                                  <div key={`legend-${index}`} className="flex items-center gap-2 text-xs">
+                                    <div 
+                                      className="w-3 h-3 rounded-sm" 
+                                      style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="dark:text-gray-300 text-gray-700">
+                                      {entry.value} ({dataEntry ? dataEntry.percentage.toFixed(1) : '0'}%)
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {rightColumn.map((entry: any, index: number) => {
+                                const dataEntry = data.find(d => d.name === entry.value);
+                                return (
+                                  <div key={`legend-${midPoint + index}`} className="flex items-center gap-2 text-xs">
+                                    <div 
+                                      className="w-3 h-3 rounded-sm" 
+                                      style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="dark:text-gray-300 text-gray-700">
+                                      {entry.value} ({dataEntry ? dataEntry.percentage.toFixed(1) : '0'}%)
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                   <XAxis 
                     dataKey="timestamp" 
@@ -1304,6 +1592,7 @@ export function Metrics() {
                   })}
                 </LineChart>
               </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
