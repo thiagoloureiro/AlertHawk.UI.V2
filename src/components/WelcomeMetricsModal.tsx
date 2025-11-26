@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, CheckCircle2, ArrowRight, LineChart, Package } from 'lucide-react';
 import { Switch } from './ui/switch';
 
@@ -10,12 +11,21 @@ const STORAGE_KEY = 'metricsWelcomeDismissed';
 
 export function WelcomeMetricsModal({ onClose }: WelcomeMetricsModalProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const navigate = useNavigate();
 
   const handleClose = () => {
     if (dontShowAgain) {
       localStorage.setItem(STORAGE_KEY, 'true');
     }
     onClose();
+  };
+
+  const handleGetStarted = () => {
+    if (dontShowAgain) {
+      localStorage.setItem(STORAGE_KEY, 'true');
+    }
+    onClose();
+    navigate('/metrics');
   };
 
   return (
@@ -197,7 +207,7 @@ export function WelcomeMetricsModal({ onClose }: WelcomeMetricsModalProps) {
             </label>
           </div>
           <button
-            onClick={handleClose}
+            onClick={handleGetStarted}
             className="w-full px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
                      transition-colors flex items-center justify-center gap-2"
           >
