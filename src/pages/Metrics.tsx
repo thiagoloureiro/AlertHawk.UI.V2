@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  CartesianGrid, Legend, BarChart, Bar 
+  CartesianGrid, Legend, PieChart, Pie, Cell
 } from 'recharts';
 import { 
-  Server, Cpu, HardDrive, RefreshCw, Clock, TrendingUp, 
-  Activity, AlertCircle, Network, Maximize2, Minimize2
+  Server, Cpu, HardDrive, RefreshCw, 
+  Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { NodeMetric } from '../types';
+import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
 import userService from '../services/userService';
 import { LoadingSpinner } from '../components/ui';
@@ -27,6 +27,8 @@ export function Metrics() {
   const [clusters, setClusters] = useState<string[]>([]);
   const [userClusters, setUserClusters] = useState<string[]>([]);
   const [clustersLoaded, setClustersLoaded] = useState(false);
+  const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -37,13 +39,17 @@ export function Metrics() {
         setIsRefreshing(true);
       }
       setError(null);
-      const metrics = await metricsService.getNodeMetrics(hours, 1000, selectedCluster || undefined);
-      setNodeMetrics(metrics);
+      const [nodeMetricsData, namespaceMetricsData] = await Promise.all([
+        metricsService.getNodeMetrics(hours, 1000, selectedCluster || undefined),
+        metricsService.getNamespaceMetrics(hours, 100, selectedCluster || undefined)
+      ]);
+      setNodeMetrics(nodeMetricsData);
+      setNamespaceMetrics(namespaceMetricsData);
       setIsInitialLoad(false);
     } catch (err) {
-      console.error('Failed to fetch node metrics:', err);
-      setError('Failed to load node metrics');
-      toast.error('Failed to load node metrics', { position: 'bottom-right' });
+      console.error('Failed to fetch metrics:', err);
+      setError('Failed to load metrics');
+      toast.error('Failed to load metrics', { position: 'bottom-right' });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -247,6 +253,154 @@ export function Metrics() {
       usedMemoryBytes
     };
   }, [latestNodeMetrics]);
+
+  // Filter namespace metrics by selected cluster
+  const filteredNamespaceMetrics = useMemo(() => {
+    if (!selectedCluster) return [];
+    return namespaceMetrics.filter(m => m.clusterName === selectedCluster);
+  }, [namespaceMetrics, selectedCluster]);
+
+  // Get latest namespace metrics (aggregated by namespace)
+  const namespaceStats = useMemo(() => {
+    if (filteredNamespaceMetrics.length === 0) return [];
+
+    // Step 1: Group by (namespace, pod, container) and get the latest metric for each
+    const containerMap = new Map<string, NamespaceMetric>();
+    filteredNamespaceMetrics.forEach(metric => {
+      const key = `${metric.namespace}|${metric.pod}|${metric.container}`;
+      const existing = containerMap.get(key);
+      if (!existing || new Date(metric.timestamp) > new Date(existing.timestamp)) {
+        containerMap.set(key, metric);
+      }
+    });
+
+    // Step 2: Aggregate by namespace - sum all containers across all pods
+    const namespaceMap = new Map<string, {
+      namespace: string;
+      cpuUsageCores: number;
+      memoryUsageBytes: number;
+      podCount: number;
+    }>();
+
+    const uniquePods = new Set<string>();
+
+    containerMap.forEach(metric => {
+      const podKey = `${metric.namespace}|${metric.pod}`;
+      uniquePods.add(podKey);
+
+      const existing = namespaceMap.get(metric.namespace);
+      if (existing) {
+        existing.cpuUsageCores += metric.cpuUsageCores;
+        existing.memoryUsageBytes += metric.memoryUsageBytes;
+      } else {
+        namespaceMap.set(metric.namespace, {
+          namespace: metric.namespace,
+          cpuUsageCores: metric.cpuUsageCores,
+          memoryUsageBytes: metric.memoryUsageBytes,
+          podCount: 0
+        });
+      }
+    });
+
+    // Count unique pods per namespace
+    uniquePods.forEach(podKey => {
+      const [namespace] = podKey.split('|');
+      const ns = namespaceMap.get(namespace);
+      if (ns) {
+        ns.podCount += 1;
+      }
+    });
+
+    return Array.from(namespaceMap.values()).sort((a, b) => 
+      b.cpuUsageCores - a.cpuUsageCores
+    );
+  }, [filteredNamespaceMetrics]);
+
+  // Prepare pie chart data for CPU distribution
+  const cpuPieData = useMemo(() => {
+    if (namespaceStats.length === 0) return [];
+    const totalCpu = namespaceStats.reduce((sum, ns) => sum + ns.cpuUsageCores, 0);
+    if (totalCpu === 0) return [];
+    
+    return namespaceStats.map(ns => ({
+      name: ns.namespace,
+      value: ns.cpuUsageCores,
+      percentage: (ns.cpuUsageCores / totalCpu) * 100
+    })).sort((a, b) => b.value - a.value);
+  }, [namespaceStats]);
+
+  // Prepare pie chart data for Memory distribution
+  const memoryPieData = useMemo(() => {
+    if (namespaceStats.length === 0) return [];
+    const totalMemory = namespaceStats.reduce((sum, ns) => sum + ns.memoryUsageBytes, 0);
+    if (totalMemory === 0) return [];
+    
+    return namespaceStats.map(ns => ({
+      name: ns.namespace,
+      value: ns.memoryUsageBytes,
+      percentage: (ns.memoryUsageBytes / totalMemory) * 100
+    })).sort((a, b) => b.value - a.value);
+  }, [namespaceStats]);
+
+  // Colors for pie charts
+  const COLORS = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#F87171', '#FB7185', '#A78BFA', '#C084FC'];
+
+  // Get namespace metrics for a specific node
+  const getNamespaceMetricsForNode = (nodeName: string) => {
+    const nodeNamespaceMetrics = filteredNamespaceMetrics.filter(m => m.nodeName === nodeName);
+    if (nodeNamespaceMetrics.length === 0) return [];
+
+    // Step 1: Group by (namespace, pod, container) and get the latest metric for each
+    const containerMap = new Map<string, NamespaceMetric>();
+    nodeNamespaceMetrics.forEach(metric => {
+      const key = `${metric.namespace}|${metric.pod}|${metric.container}`;
+      const existing = containerMap.get(key);
+      if (!existing || new Date(metric.timestamp) > new Date(existing.timestamp)) {
+        containerMap.set(key, metric);
+      }
+    });
+
+    // Step 2: Aggregate by namespace - sum all containers across all pods
+    const namespaceMap = new Map<string, {
+      namespace: string;
+      cpuUsageCores: number;
+      memoryUsageBytes: number;
+      podCount: number;
+    }>();
+
+    const uniquePods = new Set<string>();
+
+    containerMap.forEach(metric => {
+      const podKey = `${metric.namespace}|${metric.pod}`;
+      uniquePods.add(podKey);
+
+      const existing = namespaceMap.get(metric.namespace);
+      if (existing) {
+        existing.cpuUsageCores += metric.cpuUsageCores;
+        existing.memoryUsageBytes += metric.memoryUsageBytes;
+      } else {
+        namespaceMap.set(metric.namespace, {
+          namespace: metric.namespace,
+          cpuUsageCores: metric.cpuUsageCores,
+          memoryUsageBytes: metric.memoryUsageBytes,
+          podCount: 0
+        });
+      }
+    });
+
+    // Count unique pods per namespace
+    uniquePods.forEach(podKey => {
+      const [namespace] = podKey.split('|');
+      const ns = namespaceMap.get(namespace);
+      if (ns) {
+        ns.podCount += 1;
+      }
+    });
+
+    return Array.from(namespaceMap.values()).sort((a, b) => 
+      b.cpuUsageCores - a.cpuUsageCores
+    );
+  };
 
   // Format bytes to human readable
   const formatBytes = (bytes: number): string => {
@@ -627,6 +781,225 @@ export function Metrics() {
           </div>
         </div>
 
+        {/* Namespace Distribution Pie Charts */}
+        {namespaceStats.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CPU Distribution Pie Chart */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Cpu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold dark:text-white text-gray-900">
+                  CPU Distribution by Namespace
+                </h3>
+              </div>
+              {cpuPieData.length > 0 ? (
+                <div className="flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={cpuPieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry: any) => {
+                          const total = cpuPieData.reduce((sum, d) => sum + d.value, 0);
+                          const percentage = total > 0 ? (entry.value / total) * 100 : 0;
+                          return percentage > 5 ? `${entry.name}: ${percentage.toFixed(1)}%` : '';
+                        }}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {cpuPieData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: '#1F2937',
+                          border: '1px solid #374151',
+                          borderRadius: '8px',
+                          color: '#F9FAFB',
+                          fontSize: '11px',
+                          padding: '8px'
+                        }}
+                        formatter={(value: number) => {
+                          const total = cpuPieData.reduce((sum, d) => sum + d.value, 0);
+                          const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
+                          return `${(value as number).toFixed(4)} cores (${percentage.toFixed(1)}%)`;
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '11px' }}
+                        formatter={(value) => {
+                          const data = cpuPieData.find(d => d.name === value);
+                          return data ? `${value} (${data.percentage.toFixed(1)}%)` : value;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                  No CPU usage data available
+                </div>
+              )}
+            </div>
+
+            {/* Memory Distribution Pie Chart */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <HardDrive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold dark:text-white text-gray-900">
+                  Memory Distribution by Namespace
+                </h3>
+              </div>
+              {memoryPieData.length > 0 ? (
+                <div className="flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={memoryPieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry: any) => {
+                          const total = memoryPieData.reduce((sum, d) => sum + d.value, 0);
+                          const percentage = total > 0 ? (entry.value / total) * 100 : 0;
+                          return percentage > 5 ? `${entry.name}: ${percentage.toFixed(1)}%` : '';
+                        }}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {memoryPieData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: '#1F2937',
+                          border: '1px solid #374151',
+                          borderRadius: '8px',
+                          color: '#F9FAFB',
+                          fontSize: '11px',
+                          padding: '8px'
+                        }}
+                        formatter={(value: number) => {
+                          const total = memoryPieData.reduce((sum, d) => sum + d.value, 0);
+                          const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
+                          return `${formatBytes(value as number)} (${percentage.toFixed(1)}%)`;
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '11px' }}
+                        formatter={(value) => {
+                          const data = memoryPieData.find(d => d.name === value);
+                          return data ? `${value} (${data.percentage.toFixed(1)}%)` : value;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                  No memory usage data available
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Namespace Consumption Table */}
+        {namespaceStats.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold dark:text-white text-gray-900">
+                  Namespace Resource Consumption
+                </h3>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Namespace
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      CPU Usage
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Memory Usage
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Pods
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {namespaceStats.map((ns) => {
+                    const totalCpu = namespaceStats.reduce((sum, n) => sum + n.cpuUsageCores, 0);
+                    const totalMemory = namespaceStats.reduce((sum, n) => sum + n.memoryUsageBytes, 0);
+                    const cpuPercent = totalCpu > 0 ? (ns.cpuUsageCores / totalCpu) * 100 : 0;
+                    const memoryPercent = totalMemory > 0 ? (ns.memoryUsageBytes / totalMemory) * 100 : 0;
+                    
+                    return (
+                      <tr key={ns.namespace} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Layers className="w-4 h-4 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium dark:text-white text-gray-900">
+                              {ns.namespace}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium dark:text-white text-gray-900">
+                              {ns.cpuUsageCores.toFixed(4)} cores
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                              ({cpuPercent.toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className="h-1.5 rounded-full bg-blue-500"
+                              style={{ width: `${Math.min(cpuPercent, 100)}%` }}
+                            ></div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium dark:text-white text-gray-900">
+                              {formatBytes(ns.memoryUsageBytes)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                              ({memoryPercent.toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className="h-1.5 rounded-full bg-purple-500"
+                              style={{ width: `${Math.min(memoryPercent, 100)}%` }}
+                            ></div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {ns.podCount}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Node Details Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden relative">
           {isRefreshing && (
@@ -670,18 +1043,40 @@ export function Metrics() {
                   const memoryPercent = (metric.memoryUsageBytes / metric.memoryCapacityBytes) * 100;
                   const date = getLocalDateFromUTC(metric.timestamp);
                   
+                  const nodeNamespaceStats = getNamespaceMetricsForNode(metric.nodeName);
+                  const isExpanded = expandedNodes.has(metric.nodeName);
+                  
                   return (
+                    <React.Fragment key={metric.nodeName}>
                     <tr 
-                      key={metric.nodeName}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                      onClick={() => setSelectedNode(metric.nodeName)}
+                      onClick={() => {
+                        setSelectedNode(metric.nodeName);
+                        const newExpanded = new Set(expandedNodes);
+                        if (newExpanded.has(metric.nodeName)) {
+                          newExpanded.delete(metric.nodeName);
+                        } else {
+                          newExpanded.add(metric.nodeName);
+                        }
+                        setExpandedNodes(newExpanded);
+                      }}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-gray-400 mr-1" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-400 mr-1" />
+                          )}
                           <Server className="w-4 h-4 text-gray-400 mr-2" />
                           <span className="text-sm font-medium dark:text-white text-gray-900">
                             {metric.nodeName}
                           </span>
+                          {nodeNamespaceStats.length > 0 && (
+                            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                              ({nodeNamespaceStats.length} namespace{nodeNamespaceStats.length !== 1 ? 's' : ''})
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -726,6 +1121,88 @@ export function Metrics() {
                         {date ? formatCompactDate(date) : metric.timestamp}
                       </td>
                     </tr>
+                    {isExpanded && nodeNamespaceStats.length > 0 && (
+                      <tr className="bg-gray-50 dark:bg-gray-900">
+                        <td colSpan={6} className="px-6 py-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Layers className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                              <span className="text-sm font-semibold dark:text-white text-gray-900">
+                                Namespace Consumption on {metric.nodeName}
+                              </span>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b dark:border-gray-700 border-gray-200">
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Namespace</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">CPU Usage</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Memory Usage</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Pods</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                  {nodeNamespaceStats.map((ns) => {
+                                    const nodeCpuPercent = metric.cpuCapacityCores > 0 
+                                      ? (ns.cpuUsageCores / metric.cpuCapacityCores) * 100 
+                                      : 0;
+                                    const nodeMemoryPercent = metric.memoryCapacityBytes > 0 
+                                      ? (ns.memoryUsageBytes / metric.memoryCapacityBytes) * 100 
+                                      : 0;
+                                    
+                                    return (
+                                      <tr key={ns.namespace} className="hover:bg-gray-100 dark:hover:bg-gray-800">
+                                        <td className="px-4 py-2">
+                                          <div className="flex items-center">
+                                            <Layers className="w-3 h-3 text-gray-400 mr-2" />
+                                            <span className="text-xs font-medium dark:text-white text-gray-900">
+                                              {ns.namespace}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs dark:text-white text-gray-900">
+                                              {ns.cpuUsageCores.toFixed(4)} cores
+                                            </span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                              ({nodeCpuPercent.toFixed(1)}% of node)
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs dark:text-white text-gray-900">
+                                              {formatBytes(ns.memoryUsageBytes)}
+                                            </span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                              ({nodeMemoryPercent.toFixed(1)}% of node)
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                          {ns.podCount}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {isExpanded && nodeNamespaceStats.length === 0 && (
+                      <tr className="bg-gray-50 dark:bg-gray-900">
+                        <td colSpan={6} className="px-6 py-4">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                            No namespace metrics available for this node
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

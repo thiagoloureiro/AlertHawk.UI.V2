@@ -79,7 +79,7 @@ class MetricsService {
       if (namespace) {
         params.namespace = namespace;
       }
-      const response = await metricsHttp.get<NamespaceMetric[]>('/api/Metrics/namespace', {
+      const response = await metricsHttp.get<NamespaceMetric[]>('/api/metrics/namespace', {
         params
       });
       return response.data;

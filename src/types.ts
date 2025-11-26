@@ -210,4 +210,5 @@ export interface NamespaceMetric {
   cpuUsageCores: number;
   cpuLimitCores: number | null;
   memoryUsageBytes: number;
+  nodeName: string;
 }
