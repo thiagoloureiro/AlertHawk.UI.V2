@@ -130,11 +130,19 @@
 }
 
 .darcula .border-gray-200 {
-  border-color: #3C3F41 !important;
+  border-color: #5A5D5F !important;
+}
+
+.darcula .border-gray-300 {
+  border-color: #6B6E70 !important;
+}
+
+.darcula .border-gray-600 {
+  border-color: #6B6E70 !important;
 }
 
 .darcula .border-gray-700 {
-  border-color: #4E5254 !important;
+  border-color: #6B6E70 !important;
 }
 
 .darcula .hover\:bg-gray-100:hover {
@@ -259,11 +267,19 @@
 }
 
 .monokai .border-gray-200 {
-  border-color: #3E3D32 !important;
+  border-color: #575651 !important;
+}
+
+.monokai .border-gray-300 {
+  border-color: #6B6A5F !important;
+}
+
+.monokai .border-gray-600 {
+  border-color: #6B6A5F !important;
 }
 
 .monokai .border-gray-700 {
-  border-color: #49483E !important;
+  border-color: #6B6A5F !important;
 }
 
 .monokai .hover\:bg-gray-100:hover {
