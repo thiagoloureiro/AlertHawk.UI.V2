@@ -6,7 +6,7 @@ import {
 import { 
   Server, Cpu, HardDrive, RefreshCw, 
   Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight,
-  Code, Cloud
+  Code, Cloud, CheckCircle, XCircle
 } from 'lucide-react';
 import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -1210,6 +1210,9 @@ export function Metrics() {
                     Node Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     CPU Usage
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -1269,6 +1272,63 @@ export function Metrics() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        {(() => {
+                          const hasIssues = 
+                            metric.isReady === false || 
+                            metric.hasMemoryPressure === true || 
+                            metric.hasDiskPressure === true || 
+                            metric.hasPidPressure === true;
+                          
+                          if (!hasIssues && metric.isReady !== undefined) {
+                            return (
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span className="text-xs text-green-600 dark:text-green-400">Ready</span>
+                              </div>
+                            );
+                          }
+                          
+                          if (hasIssues) {
+                            const issues = [];
+                            if (metric.isReady === false) {
+                              issues.push('Not Ready');
+                            }
+                            if (metric.hasMemoryPressure === true) {
+                              issues.push('Memory Pressure');
+                            }
+                            if (metric.hasDiskPressure === true) {
+                              issues.push('Disk Pressure');
+                            }
+                            if (metric.hasPidPressure === true) {
+                              issues.push('PID Pressure');
+                            }
+                            
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                  <XCircle className="w-4 h-4 text-red-500" />
+                                  <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                    {issues.length} Issue{issues.length !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {issues.map((issue, idx) => (
+                                    <span 
+                                      key={idx}
+                                      className="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded"
+                                    >
+                                      {issue}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
+                          
+                          return <span className="text-xs text-gray-400">-</span>;
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <span className={`text-sm font-medium ${getUsageColor(cpuPercent)}`}>
                             {cpuPercent.toFixed(1)}%
@@ -1312,7 +1372,7 @@ export function Metrics() {
                     </tr>
                     {isExpanded && nodeNamespaceStats.length > 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={6} className="px-6 py-4">
+                        <td colSpan={7} className="px-6 py-4">
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-2">
                               <Layers className="w-4 h-4 text-gray-500 dark:text-gray-400" />
@@ -1384,7 +1444,7 @@ export function Metrics() {
                     )}
                     {isExpanded && nodeNamespaceStats.length === 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={6} className="px-6 py-4">
+                        <td colSpan={7} className="px-6 py-4">
                           <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
                             No namespace metrics available for this node
                           </div>

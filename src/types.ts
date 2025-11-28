@@ -201,6 +201,10 @@ export interface NodeMetric {
   memoryCapacityBytes: number;
   kubernetesVersion?: string;
   cloudProvider?: string;
+  isReady?: boolean;
+  hasMemoryPressure?: boolean;
+  hasDiskPressure?: boolean;
+  hasPidPressure?: boolean;
 }
 
 export interface NamespaceMetric {
