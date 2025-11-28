@@ -6,7 +6,7 @@ import {
 import { 
   Server, Cpu, HardDrive, RefreshCw, 
   Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight,
-  Code, Cloud, CheckCircle, XCircle
+  Code, Cloud, CheckCircle, XCircle, HelpCircle
 } from 'lucide-react';
 import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -30,6 +30,7 @@ export function Metrics() {
   const [clustersLoaded, setClustersLoaded] = useState(false);
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [showOnlyLiveClusters, setShowOnlyLiveClusters] = useState(true);
 
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -170,10 +171,21 @@ export function Metrics() {
         nodeMap.set(metric.nodeName, metric);
       }
     });
-    return Array.from(nodeMap.values()).sort((a, b) => 
+    let metrics = Array.from(nodeMap.values()).sort((a, b) => 
       a.nodeName.localeCompare(b.nodeName)
     );
-  }, [filteredMetrics]);
+    
+    // Filter to show only live clusters (updated within last 10 minutes)
+    if (showOnlyLiveClusters) {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      metrics = metrics.filter(metric => {
+        const metricDate = new Date(metric.timestamp);
+        return metricDate >= tenMinutesAgo;
+      });
+    }
+    
+    return metrics;
+  }, [filteredMetrics, showOnlyLiveClusters]);
 
   // Prepare chart data for selected node or all nodes
   const chartData = useMemo(() => {
@@ -532,6 +544,35 @@ export function Metrics() {
               <option value={48}>Last 48 hours</option>
               <option value={168}>Last 7 days</option>
             </select>
+            {/* Show Only Live Clusters Checkbox */}
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showOnlyLiveClusters}
+                  onChange={(e) => setShowOnlyLiveClusters(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded 
+                           focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 
+                           focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                  Show only live nodes
+                </span>
+              </label>
+              <div className="relative group/tooltip">
+                <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 
+                              w-64 p-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg 
+                              shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity 
+                              pointer-events-none z-[100] invisible group-hover/tooltip:visible">
+                  Shows only nodes that have been updated within the last 10 minutes. 
+                  This helps avoid collecting data from nodes that are no longer running.
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-0">
+                    <div className="border-4 border-transparent border-b-gray-900 dark:border-b-gray-800"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <button
               onClick={() => fetchMetrics(false)}
               disabled={isRefreshing}
