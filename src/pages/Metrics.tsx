@@ -5,7 +5,8 @@ import {
 } from 'recharts';
 import { 
   Server, Cpu, HardDrive, RefreshCw, 
-  Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight
+  Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight,
+  Code, Cloud
 } from 'lucide-react';
 import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -234,7 +235,9 @@ export function Metrics() {
         totalCpuCores: 0,
         totalMemoryBytes: 0,
         usedCpuCores: 0,
-        usedMemoryBytes: 0
+        usedMemoryBytes: 0,
+        kubernetesVersion: undefined as string | undefined,
+        cloudProvider: undefined as string | undefined
       };
     }
 
@@ -243,6 +246,10 @@ export function Metrics() {
     const usedCpuCores = latestNodeMetrics.reduce((sum, m) => sum + m.cpuUsageCores, 0);
     const usedMemoryBytes = latestNodeMetrics.reduce((sum, m) => sum + m.memoryUsageBytes, 0);
 
+    // Get kubernetesVersion and cloudProvider from first node (should be same for all nodes in cluster)
+    const kubernetesVersion = latestNodeMetrics[0]?.kubernetesVersion;
+    const cloudProvider = latestNodeMetrics[0]?.cloudProvider;
+
     return {
       avgCpuUsage: (usedCpuCores / totalCpuCores) * 100,
       avgMemoryUsage: (usedMemoryBytes / totalMemoryBytes) * 100,
@@ -250,7 +257,9 @@ export function Metrics() {
       totalCpuCores,
       totalMemoryBytes,
       usedCpuCores,
-      usedMemoryBytes
+      usedMemoryBytes,
+      kubernetesVersion,
+      cloudProvider
     };
   }, [latestNodeMetrics]);
 
@@ -537,7 +546,7 @@ export function Metrics() {
         </div>
 
         {/* Cluster Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Nodes</h3>
@@ -591,6 +600,30 @@ export function Metrics() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {formatBytes(clusterStats.usedMemoryBytes)} / {formatBytes(clusterStats.totalMemoryBytes)} memory
             </p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Cluster Info</h3>
+              <div className="flex items-center gap-2">
+                <Code className="w-4 h-4 text-gray-400" />
+                <Cloud className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Version</p>
+                <p className="text-lg font-semibold dark:text-white text-gray-900">
+                  {clusterStats.kubernetesVersion || 'N/A'}
+                </p>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Provider</p>
+                <p className="text-lg font-semibold dark:text-white text-gray-900">
+                  {clusterStats.cloudProvider || 'N/A'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

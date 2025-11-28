@@ -199,6 +199,8 @@ export interface NodeMetric {
   cpuCapacityCores: number;
   memoryUsageBytes: number;
   memoryCapacityBytes: number;
+  kubernetesVersion?: string;
+  cloudProvider?: string;
 }
 
 export interface NamespaceMetric {
