@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, CheckCircle2, ArrowRight, LineChart, Package } from 'lucide-react';
+import { X, CheckCircle2, ArrowRight, LineChart, Package, Play } from 'lucide-react';
 import { Switch } from './ui/switch';
 
 interface WelcomeMetricsModalProps {
@@ -54,12 +54,22 @@ export function WelcomeMetricsModal({ onClose }: WelcomeMetricsModalProps) {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-8">
             {/* Introduction */}
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
               <p className="text-lg text-gray-700 dark:text-gray-300">
                 We're excited to introduce comprehensive Kubernetes metrics monitoring! 
                 Now you can track CPU and memory usage across your cluster nodes and application namespaces.
                 To access the metrics, you can click on the "Application Metrics or Cluster Metrics" tab in the navigation bar.
               </p>
+              <a
+                href="https://www.youtube.com/watch?v=YML3acPP_G8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
+                         transition-colors text-sm font-medium"
+              >
+                <Play className="w-4 h-4" />
+                Watch Video Demo
+              </a>
             </div>
 
             {/* Cluster Metrics Section */}
