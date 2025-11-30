@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, PieChart, Activity, AlertTriangle, Gauge, TrendingUp, Users, Shield, X, Square } from 'lucide-react';
+import { BarChart3, PieChart, Activity, AlertTriangle, Gauge, TrendingUp, Users, Shield, X, Square, Server, Package } from 'lucide-react';
 
 interface WidgetLibraryProps {
   onAddWidget: (type: string) => void;
@@ -50,6 +50,20 @@ const widgetTypes = [
     description: 'Visual blocks showing ONLINE/OFFLINE/PAUSED counts',
     icon: Square,
     category: 'Status'
+  },
+  {
+    id: 'cluster-metrics',
+    name: 'Cluster Metrics',
+    description: 'Node CPU and memory usage across clusters',
+    icon: Server,
+    category: 'Metrics'
+  },
+  {
+    id: 'application-metrics',
+    name: 'Application Metrics',
+    description: 'Pod and container CPU and memory usage',
+    icon: Package,
+    category: 'Metrics'
   }
 ];
 

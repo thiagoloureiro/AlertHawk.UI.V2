@@ -8,20 +8,23 @@ import { WidgetLibrary } from '../components/dashboard/WidgetLibrary';
 import { DashboardSettings } from '../components/dashboard/DashboardSettings';
 import { SaveDashboardModal } from '../components/dashboard/SaveDashboardModal';
 import { LoadDashboardModal } from '../components/dashboard/LoadDashboardModal';
-import { MonitorGroup, AlertIncident } from '../types';
+import { MonitorGroup, AlertIncident, NodeMetric, NamespaceMetric } from '../types';
 import monitorService from '../services/monitorService';
 import alertService from '../services/alertService';
+import metricsService from '../services/metricsService';
 
 export interface DashboardData {
   monitorGroups: MonitorGroup[];
   alerts: AlertIncident[];
+  nodeMetrics: NodeMetric[];
+  namespaceMetrics: NamespaceMetric[];
 }
 
 export interface DashboardWidget {
   id: string;
-  type: 'uptime' | 'alert' | 'group-summary' | 'monitor-status' | 'ssl-status';
+  type: 'uptime' | 'alert' | 'group-summary' | 'monitor-status' | 'ssl-status' | 'status-blocks' | 'cluster-metrics' | 'application-metrics';
   title: string;
-  dataSource: 'monitors' | 'alerts';
+  dataSource: 'monitors' | 'alerts' | 'metrics';
   config: any;
   position: { x: number; y: number; w: number; h: number };
 }
@@ -33,7 +36,12 @@ export function DashboardBuilder() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<DashboardData>({ monitorGroups: [], alerts: [] });
+  const [data, setData] = useState<DashboardData>({ 
+    monitorGroups: [], 
+    alerts: [], 
+    nodeMetrics: [], 
+    namespaceMetrics: [] 
+  });
   const [widgets, setWidgets] = useState<DashboardWidget[]>([]);
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -61,22 +69,30 @@ export function DashboardBuilder() {
     }
   }, [dashboardId, navigate]);
 
-  // Fetch data from both sources
+  // Fetch data from all sources
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        const [monitorGroups, alerts] = await Promise.all([
+        const [monitorGroups, alerts, nodeMetrics, namespaceMetrics] = await Promise.all([
           monitorService.getDashboardGroups(6), // Production environment
-          alertService.getAlerts(0, 90) // All environments, 90 days
+          alertService.getAlerts(0, 90), // All environments, 90 days
+          metricsService.getNodeMetrics(1, 1000), // Last 1 hour, up to 1000 records
+          metricsService.getNamespaceMetrics(1, 1000) // Last 1 hour, up to 1000 records
         ]);
         
-        setData({ monitorGroups, alerts });
+        setData({ monitorGroups, alerts, nodeMetrics, namespaceMetrics });
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
         setError('Failed to load dashboard data');
+        // Set empty arrays for metrics if they fail to load
+        setData(prev => ({ 
+          ...prev, 
+          nodeMetrics: [], 
+          namespaceMetrics: [] 
+        }));
       } finally {
         setIsLoading(false);
       }
@@ -90,11 +106,13 @@ export function DashboardBuilder() {
     if (refreshInterval && refreshInterval > 0) {
       const interval = setInterval(async () => {
         try {
-          const [monitorGroups, alerts] = await Promise.all([
+          const [monitorGroups, alerts, nodeMetrics, namespaceMetrics] = await Promise.all([
             monitorService.getDashboardGroups(6),
-            alertService.getAlerts(0, 90)
+            alertService.getAlerts(0, 90),
+            metricsService.getNodeMetrics(1, 1000),
+            metricsService.getNamespaceMetrics(1, 1000)
           ]);
-          setData({ monitorGroups, alerts });
+          setData({ monitorGroups, alerts, nodeMetrics, namespaceMetrics });
         } catch (err) {
           console.error('Failed to refresh data:', err);
         }
@@ -127,11 +145,17 @@ export function DashboardBuilder() {
       return;
     }
 
+    const getDataSource = (type: string): 'monitors' | 'alerts' | 'metrics' => {
+      if (type === 'alert') return 'alerts';
+      if (type === 'cluster-metrics' || type === 'application-metrics') return 'metrics';
+      return 'monitors';
+    };
+
     const newWidget: DashboardWidget = {
       id: `widget-${Date.now()}`,
       type: widgetType as any,
       title: `New ${widgetType} Widget`,
-      dataSource: widgetType === 'alert' ? 'alerts' : 'monitors',
+      dataSource: getDataSource(widgetType),
       config: {},
       position: { x: 0, y: 0, w: 4, h: 3 }
     };

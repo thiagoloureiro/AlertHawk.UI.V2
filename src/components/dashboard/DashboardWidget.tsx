@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Edit3, Activity, AlertTriangle, Gauge, Shield, Users, Square } from 'lucide-react';
+import { X, Edit3, Activity, AlertTriangle, Gauge, Shield, Users, Square, Server, Package } from 'lucide-react';
 import { DashboardData, DashboardWidget as DashboardWidgetType } from '../../pages/DashboardBuilder';
 import { AlertTimeline } from './AlertTimeline';
 import { MetricCard } from './MetricCard';
@@ -7,6 +7,8 @@ import { GroupStatusGrid } from './GroupStatusGrid';
 import { MonitorStatusGrid } from './MonitorStatusGrid';
 import { SSLStatusWidget } from './SSLStatusWidget';
 import { StatusBlocks } from './StatusBlocks';
+import { ClusterMetricsWidget } from './ClusterMetricsWidget';
+import { ApplicationMetricsWidget } from './ApplicationMetricsWidget';
 
 interface DashboardWidgetProps {
   widget: DashboardWidgetType;
@@ -23,6 +25,8 @@ const widgetIcons = {
   'monitor-status': Activity,
   'ssl-status': Shield,
   'status-blocks': Square,
+  'cluster-metrics': Server,
+  'application-metrics': Package,
   // Legacy widget types
   metric: Gauge,
   status: Activity,
@@ -35,7 +39,7 @@ export function DashboardWidget({ widget, data, isPreviewMode, onUpdate, onDelet
   const [isEditing, setIsEditing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const Icon = widgetIcons[widget.type];
+  const Icon = widgetIcons[widget.type] || Activity;
 
   const handleTitleChange = (newTitle: string) => {
     onUpdate(widget.id, { title: newTitle });
@@ -101,6 +105,22 @@ export function DashboardWidget({ widget, data, isPreviewMode, onUpdate, onDelet
         return (
           <StatusBlocks
             data={data.monitorGroups}
+            config={widget.config}
+            onConfigChange={handleConfigChange}
+          />
+        );
+      case 'cluster-metrics':
+        return (
+          <ClusterMetricsWidget
+            data={data.nodeMetrics || []}
+            config={widget.config}
+            onConfigChange={handleConfigChange}
+          />
+        );
+      case 'application-metrics':
+        return (
+          <ApplicationMetricsWidget
+            data={data.namespaceMetrics || []}
             config={widget.config}
             onConfigChange={handleConfigChange}
           />
