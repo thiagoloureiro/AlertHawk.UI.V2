@@ -57,7 +57,7 @@ const categories = ['Metrics', 'Alerts', 'Status', 'Security'];
 
 export function WidgetLibrary({ onAddWidget, onClose, currentWidgetCount = 0, maxWidgets = 15 }: WidgetLibraryProps) {
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Widget Library</h2>
@@ -72,7 +72,7 @@ export function WidgetLibrary({ onAddWidget, onClose, currentWidgetCount = 0, ma
       </div>
 
       {/* Widget List */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 min-h-0 scroll-smooth">
         {/* Widget Limit Message */}
         {currentWidgetCount >= maxWidgets && (
           <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">

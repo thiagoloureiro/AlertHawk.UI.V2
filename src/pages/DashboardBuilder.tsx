@@ -384,8 +384,8 @@ export function DashboardBuilder() {
       {/* Modals */}
       {!isKioskMode && showWidgetLibrary && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <WidgetLibrary 
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-4xl w-full h-[80vh] flex flex-col overflow-hidden">
+          <WidgetLibrary
               onAddWidget={handleAddWidget} 
               onClose={() => setShowWidgetLibrary(false)}
               currentWidgetCount={widgets.length}
