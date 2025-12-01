@@ -205,6 +205,8 @@ export interface NodeMetric {
   hasMemoryPressure?: boolean;
   hasDiskPressure?: boolean;
   hasPidPressure?: boolean;
+  architecture?: string;
+  operatingSystem?: string;
 }
 
 export interface NamespaceMetric {

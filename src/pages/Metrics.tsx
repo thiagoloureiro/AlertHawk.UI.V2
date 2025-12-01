@@ -1266,6 +1266,12 @@ export function Metrics() {
                     Memory Capacity
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    OS
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Architecture
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Last Updated
                   </th>
                 </tr>
@@ -1407,13 +1413,37 @@ export function Metrics() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatBytes(metric.memoryCapacityBytes)}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {metric.operatingSystem?.toLowerCase() === 'linux' ? (
+                            <img 
+                              src="/assets/linux.png" 
+                              alt="Linux" 
+                              className="w-5 h-5 object-contain"
+                              title="Linux"
+                            />
+                          ) : metric.operatingSystem?.toLowerCase() === 'windows' ? (
+                            <img 
+                              src="/assets/windows.png" 
+                              alt="Windows" 
+                              className="w-5 h-5 object-contain"
+                              title="Windows"
+                            />
+                          ) : (
+                            <Server className="w-4 h-4 text-gray-400" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {metric.architecture || '-'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {date ? formatCompactDate(date) : metric.timestamp}
                       </td>
                     </tr>
                     {isExpanded && nodeNamespaceStats.length > 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={7} className="px-6 py-4">
+                        <td colSpan={9} className="px-6 py-4">
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-2">
                               <Layers className="w-4 h-4 text-gray-500 dark:text-gray-400" />
@@ -1485,7 +1515,7 @@ export function Metrics() {
                     )}
                     {isExpanded && nodeNamespaceStats.length === 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={7} className="px-6 py-4">
+                        <td colSpan={9} className="px-6 py-4">
                           <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
                             No namespace metrics available for this node
                           </div>
