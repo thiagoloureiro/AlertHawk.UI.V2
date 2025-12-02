@@ -331,10 +331,15 @@ export function Metrics() {
     return namespaceMetrics.filter(m => m.clusterName === selectedCluster);
   }, [namespaceMetrics, selectedCluster]);
 
-  // Calculate total monthly cost of all nodes in the cluster
+  // Calculate total monthly cost of ALL nodes in the cluster (regardless of namespace pods)
   const totalClusterMonthlyCost = useMemo(() => {
     let total = 0;
-    latestNodeMetrics.forEach(node => {
+    // Use filteredMetrics (all nodes in selected cluster) instead of latestNodeMetrics
+    const allNodes = filteredMetrics.length > 0 
+      ? Array.from(new Map(filteredMetrics.map(m => [m.nodeName, m])).values()) // Get unique nodes
+      : [];
+    
+    allNodes.forEach(node => {
       if (node.instanceType && node.region && node.cloudProvider?.toLowerCase() === 'aks') {
         const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
         const hourlyPrice = nodePricing.get(key);
@@ -347,14 +352,19 @@ export function Metrics() {
       }
     });
     return total;
-  }, [latestNodeMetrics, nodePricing]);
+  }, [filteredMetrics, nodePricing]);
 
-  // Calculate total CPU and Memory capacity of all nodes
+  // Calculate total CPU and Memory capacity of ALL nodes in the cluster
   const totalClusterCapacity = useMemo(() => {
-    const totalCpu = latestNodeMetrics.reduce((sum, node) => sum + node.cpuCapacityCores, 0);
-    const totalMemory = latestNodeMetrics.reduce((sum, node) => sum + node.memoryCapacityBytes, 0);
+    // Use filteredMetrics (all nodes in selected cluster) instead of latestNodeMetrics
+    const allNodes = filteredMetrics.length > 0 
+      ? Array.from(new Map(filteredMetrics.map(m => [m.nodeName, m])).values()) // Get unique nodes
+      : [];
+    
+    const totalCpu = allNodes.reduce((sum, node) => sum + node.cpuCapacityCores, 0);
+    const totalMemory = allNodes.reduce((sum, node) => sum + node.memoryCapacityBytes, 0);
     return { totalCpu, totalMemory };
-  }, [latestNodeMetrics]);
+  }, [filteredMetrics]);
 
   // Get latest namespace metrics (aggregated by namespace)
   const namespaceStats = useMemo(() => {
