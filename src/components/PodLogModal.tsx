@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Copy, Check, RefreshCw, Search } from 'lucide-react';
+import { X, Copy, Check, RefreshCw, Search, Download } from 'lucide-react';
 import { PodLog } from '../types';
 import metricsService from '../services/metricsService';
 import { LoadingSpinner } from './ui';
@@ -69,6 +69,26 @@ export function PodLogModal({
     } catch (error) {
       console.error('Failed to copy logs:', error);
       toast.error('Failed to copy logs', { position: 'bottom-right' });
+    }
+  };
+
+  const handleDownload = () => {
+    if (!logContent) return;
+
+    try {
+      const blob = new Blob([logContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${pod}-${container}-${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Logs downloaded successfully', { position: 'bottom-right' });
+    } catch (error) {
+      console.error('Failed to download logs:', error);
+      toast.error('Failed to download logs', { position: 'bottom-right' });
     }
   };
 
@@ -184,17 +204,26 @@ export function PodLogModal({
               <RefreshCw className={`w-5 h-5 text-gray-600 dark:text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             {logContent && (
-              <button
-                onClick={handleCopy}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Copy logs"
-              >
-                {copied ? (
-                  <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                ) : (
-                  <Copy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                )}
-              </button>
+              <>
+                <button
+                  onClick={handleDownload}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Download logs as text file"
+                >
+                  <Download className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Copy logs"
+                >
+                  {copied ? (
+                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Copy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  )}
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -233,14 +262,14 @@ export function PodLogModal({
                     <button
                       onClick={handleSearchPrev}
                       className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-600 dark:text-gray-400"
-                      title="Previous (Shift+Enter)"
+                      title="Previous"
                     >
                       ↑
                     </button>
                     <button
                       onClick={handleSearchNext}
                       className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-600 dark:text-gray-400"
-                      title="Next (Enter)"
+                      title="Next"
                     >
                       ↓
                     </button>
