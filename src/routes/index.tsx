@@ -3,6 +3,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { DashboardBuilder } from '../pages/DashboardBuilder';
 import { Metrics } from '../pages/Metrics';
 import { ApplicationMetrics } from '../pages/ApplicationMetrics';
+import { ClustersDiagram } from '../pages/ClustersDiagram';
 import { MonitorDetails } from '../pages/MonitorDetails';
 import { MonitorAlerts } from '../pages/MonitorAlerts';
 import { MonitorGroups } from '../pages/MonitorGroups';
@@ -30,6 +31,7 @@ export function AppRoutes() {
       <Route path="/dashboard/:monitorId" element={<MonitorDetails />} />
       <Route path="/metrics" element={<Metrics />} />
       <Route path="/application-metrics" element={<ApplicationMetrics />} />
+      <Route path="/clusters-diagram" element={<ClustersDiagram />} />
       <Route path="/alerts" element={<MonitorAlerts />} />
       <Route path="/ssl-certificates" element={<SSLCertificateMonitor />} />
       <Route path="/groups" element={<MonitorGroups />} />

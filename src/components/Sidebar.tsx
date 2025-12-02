@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Shield,
   BarChart3,
-  Package
+  Package,
+  Network
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
@@ -31,6 +32,7 @@ const baseMenuItems: MenuItem[] = [
   { id: '2', name: 'Dashboard Builder', icon: 'BarChart3', path: '/dashboard-builder' },
   { id: '3', name: 'Cluster Metrics', icon: 'LineChart', path: '/metrics' },
   { id: '4', name: 'Application Metrics', icon: 'Package', path: '/application-metrics' },
+  { id: '12', name: 'Clusters Diagram', icon: 'Network', path: '/clusters-diagram' },
   { id: '5', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '6', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
   { id: '7', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
@@ -60,6 +62,7 @@ const iconMap: Record<string, React.ElementType> = {
   Settings,
   Shield,
   Package,
+  Network,
 };
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
