@@ -1294,23 +1294,40 @@ export function Metrics() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {namespaceStats.map((ns) => {
-                    const totalCpu = namespaceStats.reduce((sum, n) => sum + n.cpuUsageCores, 0);
-                    const totalMemory = namespaceStats.reduce((sum, n) => sum + n.memoryUsageBytes, 0);
-                    const cpuPercent = totalCpu > 0 ? (ns.cpuUsageCores / totalCpu) * 100 : 0;
-                    const memoryPercent = totalMemory > 0 ? (ns.memoryUsageBytes / totalMemory) * 100 : 0;
+                    // Calculate total used CPU and Memory across all namespaces
+                    const totalUsedCpu = namespaceStats.reduce((sum, n) => sum + n.cpuUsageCores, 0);
+                    const totalUsedMemory = namespaceStats.reduce((sum, n) => sum + n.memoryUsageBytes, 0);
+                    
+                    // Calculate percentage of total used resources (for display)
+                    const cpuPercent = totalUsedCpu > 0 ? (ns.cpuUsageCores / totalUsedCpu) * 100 : 0;
+                    const memoryPercent = totalUsedMemory > 0 ? (ns.memoryUsageBytes / totalUsedMemory) * 100 : 0;
                     
                     // Calculate estimated monthly cost based on CPU and Memory usage percentages
+                    // We allocate costs proportionally based on actual usage to ensure sum equals total
                     let estimatedMonthlyCost: number | null = null;
                     if (totalClusterCapacity.totalCpu > 0 && totalClusterCapacity.totalMemory > 0 && totalClusterMonthlyCost > 0) {
-                      // Calculate CPU and Memory usage as percentage of total cluster capacity
+                      // Calculate CPU and Memory usage as percentage of total cluster CAPACITY (not just used)
                       const cpuUsagePercent = (ns.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
                       const memoryUsagePercent = (ns.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
                       
                       // Average of CPU and Memory percentages
                       const avgUsagePercent = (cpuUsagePercent + memoryUsagePercent) / 2;
                       
-                      // Estimated cost = average usage % * total monthly cost
-                      estimatedMonthlyCost = (avgUsagePercent / 100) * totalClusterMonthlyCost;
+                      // Calculate total average usage percent across all namespaces for normalization
+                      const totalAvgUsagePercent = namespaceStats.reduce((sum, n) => {
+                        const nsCpuPercent = (n.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
+                        const nsMemoryPercent = (n.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
+                        return sum + (nsCpuPercent + nsMemoryPercent) / 2;
+                      }, 0);
+                      
+                      // Normalize to ensure all namespaces sum to 100% of total cost
+                      // If total usage is less than 100%, we still allocate based on proportion
+                      const normalizedPercent = totalAvgUsagePercent > 0 
+                        ? (avgUsagePercent / totalAvgUsagePercent) * 100 
+                        : avgUsagePercent;
+                      
+                      // Estimated cost = normalized percentage * total monthly cost
+                      estimatedMonthlyCost = (normalizedPercent / 100) * totalClusterMonthlyCost;
                     }
                     
                     return (
