@@ -1,5 +1,5 @@
 import { metricsHttp } from './httpClient';
-import { NodeMetric, NamespaceMetric } from '../types';
+import { NodeMetric, NamespaceMetric, PodLog } from '../types';
 
 class MetricsService {
   /**
@@ -85,6 +85,36 @@ class MetricsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch namespace metrics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch pod logs from the API
+   * @param namespace - Name of the namespace
+   * @param container - Name of the container
+   * @param hours - Number of hours of logs to fetch (default: 24)
+   * @param limit - Maximum number of log entries to return (default: 1)
+   * @param clusterName - Name of the cluster (optional)
+   */
+  async getPodLogs(namespace: string, container: string, hours: number = 24, limit: number = 1, clusterName?: string): Promise<PodLog[]> {
+    try {
+      const params: { hours: number; limit: number; clusterName?: string } = {
+        hours,
+        limit
+      };
+      if (clusterName) {
+        params.clusterName = clusterName;
+      }
+      const response = await metricsHttp.get<PodLog[]>(`/api/metrics/pod/log/namespace/${namespace}`, {
+        params: {
+          container,
+          ...params
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch pod logs:', error);
       throw error;
     }
   }

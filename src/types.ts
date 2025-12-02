@@ -220,3 +220,12 @@ export interface NamespaceMetric {
   memoryUsageBytes: number;
   nodeName: string;
 }
+
+export interface PodLog {
+  timestamp: string;
+  clusterName: string;
+  namespace: string;
+  pod: string;
+  container: string;
+  logContent: string;
+}
