@@ -13,6 +13,7 @@ import userService from '../services/userService';
 import { LoadingSpinner } from '../components/ui';
 import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
+import { PodLogModal } from '../components/PodLogModal';
 
 export function ApplicationMetrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
@@ -31,6 +32,8 @@ export function ApplicationMetrics() {
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [userClusters, setUserClusters] = useState<string[]>([]);
   const [clustersLoaded, setClustersLoaded] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [selectedPod, setSelectedPod] = useState<{ namespace: string; pod: string; container: string; clusterName?: string } | null>(null);
 
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -941,12 +944,24 @@ export function ApplicationMetrics() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPod({
+                              namespace: metric.namespace,
+                              pod: metric.pod,
+                              container: metric.container,
+                              clusterName: metric.clusterName
+                            });
+                            setShowLogModal(true);
+                          }}
+                          className="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
                           <Package className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm dark:text-white text-gray-900">
+                          <span className="text-sm dark:text-white text-gray-900 hover:underline">
                             {metric.pod}
                           </span>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
                         {metric.container}
@@ -1090,6 +1105,22 @@ export function ApplicationMetrics() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Pod Log Modal */}
+      {selectedPod && (
+        <PodLogModal
+          isOpen={showLogModal}
+          onClose={() => {
+            setShowLogModal(false);
+            setSelectedPod(null);
+          }}
+          namespace={selectedPod.namespace}
+          pod={selectedPod.pod}
+          container={selectedPod.container}
+          clusterName={selectedPod.clusterName}
+          hours={hours}
+        />
       )}
     </div>
   );
