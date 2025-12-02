@@ -331,6 +331,31 @@ export function Metrics() {
     return namespaceMetrics.filter(m => m.clusterName === selectedCluster);
   }, [namespaceMetrics, selectedCluster]);
 
+  // Calculate total monthly cost of all nodes in the cluster
+  const totalClusterMonthlyCost = useMemo(() => {
+    let total = 0;
+    latestNodeMetrics.forEach(node => {
+      if (node.instanceType && node.region && node.cloudProvider?.toLowerCase() === 'aks') {
+        const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
+        const hourlyPrice = nodePricing.get(key);
+        if (hourlyPrice !== null && hourlyPrice !== undefined) {
+          const monthlyPrice = azurePricingService.calculateMonthlyPrice(hourlyPrice);
+          if (monthlyPrice !== null) {
+            total += monthlyPrice;
+          }
+        }
+      }
+    });
+    return total;
+  }, [latestNodeMetrics, nodePricing]);
+
+  // Calculate total CPU and Memory capacity of all nodes
+  const totalClusterCapacity = useMemo(() => {
+    const totalCpu = latestNodeMetrics.reduce((sum, node) => sum + node.cpuCapacityCores, 0);
+    const totalMemory = latestNodeMetrics.reduce((sum, node) => sum + node.memoryCapacityBytes, 0);
+    return { totalCpu, totalMemory };
+  }, [latestNodeMetrics]);
+
   // Get latest namespace metrics (aggregated by namespace)
   const namespaceStats = useMemo(() => {
     if (filteredNamespaceMetrics.length === 0) return [];
@@ -1192,8 +1217,8 @@ export function Metrics() {
 
         {/* Namespace Consumption Table */}
         {namespaceStats.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow relative">
+            <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200 relative z-0">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <h3 className="text-lg font-semibold dark:text-white text-gray-900">
@@ -1201,9 +1226,9 @@ export function Metrics() {
                 </h3>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative overflow-y-visible">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900">
+                <thead className="bg-gray-50 dark:bg-gray-900 relative z-0">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Namespace
@@ -1217,6 +1242,44 @@ export function Metrics() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Pods
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5">
+                        <span>Est. Monthly Cost</span>
+                        <div className="relative group/tooltip">
+                          <HelpCircle 
+                            className="w-3.5 h-3.5 text-gray-400 cursor-help" 
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (tooltip) {
+                                tooltip.style.setProperty('--tooltip-top', `${rect.top - 8}px`);
+                                tooltip.style.setProperty('--tooltip-left', `${rect.left + rect.width / 2}px`);
+                              }
+                            }}
+                          />
+                          <div className="fixed w-64 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg 
+                                        shadow-xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity 
+                                        pointer-events-none z-[99999] invisible group-hover/tooltip:visible border border-gray-700"
+                               style={{ 
+                                 transform: 'translate(-50%, -100%)',
+                                 top: 'var(--tooltip-top, 0)',
+                                 left: 'var(--tooltip-left, 0)'
+                               }}>
+                            <div className="space-y-1.5">
+                              <p className="font-semibold mb-1.5">How it's calculated:</p>
+                              <p>1. Sum all node monthly costs in the cluster</p>
+                              <p>2. Calculate namespace CPU usage % of total cluster CPU capacity</p>
+                              <p>3. Calculate namespace Memory usage % of total cluster Memory capacity</p>
+                              <p>4. Average the CPU and Memory percentages</p>
+                              <p>5. Estimated cost = (Average % / 100) × Total cluster monthly cost</p>
+                            </div>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                              <div className="border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1225,6 +1288,20 @@ export function Metrics() {
                     const totalMemory = namespaceStats.reduce((sum, n) => sum + n.memoryUsageBytes, 0);
                     const cpuPercent = totalCpu > 0 ? (ns.cpuUsageCores / totalCpu) * 100 : 0;
                     const memoryPercent = totalMemory > 0 ? (ns.memoryUsageBytes / totalMemory) * 100 : 0;
+                    
+                    // Calculate estimated monthly cost based on CPU and Memory usage percentages
+                    let estimatedMonthlyCost: number | null = null;
+                    if (totalClusterCapacity.totalCpu > 0 && totalClusterCapacity.totalMemory > 0 && totalClusterMonthlyCost > 0) {
+                      // Calculate CPU and Memory usage as percentage of total cluster capacity
+                      const cpuUsagePercent = (ns.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
+                      const memoryUsagePercent = (ns.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
+                      
+                      // Average of CPU and Memory percentages
+                      const avgUsagePercent = (cpuUsagePercent + memoryUsagePercent) / 2;
+                      
+                      // Estimated cost = average usage % * total monthly cost
+                      estimatedMonthlyCost = (avgUsagePercent / 100) * totalClusterMonthlyCost;
+                    }
                     
                     return (
                       <tr key={ns.namespace} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -1270,6 +1347,15 @@ export function Metrics() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {ns.podCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {estimatedMonthlyCost !== null ? (
+                            <span className="font-medium dark:text-white text-gray-900">
+                              {azurePricingService.formatMonthlyPrice(estimatedMonthlyCost)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                       </tr>
                     );
