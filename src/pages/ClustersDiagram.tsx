@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Server, Cpu, HardDrive, RefreshCw, 
-  Activity, AlertCircle, CheckCircle, XCircle, Cloud, Code
+  AlertCircle, CheckCircle, XCircle, Cloud, Code
 } from 'lucide-react';
 import { NodeMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -129,6 +129,8 @@ export function ClustersDiagram() {
       cloudProvider?: string;
       nodesWithIssues: number;
       latestNodes?: NodeMetric[];
+      isOffline?: boolean;
+      lastUpdateTime?: Date;
     }>();
 
     nodeMetrics.forEach(metric => {
@@ -157,7 +159,7 @@ export function ClustersDiagram() {
     });
 
     // Calculate statistics for each cluster
-    clusterMap.forEach((cluster, clusterName) => {
+    clusterMap.forEach((cluster) => {
       // Get latest metrics for each node
       const nodeMap = new Map<string, NodeMetric>();
       cluster.nodes.forEach(metric => {
@@ -190,6 +192,15 @@ export function ClustersDiagram() {
       cluster.usedMemoryBytes = usedMemoryBytes;
       cluster.avgCpuUsage = totalCpuCores > 0 ? (usedCpuCores / totalCpuCores) * 100 : 0;
       cluster.avgMemoryUsage = totalMemoryBytes > 0 ? (usedMemoryBytes / totalMemoryBytes) * 100 : 0;
+      
+      // Check if cluster is offline (no updates in last 10 minutes)
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const latestTimestamp = latestNodes.length > 0
+        ? new Date(Math.max(...latestNodes.map(n => new Date(n.timestamp).getTime())))
+        : null;
+      
+      cluster.lastUpdateTime = latestTimestamp || undefined;
+      cluster.isOffline = latestTimestamp ? latestTimestamp < tenMinutesAgo : true;
       
       // Store latest nodes for display
       (cluster as any).latestNodes = latestNodes;
@@ -224,6 +235,7 @@ export function ClustersDiagram() {
   };
 
   const getClusterStatusColor = (cluster: typeof clusterMetrics[0]): string => {
+    if (cluster.isOffline) return 'border-gray-400 bg-gray-100 dark:bg-gray-800/50';
     if (cluster.nodesWithIssues > 0) return 'border-red-500 bg-red-50 dark:bg-red-900/20';
     if (cluster.avgCpuUsage >= 90 || cluster.avgMemoryUsage >= 90) return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
     return 'border-green-500 bg-green-50 dark:bg-green-900/20';
@@ -333,16 +345,28 @@ export function ClustersDiagram() {
                       {cluster.clusterName}
                     </h2>
                     <div className="flex items-center gap-1 mt-0.5">
-                      {cluster.nodesWithIssues === 0 ? (
-                        <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                      {cluster.isOffline ? (
+                        <>
+                          <AlertCircle className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Offline
+                          </span>
+                        </>
+                      ) : cluster.nodesWithIssues === 0 ? (
+                        <>
+                          <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                          <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                            OK
+                          </span>
+                        </>
                       ) : (
-                        <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                        <>
+                          <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                          <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                            {cluster.nodesWithIssues} Issue{cluster.nodesWithIssues !== 1 ? 's' : ''}
+                          </span>
+                        </>
                       )}
-                      <span className={`text-xs font-medium ${
-                        cluster.nodesWithIssues === 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        {cluster.nodesWithIssues === 0 ? 'OK' : `${cluster.nodesWithIssues}`}
-                      </span>
                     </div>
                   </div>
                 </div>
