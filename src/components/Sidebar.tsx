@@ -104,7 +104,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const isNew = item.id === '3' || item.id === '4'; // Cluster Metrics and Application Metrics
+          const isNew = item.id === '3' || item.id === '4' || item.id === '12'; // Cluster Metrics, Application Metrics, and Clusters Diagram
           return (
             <NavLink
               key={item.id}
