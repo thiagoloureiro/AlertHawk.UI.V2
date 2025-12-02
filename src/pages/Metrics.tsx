@@ -96,8 +96,13 @@ export function Metrics() {
       setNamespaceMetrics(namespaceMetricsData);
       setIsInitialLoad(false);
       
-      // Fetch pricing for Azure nodes
-      fetchPricingForNodes(nodeMetricsData);
+      // Fetch pricing for Azure nodes (only for selected cluster if one is selected)
+      if (selectedCluster) {
+        const clusterNodes = nodeMetricsData.filter(m => m.clusterName === selectedCluster);
+        fetchPricingForNodes(clusterNodes);
+      } else {
+        fetchPricingForNodes(nodeMetricsData);
+      }
     } catch (err) {
       console.error('Failed to fetch metrics:', err);
       setError('Failed to load metrics');
@@ -114,6 +119,15 @@ export function Metrics() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hours, selectedCluster]);
+
+  // Fetch pricing when cluster changes or node metrics update
+  useEffect(() => {
+    if (selectedCluster && nodeMetrics.length > 0) {
+      const clusterNodes = nodeMetrics.filter(m => m.clusterName === selectedCluster);
+      fetchPricingForNodes(clusterNodes);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCluster, nodeMetrics]);
 
   // Close expanded chart on Escape key
   useEffect(() => {
@@ -334,37 +348,100 @@ export function Metrics() {
   // Calculate total monthly cost of ALL nodes in the cluster (regardless of namespace pods)
   const totalClusterMonthlyCost = useMemo(() => {
     let total = 0;
-    // Use filteredMetrics (all nodes in selected cluster) instead of latestNodeMetrics
-    const allNodes = filteredMetrics.length > 0 
-      ? Array.from(new Map(filteredMetrics.map(m => [m.nodeName, m])).values()) // Get unique nodes
-      : [];
+    // Use latestNodeMetrics to match what's displayed in the table
+    // This ensures we're calculating based on the same nodes that show prices
+    const allNodes = latestNodeMetrics;
     
-    allNodes.forEach(node => {
-      if (node.instanceType && node.region && node.cloudProvider?.toLowerCase() === 'aks') {
-        const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
-        const hourlyPrice = nodePricing.get(key);
+    // Get Azure nodes that need pricing
+    const azureNodes = allNodes.filter(node => 
+      node.instanceType && node.region && node.cloudProvider?.toLowerCase() === 'aks'
+    );
+    
+    // Debug: Log all pricing keys in the map
+    console.log('[DEBUG] All pricing keys in nodePricing map:', Array.from(nodePricing.keys()));
+    console.log('[DEBUG] All loading keys:', Array.from(loadingPricing.keys()));
+    
+    // Check if all Azure nodes have pricing loaded (either with price or null - meaning attempted)
+    const pricingChecks = azureNodes.map(node => {
+      const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
+      const hasKey = nodePricing.has(key);
+      const isLoading = loadingPricing.has(key);
+      return { node: node.nodeName, key, hasKey, isLoading };
+    });
+    
+    console.log('[DEBUG] Pricing checks for Azure nodes:', pricingChecks);
+    
+    const allPricingLoaded = azureNodes.every(node => {
+      const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
+      return nodePricing.has(key) || !loadingPricing.has(key);
+    });
+    
+    console.log('[DEBUG] Calculating totalClusterMonthlyCost:', {
+      allNodesCount: allNodes.length,
+      azureNodesCount: azureNodes.length,
+      nodePricingSize: nodePricing.size,
+      loadingPricingSize: loadingPricing.size,
+      allPricingLoaded,
+      selectedCluster,
+      azureNodes: azureNodes.map(n => ({ name: n.nodeName, instance: n.instanceType, region: n.region }))
+    });
+    
+    // Only calculate if all pricing is loaded
+    if (!allPricingLoaded) {
+      console.log('[DEBUG] Waiting for pricing to load...', {
+        missing: azureNodes.filter(node => {
+          const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
+          return !nodePricing.has(key) && loadingPricing.has(key);
+        }).map(n => n.nodeName)
+      });
+      return 0;
+    }
+    
+    azureNodes.forEach(node => {
+      const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
+      const hourlyPrice = nodePricing.get(key);
+      const hasKey = nodePricing.has(key);
+      
+      console.log('[DEBUG] Node pricing check:', {
+        nodeName: node.nodeName,
+        instanceType: node.instanceType,
+        region: node.region,
+        key,
+        hasKey,
+        hourlyPrice,
+        isAzure: node.cloudProvider?.toLowerCase() === 'aks'
+      });
+      
+      // Check if pricing exists (including null, which means pricing was attempted but failed)
+      // Only skip if the key doesn't exist in the map at all (pricing not fetched yet)
+      if (hasKey) {
         if (hourlyPrice !== null && hourlyPrice !== undefined) {
           const monthlyPrice = azurePricingService.calculateMonthlyPrice(hourlyPrice);
           if (monthlyPrice !== null) {
             total += monthlyPrice;
+            console.log('[DEBUG] Added to total:', { nodeName: node.nodeName, monthlyPrice, newTotal: total });
+          } else {
+            console.log('[DEBUG] Monthly price is null for:', node.nodeName);
           }
+        } else {
+          console.log('[DEBUG] Hourly price is null/undefined for:', node.nodeName);
         }
+      } else {
+        console.log('[DEBUG] Key not found in pricing map for:', node.nodeName, 'key:', key);
       }
     });
+    
+    console.log('[DEBUG] Final totalClusterMonthlyCost:', total);
     return total;
-  }, [filteredMetrics, nodePricing]);
+  }, [latestNodeMetrics, nodePricing, loadingPricing]);
 
   // Calculate total CPU and Memory capacity of ALL nodes in the cluster
   const totalClusterCapacity = useMemo(() => {
-    // Use filteredMetrics (all nodes in selected cluster) instead of latestNodeMetrics
-    const allNodes = filteredMetrics.length > 0 
-      ? Array.from(new Map(filteredMetrics.map(m => [m.nodeName, m])).values()) // Get unique nodes
-      : [];
-    
-    const totalCpu = allNodes.reduce((sum, node) => sum + node.cpuCapacityCores, 0);
-    const totalMemory = allNodes.reduce((sum, node) => sum + node.memoryCapacityBytes, 0);
+    // Use latestNodeMetrics to match what's displayed and used for pricing calculation
+    const totalCpu = latestNodeMetrics.reduce((sum, node) => sum + node.cpuCapacityCores, 0);
+    const totalMemory = latestNodeMetrics.reduce((sum, node) => sum + node.memoryCapacityBytes, 0);
     return { totalCpu, totalMemory };
-  }, [filteredMetrics]);
+  }, [latestNodeMetrics]);
 
   // Get latest namespace metrics (aggregated by namespace)
   const namespaceStats = useMemo(() => {
@@ -1303,31 +1380,62 @@ export function Metrics() {
                     const memoryPercent = totalUsedMemory > 0 ? (ns.memoryUsageBytes / totalUsedMemory) * 100 : 0;
                     
                     // Calculate estimated monthly cost based on CPU and Memory usage percentages
-                    // We allocate costs proportionally based on actual usage to ensure sum equals total
+                    // We allocate 100% of node costs proportionally to namespaces based on their usage
                     let estimatedMonthlyCost: number | null = null;
-                    if (totalClusterCapacity.totalCpu > 0 && totalClusterCapacity.totalMemory > 0 && totalClusterMonthlyCost > 0) {
-                      // Calculate CPU and Memory usage as percentage of total cluster CAPACITY (not just used)
+                    // Check if we have valid cluster capacity and cost data
+                    // Also check if any pricing is still loading
+                    const isPricingLoading = Array.from(loadingPricing.values()).some(loading => loading);
+                    
+                    console.log('[DEBUG] Namespace cost calculation for:', {
+                      namespace: ns.namespace,
+                      totalClusterCapacity: totalClusterCapacity,
+                      totalClusterMonthlyCost,
+                      isPricingLoading,
+                      loadingPricingSize: loadingPricing.size,
+                      nodePricingSize: nodePricing.size
+                    });
+                    
+                    if (totalClusterCapacity.totalCpu > 0 && totalClusterCapacity.totalMemory > 0 && totalClusterMonthlyCost > 0 && !isPricingLoading) {
+                      // Calculate CPU and Memory usage as percentage of total cluster CAPACITY
                       const cpuUsagePercent = (ns.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
                       const memoryUsagePercent = (ns.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
                       
-                      // Average of CPU and Memory percentages
+                      // Average of CPU and Memory percentages for this namespace
                       const avgUsagePercent = (cpuUsagePercent + memoryUsagePercent) / 2;
                       
-                      // Calculate total average usage percent across all namespaces for normalization
+                      // Calculate total average usage percent across ALL namespaces
                       const totalAvgUsagePercent = namespaceStats.reduce((sum, n) => {
                         const nsCpuPercent = (n.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
                         const nsMemoryPercent = (n.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
                         return sum + (nsCpuPercent + nsMemoryPercent) / 2;
                       }, 0);
                       
-                      // Normalize to ensure all namespaces sum to 100% of total cost
-                      // If total usage is less than 100%, we still allocate based on proportion
+                      // Normalize: allocate proportionally so all namespaces sum to 100% of total cost
+                      // This ensures the sum of all namespace costs equals totalClusterMonthlyCost
                       const normalizedPercent = totalAvgUsagePercent > 0 
                         ? (avgUsagePercent / totalAvgUsagePercent) * 100 
-                        : avgUsagePercent;
+                        : 0;
                       
                       // Estimated cost = normalized percentage * total monthly cost
                       estimatedMonthlyCost = (normalizedPercent / 100) * totalClusterMonthlyCost;
+                      
+                      console.log('[DEBUG] Calculated namespace cost:', {
+                        namespace: ns.namespace,
+                        cpuUsagePercent,
+                        memoryUsagePercent,
+                        avgUsagePercent,
+                        totalAvgUsagePercent,
+                        normalizedPercent,
+                        estimatedMonthlyCost
+                      });
+                    } else {
+                      console.log('[DEBUG] Skipping namespace cost calculation:', {
+                        namespace: ns.namespace,
+                        reason: !totalClusterCapacity.totalCpu ? 'no CPU capacity' :
+                                !totalClusterCapacity.totalMemory ? 'no Memory capacity' :
+                                !totalClusterMonthlyCost ? 'no monthly cost' :
+                                isPricingLoading ? 'pricing loading' : 'unknown'
+                      });
                     }
                     
                     return (
@@ -1380,6 +1488,8 @@ export function Metrics() {
                             <span className="font-medium dark:text-white text-gray-900">
                               {azurePricingService.formatMonthlyPrice(estimatedMonthlyCost)}
                             </span>
+                          ) : totalClusterMonthlyCost === 0 && Array.from(loadingPricing.values()).some(loading => loading) ? (
+                            <span className="text-gray-400">Loading...</span>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
