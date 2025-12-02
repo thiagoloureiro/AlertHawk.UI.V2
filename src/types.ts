@@ -207,6 +207,8 @@ export interface NodeMetric {
   hasPidPressure?: boolean;
   architecture?: string;
   operatingSystem?: string;
+  region?: string;
+  instanceType?: string;
 }
 
 export interface NamespaceMetric {

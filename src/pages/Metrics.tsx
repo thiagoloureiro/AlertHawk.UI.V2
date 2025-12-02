@@ -11,6 +11,7 @@ import {
 import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
 import userService from '../services/userService';
+import azurePricingService from '../services/azurePricingService';
 import { LoadingSpinner } from '../components/ui';
 import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
@@ -31,6 +32,52 @@ export function Metrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [showOnlyLiveClusters, setShowOnlyLiveClusters] = useState(true);
+  const [nodePricing, setNodePricing] = useState<Map<string, number | null>>(new Map());
+  const [loadingPricing, setLoadingPricing] = useState<Set<string>>(new Set());
+
+  // Fetch pricing for Azure nodes
+  const fetchPricingForNodes = async (metrics: NodeMetric[]) => {
+    const azureNodes = metrics.filter(m => 
+      m.cloudProvider?.toLowerCase() === 'aks' && 
+      m.instanceType && 
+      m.region
+    );
+
+    for (const node of azureNodes) {
+      const key = `${node.nodeName}-${node.instanceType}-${node.region}`;
+      
+      // Skip if already loading or cached
+      if (loadingPricing.has(key) || nodePricing.has(key)) {
+        continue;
+      }
+
+      setLoadingPricing(prev => new Set(prev).add(key));
+      
+      try {
+        // Use the node's operating system if available, default to 'Linux'
+        const os = node.operatingSystem || 'Linux';
+        const price = await azurePricingService.getVmPrice(node.instanceType!, node.region!, os);
+        setNodePricing(prev => {
+          const newMap = new Map(prev);
+          newMap.set(key, price);
+          return newMap;
+        });
+      } catch (error) {
+        console.error(`Failed to fetch pricing for ${node.nodeName}:`, error);
+        setNodePricing(prev => {
+          const newMap = new Map(prev);
+          newMap.set(key, null);
+          return newMap;
+        });
+      } finally {
+        setLoadingPricing(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(key);
+          return newSet;
+        });
+      }
+    }
+  };
 
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -48,6 +95,9 @@ export function Metrics() {
       setNodeMetrics(nodeMetricsData);
       setNamespaceMetrics(namespaceMetricsData);
       setIsInitialLoad(false);
+      
+      // Fetch pricing for Azure nodes
+      fetchPricingForNodes(nodeMetricsData);
     } catch (err) {
       console.error('Failed to fetch metrics:', err);
       setError('Failed to load metrics');
@@ -1272,6 +1322,18 @@ export function Metrics() {
                     Architecture
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Region
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Instance Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Price/Hour
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Price/Month
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Last Updated
                   </th>
                 </tr>
@@ -1438,12 +1500,51 @@ export function Metrics() {
                         {metric.architecture || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {metric.region || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {metric.instanceType || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {(() => {
+                          if (!metric.instanceType || !metric.region || metric.cloudProvider?.toLowerCase() !== 'aks') {
+                            return '-';
+                          }
+                          const key = `${metric.nodeName}-${metric.instanceType}-${metric.region}`;
+                          const price = nodePricing.get(key);
+                          const isLoading = loadingPricing.has(key);
+                          
+                          if (isLoading) {
+                            return <span className="text-gray-400">Loading...</span>;
+                          }
+                          
+                          return azurePricingService.formatPrice(price ?? null);
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {(() => {
+                          if (!metric.instanceType || !metric.region || metric.cloudProvider?.toLowerCase() !== 'aks') {
+                            return '-';
+                          }
+                          const key = `${metric.nodeName}-${metric.instanceType}-${metric.region}`;
+                          const price = nodePricing.get(key);
+                          const isLoading = loadingPricing.has(key);
+                          
+                          if (isLoading) {
+                            return <span className="text-gray-400">Loading...</span>;
+                          }
+                          
+                          const monthlyPrice = azurePricingService.calculateMonthlyPrice(price ?? null);
+                          return azurePricingService.formatMonthlyPrice(monthlyPrice);
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {date ? formatCompactDate(date) : metric.timestamp}
                       </td>
                     </tr>
                     {isExpanded && nodeNamespaceStats.length > 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={9} className="px-6 py-4">
+                        <td colSpan={13} className="px-6 py-4">
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-2">
                               <Layers className="w-4 h-4 text-gray-500 dark:text-gray-400" />
@@ -1515,7 +1616,7 @@ export function Metrics() {
                     )}
                     {isExpanded && nodeNamespaceStats.length === 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={9} className="px-6 py-4">
+                        <td colSpan={13} className="px-6 py-4">
                           <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
                             No namespace metrics available for this node
                           </div>
