@@ -248,7 +248,7 @@ export function PodLogModal({
                     setHighlightIndex(-1);
                   }}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Search logs... (Enter: next, Shift+Enter: previous)"
+                  placeholder="Search logs..."
                   className="w-full pl-10 pr-20 py-2 text-sm dark:bg-gray-700 bg-gray-100 border 
                            dark:border-gray-600 border-gray-300 rounded-lg 
                            dark:text-white text-gray-900 
