@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, Download, Save, AlertTriangle, Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import monitorService from '../services/monitorService';
+import { metricsHttp } from '../services/httpClient';
 import { toast } from 'react-hot-toast';
 
 export function Administration() {
@@ -14,6 +15,9 @@ export function Administration() {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [metricsCleanupDays, setMetricsCleanupDays] = useState<number>(7);
+  const [isClearingMetrics, setIsClearingMetrics] = useState(false);
+  const [showClearMetricsModal, setShowClearMetricsModal] = useState(false);
 
   useEffect(() => {
     const loadRetention = async () => {
@@ -96,6 +100,24 @@ export function Administration() {
       toast.error('Failed to clear statistics', { position: 'bottom-right' });
     } finally {
       setIsClearing(false);
+    }
+  };
+
+  const handleClearMetrics = async () => {
+    setIsClearingMetrics(true);
+    try {
+      const days = metricsCleanupDays || 0;
+      await metricsHttp.delete(`/api/metrics/cleanup?days=${days}`);
+      setShowClearMetricsModal(false);
+      const message = days === 0 
+        ? 'All metrics data cleared successfully' 
+        : `Metrics data older than ${days} days cleared successfully`;
+      toast.success(message, { position: 'bottom-right' });
+    } catch (error) {
+      console.error('Failed to clear metrics:', error);
+      toast.error('Failed to clear metrics', { position: 'bottom-right' });
+    } finally {
+      setIsClearingMetrics(false);
     }
   };
 
@@ -207,6 +229,44 @@ export function Administration() {
         </div>
       </div>
 
+      {/* Metrics Section */}
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
+        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Metrics</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              Cleanup Days
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={metricsCleanupDays}
+              onChange={(e) => setMetricsCleanupDays(Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                       dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter number of days (0 to truncate all)"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {metricsCleanupDays === 0 
+                ? 'Setting to 0 will truncate all metrics tables' 
+                : `Metrics older than ${metricsCleanupDays} days will be deleted`}
+            </p>
+          </div>
+
+          <div>
+            <button
+              onClick={() => setShowClearMetricsModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 
+                       text-white transition-colors duration-200"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {metricsCleanupDays === 0 ? 'Truncate All Metrics' : `Clear Metrics Older Than ${metricsCleanupDays} Days`}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Confirmation Modal */}
       {showConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -306,6 +366,58 @@ export function Administration() {
                   <AlertTriangle className="w-4 h-4" />
                 )}
                 {isClearing ? 'Clearing...' : 'Clear All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Metrics Modal */}
+      {showClearMetricsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              {metricsCleanupDays === 0 ? 'Truncate All Metrics' : 'Clear Metrics Data'}
+            </h3>
+            <p className="dark:text-gray-300 text-gray-600 mb-6">
+              {metricsCleanupDays === 0 ? (
+                <>
+                  Are you sure you want to <span className="text-red-500 font-medium">truncate all metrics tables</span>?
+                  <br />
+                  <span className="text-red-500 font-medium">
+                    This will delete ALL metrics data and cannot be undone.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete metrics data older than <span className="font-medium">{metricsCleanupDays} days</span>?
+                  <br />
+                  <span className="text-red-500 font-medium">
+                    This operation cannot be undone.
+                  </span>
+                </>
+              )}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowClearMetricsModal(false)}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearMetrics}
+                disabled={isClearingMetrics}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
+                         disabled:opacity-50 flex items-center gap-2"
+              >
+                {isClearingMetrics ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4" />
+                )}
+                {isClearingMetrics ? 'Clearing...' : metricsCleanupDays === 0 ? 'Truncate All' : 'Clear Metrics'}
               </button>
             </div>
           </div>
