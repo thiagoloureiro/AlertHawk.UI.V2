@@ -18,6 +18,8 @@ export function ClustersDiagram() {
   const [userClusters, setUserClusters] = useState<string[]>([]);
   const [clustersLoaded, setClustersLoaded] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [selectedEnvironments, setSelectedEnvironments] = useState<Set<string>>(new Set());
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Fetch node metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -111,6 +113,26 @@ export function ClustersDiagram() {
       return () => clearInterval(interval);
     }
   }, [refreshInterval]);
+
+  // Update current time every second for "last update" display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get unique environments from node metrics
+  const availableEnvironments = useMemo(() => {
+    const envSet = new Set<string>();
+    nodeMetrics.forEach(metric => {
+      if (metric.clusterEnvironment) {
+        envSet.add(metric.clusterEnvironment.toUpperCase());
+      }
+    });
+    return Array.from(envSet).sort();
+  }, [nodeMetrics]);
 
   // Get metrics grouped by cluster
   const clusterMetrics = useMemo(() => {
@@ -208,10 +230,22 @@ export function ClustersDiagram() {
       (cluster as any).latestNodes = latestNodes;
     });
 
-    return Array.from(clusterMap.values()).sort((a, b) => 
+    let result = Array.from(clusterMap.values()).sort((a, b) => 
       a.clusterName.localeCompare(b.clusterName)
     );
-  }, [nodeMetrics, uniqueClusters]);
+
+    // Filter by selected environments if any are selected
+    if (selectedEnvironments.size > 0) {
+      result = result.filter(cluster => {
+        // If cluster has no environment, exclude it when filtering
+        if (!cluster.clusterEnvironment) return false;
+        return selectedEnvironments.has(cluster.clusterEnvironment.toUpperCase());
+      });
+    }
+    // If no environments selected, show all clusters (including those without environment)
+
+    return result;
+  }, [nodeMetrics, uniqueClusters, selectedEnvironments]);
 
   const formatBytes = (bytes: number): string => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -253,6 +287,26 @@ export function ClustersDiagram() {
         return 'bg-purple-500 text-white';
       default:
         return 'bg-gray-500 text-white';
+    }
+  };
+
+  const formatTimeAgo = (date?: Date): string => {
+    if (!date) return 'Never';
+    
+    const diffMs = currentTime.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 60) {
+      return `${diffSec} sec ago`;
+    } else if (diffMin < 60) {
+      return `${diffMin} min ago`;
+    } else if (diffHour < 24) {
+      return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
     }
   };
 
@@ -319,7 +373,47 @@ export function ClustersDiagram() {
               Supervisory view of all clusters and their status
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Environment Filter */}
+            {availableEnvironments.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Environment:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {availableEnvironments.map(env => {
+                    const isSelected = selectedEnvironments.has(env);
+                    return (
+                      <button
+                        key={env}
+                        onClick={() => {
+                          const newSelected = new Set(selectedEnvironments);
+                          if (isSelected) {
+                            newSelected.delete(env);
+                          } else {
+                            newSelected.add(env);
+                          }
+                          setSelectedEnvironments(newSelected);
+                        }}
+                        className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                          isSelected
+                            ? `${getEnvironmentColor(env)} shadow-md`
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {env}
+                      </button>
+                    );
+                  })}
+                  {selectedEnvironments.size > 0 && (
+                    <button
+                      onClick={() => setSelectedEnvironments(new Set())}
+                      className="px-2 py-1 rounded text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-600 dark:text-gray-400">Auto-refresh:</span>
               <select
@@ -330,6 +424,7 @@ export function ClustersDiagram() {
                          focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Off</option>
+                <option value="10">10s</option>
                 <option value="30">30s</option>
                 <option value="60">1m</option>
                 <option value="300">5m</option>
@@ -412,6 +507,16 @@ export function ClustersDiagram() {
                   <span className="text-gray-600 dark:text-gray-400 truncate text-xs">{cluster.cloudProvider || 'N/A'}</span>
                 </div>
               </div>
+
+              {/* Last Update */}
+              {cluster.lastUpdateTime && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <RefreshCw className="w-2.5 h-2.5 flex-shrink-0" />
+                    <span>Last update: {formatTimeAgo(cluster.lastUpdateTime)}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Statistics Cards - Horizontal Layout */}
               <div className="grid grid-cols-3 gap-1.5 mb-2">
