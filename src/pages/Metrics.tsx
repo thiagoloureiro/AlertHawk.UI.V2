@@ -313,7 +313,8 @@ export function Metrics() {
         usedCpuCores: 0,
         usedMemoryBytes: 0,
         kubernetesVersion: undefined as string | undefined,
-        cloudProvider: undefined as string | undefined
+        cloudProvider: undefined as string | undefined,
+        clusterEnvironment: undefined as string | undefined
       };
     }
 
@@ -322,9 +323,10 @@ export function Metrics() {
     const usedCpuCores = latestNodeMetrics.reduce((sum, m) => sum + m.cpuUsageCores, 0);
     const usedMemoryBytes = latestNodeMetrics.reduce((sum, m) => sum + m.memoryUsageBytes, 0);
 
-    // Get kubernetesVersion and cloudProvider from first node (should be same for all nodes in cluster)
+    // Get kubernetesVersion, cloudProvider, and clusterEnvironment from first node (should be same for all nodes in cluster)
     const kubernetesVersion = latestNodeMetrics[0]?.kubernetesVersion;
     const cloudProvider = latestNodeMetrics[0]?.cloudProvider;
+    const clusterEnvironment = latestNodeMetrics[0]?.clusterEnvironment;
 
     return {
       avgCpuUsage: (usedCpuCores / totalCpuCores) * 100,
@@ -335,7 +337,8 @@ export function Metrics() {
       usedCpuCores,
       usedMemoryBytes,
       kubernetesVersion,
-      cloudProvider
+      cloudProvider,
+      clusterEnvironment
     };
   }, [latestNodeMetrics]);
 
@@ -610,6 +613,26 @@ export function Metrics() {
     return 'bg-green-500';
   };
 
+  const getEnvironmentColor = (environment?: string): string => {
+    if (!environment) return 'bg-gray-500 text-white';
+    const env = environment.toUpperCase();
+    switch (env) {
+      case 'PROD':
+      case 'PRODUCTION':
+        return 'bg-red-500 text-white';
+      case 'TEST':
+      case 'TESTING':
+        return 'bg-yellow-500 text-white';
+      case 'DEV':
+      case 'DEVELOPMENT':
+        return 'bg-blue-500 text-white';
+      case 'QA':
+        return 'bg-purple-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
   // Check if user has no cluster permissions
   const user = getCurrentUser();
   const hasNoPermissions = clustersLoaded && uniqueClusters.length === 0 && !user?.isAdmin;
@@ -752,7 +775,14 @@ export function Metrics() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Nodes</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Nodes</h3>
+                {clusterStats.clusterEnvironment && (
+                  <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${getEnvironmentColor(clusterStats.clusterEnvironment)} flex-shrink-0`}>
+                    {clusterStats.clusterEnvironment.toUpperCase()}
+                  </span>
+                )}
+              </div>
               <Server className="w-5 h-5 text-gray-400" />
             </div>
             <p className="text-2xl font-bold dark:text-white text-gray-900">
