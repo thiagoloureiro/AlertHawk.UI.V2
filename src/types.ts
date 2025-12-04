@@ -195,6 +195,7 @@ export interface NodeMetric {
   timestamp: string;
   nodeName: string;
   clusterName: string;
+  clusterEnvironment?: string;
   cpuUsageCores: number;
   cpuCapacityCores: number;
   memoryUsageBytes: number;

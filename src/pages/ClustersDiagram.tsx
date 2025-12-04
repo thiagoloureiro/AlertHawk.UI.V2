@@ -116,6 +116,7 @@ export function ClustersDiagram() {
   const clusterMetrics = useMemo(() => {
     const clusterMap = new Map<string, {
       clusterName: string;
+      clusterEnvironment?: string;
       nodes: NodeMetric[];
       totalNodes: number;
       readyNodes: number;
@@ -139,6 +140,7 @@ export function ClustersDiagram() {
       if (!clusterMap.has(metric.clusterName)) {
         clusterMap.set(metric.clusterName, {
           clusterName: metric.clusterName,
+          clusterEnvironment: metric.clusterEnvironment,
           nodes: [],
           totalNodes: 0,
           readyNodes: 0,
@@ -232,6 +234,26 @@ export function ClustersDiagram() {
     if (percentage >= 90) return 'bg-red-500';
     if (percentage >= 70) return 'bg-yellow-500';
     return 'bg-green-500';
+  };
+
+  const getEnvironmentColor = (environment?: string): string => {
+    if (!environment) return 'bg-gray-500 text-white';
+    const env = environment.toUpperCase();
+    switch (env) {
+      case 'PROD':
+      case 'PRODUCTION':
+        return 'bg-red-500 text-white';
+      case 'TEST':
+      case 'TESTING':
+        return 'bg-yellow-500 text-white';
+      case 'DEV':
+      case 'DEVELOPMENT':
+        return 'bg-blue-500 text-white';
+      case 'QA':
+        return 'bg-purple-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
   };
 
   const getClusterStatusColor = (cluster: typeof clusterMetrics[0]): string => {
@@ -341,9 +363,16 @@ export function ClustersDiagram() {
                     <Server className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-bold dark:text-white text-gray-900 truncate">
-                      {cluster.clusterName}
-                    </h2>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <h2 className="text-sm font-bold dark:text-white text-gray-900 truncate">
+                        {cluster.clusterName}
+                      </h2>
+                      {cluster.clusterEnvironment && (
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${getEnvironmentColor(cluster.clusterEnvironment)} flex-shrink-0`}>
+                          {cluster.clusterEnvironment.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 mt-0.5">
                       {cluster.isOffline ? (
                         <>
