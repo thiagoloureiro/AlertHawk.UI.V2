@@ -6,7 +6,7 @@ import {
 import { 
   Server, Cpu, HardDrive, RefreshCw, 
   Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight,
-  Code, Cloud, CheckCircle, XCircle, HelpCircle
+  Code, Cloud, CheckCircle, XCircle, HelpCircle, DollarSign
 } from 'lucide-react';
 import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -749,7 +749,7 @@ export function Metrics() {
         </div>
 
         {/* Cluster Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Nodes</h3>
@@ -827,6 +827,47 @@ export function Metrics() {
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Est. Cost</h3>
+                <div className="relative group/tooltip">
+                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 
+                                w-64 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg 
+                                shadow-xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity 
+                                pointer-events-none z-[100] invisible group-hover/tooltip:visible border border-gray-700">
+                    <div className="space-y-1.5">
+                      <p className="font-semibold mb-1.5">Compute Cost Only</p>
+                      <p>This price reflects only the compute (VM/node) costs for the cluster.</p>
+                      <p className="mt-2 font-semibold">Not included:</p>
+                      <ul className="list-disc list-inside space-y-0.5 ml-1">
+                        <li>Load balancer costs</li>
+                        <li>Storage costs</li>
+                        <li>Network egress costs</li>
+                        <li>Other infrastructure services</li>
+                      </ul>
+                    </div>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0">
+                      <div className="border-4 border-transparent border-b-gray-900 dark:border-b-gray-800"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DollarSign className="w-5 h-5 text-gray-400" />
+            </div>
+            <p className="text-2xl font-bold dark:text-white text-gray-900">
+              {totalClusterMonthlyCost > 0 
+                ? azurePricingService.formatMonthlyPrice(totalClusterMonthlyCost)
+                : Array.from(loadingPricing.values()).some(loading => loading)
+                  ? 'Loading...'
+                  : '-'}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {selectedCluster || 'No cluster selected'}
+            </p>
           </div>
         </div>
 
@@ -1379,8 +1420,66 @@ export function Metrics() {
                     const cpuPercent = totalUsedCpu > 0 ? (ns.cpuUsageCores / totalUsedCpu) * 100 : 0;
                     const memoryPercent = totalUsedMemory > 0 ? (ns.memoryUsageBytes / totalUsedMemory) * 100 : 0;
                     
-                    // Calculate estimated monthly cost based on CPU and Memory usage percentages
-                    // We allocate 100% of node costs proportionally to namespaces based on their usage
+                    /**
+                     * NAMESPACE COST CALCULATION EXPLANATION:
+                     * 
+                     * This calculates the estimated monthly cost for each namespace by proportionally
+                     * allocating the total cluster monthly cost based on resource usage.
+                     * 
+                     * STEP-BY-STEP PROCESS:
+                     * 
+                     * 1. Calculate total cluster monthly cost:
+                     *    - Sums up monthly costs of all Azure nodes in the cluster
+                     *    - This is the total amount to be allocated across all namespaces
+                     * 
+                     * 2. For each namespace, calculate usage as % of cluster CAPACITY (not usage):
+                     *    - CPU % = (namespace CPU usage / total cluster CPU capacity) × 100
+                     *    - Memory % = (namespace Memory usage / total cluster Memory capacity) × 100
+                     *    - Using CAPACITY ensures we account for unused resources too
+                     * 
+                     * 3. Average CPU and Memory percentages:
+                     *    - avgUsagePercent = (cpuUsagePercent + memoryUsagePercent) / 2
+                     *    - This gives equal weight to both CPU and Memory
+                     * 
+                     * 4. Calculate total average across ALL namespaces:
+                     *    - Sums up avgUsagePercent for every namespace
+                     *    - This represents the total "usage share" across all namespaces
+                     * 
+                     * 5. Normalize to ensure 100% allocation:
+                     *    - normalizedPercent = (namespace avgUsagePercent / total avgUsagePercent) × 100
+                     *    - This ensures all namespace costs sum to exactly 100% of totalClusterMonthlyCost
+                     *    - Example: If namespace A has 30% avg and total is 60%, normalized = 50%
+                     * 
+                     * 6. Calculate final cost:
+                     *    - estimatedMonthlyCost = (normalizedPercent / 100) × totalClusterMonthlyCost
+                     * 
+                     * WHY NORMALIZATION?
+                     * - If total usage is less than 100% of capacity, without normalization,
+                     *   the sum of namespace costs would be less than totalClusterMonthlyCost
+                     * - Normalization ensures we allocate 100% of node costs, even if usage is lower
+                     * - This reflects the reality that you pay for capacity, not just usage
+                     * 
+                     * EXAMPLE:
+                     * - Cluster has 100 CPU cores capacity, costs $1000/month
+                     * - Namespace A uses 20 cores (20% of capacity)
+                     * - Namespace B uses 10 cores (10% of capacity)
+                     * - Total usage: 30 cores (30% of capacity)
+                     * 
+                     * Without normalization:
+                     *   - A: 20% × $1000 = $200
+                     *   - B: 10% × $1000 = $100
+                     *   - Total: $300 (only 30% of costs allocated!)
+                     * 
+                     * With normalization:
+                     *   - A avg: (20% + 20%)/2 = 20% (assuming equal memory)
+                     *   - B avg: (10% + 10%)/2 = 10%
+                     *   - Total avg: 30%
+                     *   - A normalized: (20% / 30%) × 100 = 66.67%
+                     *   - B normalized: (10% / 30%) × 100 = 33.33%
+                     *   - A cost: 66.67% × $1000 = $666.67
+                     *   - B cost: 33.33% × $1000 = $333.33
+                     *   - Total: $1000 (100% allocated!)
+                     */
                     let estimatedMonthlyCost: number | null = null;
                     // Check if we have valid cluster capacity and cost data
                     // Also check if any pricing is still loading
@@ -1396,27 +1495,27 @@ export function Metrics() {
                     });
                     
                     if (totalClusterCapacity.totalCpu > 0 && totalClusterCapacity.totalMemory > 0 && totalClusterMonthlyCost > 0 && !isPricingLoading) {
-                      // Calculate CPU and Memory usage as percentage of total cluster CAPACITY
+                      // Step 2: Calculate CPU and Memory usage as percentage of total cluster CAPACITY
                       const cpuUsagePercent = (ns.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
                       const memoryUsagePercent = (ns.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
                       
-                      // Average of CPU and Memory percentages for this namespace
+                      // Step 3: Average of CPU and Memory percentages for this namespace
                       const avgUsagePercent = (cpuUsagePercent + memoryUsagePercent) / 2;
                       
-                      // Calculate total average usage percent across ALL namespaces
+                      // Step 4: Calculate total average usage percent across ALL namespaces
                       const totalAvgUsagePercent = namespaceStats.reduce((sum, n) => {
                         const nsCpuPercent = (n.cpuUsageCores / totalClusterCapacity.totalCpu) * 100;
                         const nsMemoryPercent = (n.memoryUsageBytes / totalClusterCapacity.totalMemory) * 100;
                         return sum + (nsCpuPercent + nsMemoryPercent) / 2;
                       }, 0);
                       
-                      // Normalize: allocate proportionally so all namespaces sum to 100% of total cost
+                      // Step 5: Normalize to ensure all namespaces sum to 100% of total cost
                       // This ensures the sum of all namespace costs equals totalClusterMonthlyCost
                       const normalizedPercent = totalAvgUsagePercent > 0 
                         ? (avgUsagePercent / totalAvgUsagePercent) * 100 
                         : 0;
                       
-                      // Estimated cost = normalized percentage * total monthly cost
+                      // Step 6: Estimated cost = normalized percentage * total monthly cost
                       estimatedMonthlyCost = (normalizedPercent / 100) * totalClusterMonthlyCost;
                       
                       console.log('[DEBUG] Calculated namespace cost:', {
