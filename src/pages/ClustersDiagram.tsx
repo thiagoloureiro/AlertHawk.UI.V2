@@ -279,7 +279,7 @@ export function ClustersDiagram() {
         return 'bg-red-500 text-white';
       case 'TEST':
       case 'TESTING':
-        return 'bg-yellow-500 text-white';
+        return 'bg-green-500 text-white';
       case 'DEV':
       case 'DEVELOPMENT':
         return 'bg-blue-500 text-white';

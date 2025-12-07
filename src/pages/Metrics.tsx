@@ -179,7 +179,7 @@ export function Metrics() {
     
     // If user is admin, show all clusters
     if (user?.isAdmin) {
-      return [...clusters].sort();
+      return [...clusters].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     }
     
     // Otherwise, filter to only show clusters user has permission to view
@@ -187,7 +187,8 @@ export function Metrics() {
       return [];
     }
     
-    return clusters.filter(cluster => userClusters.includes(cluster)).sort();
+    return clusters.filter(cluster => userClusters.includes(cluster))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [clusters, userClusters]);
 
   // Fetch clusters and user clusters on mount
@@ -622,7 +623,7 @@ export function Metrics() {
         return 'bg-red-500 text-white';
       case 'TEST':
       case 'TESTING':
-        return 'bg-yellow-500 text-white';
+        return 'bg-green-500 text-white';
       case 'DEV':
       case 'DEVELOPMENT':
         return 'bg-blue-500 text-white';

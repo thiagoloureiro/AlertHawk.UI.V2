@@ -143,7 +143,7 @@ export function ApplicationMetrics() {
     
     // If user is admin, show all clusters
     if (user?.isAdmin) {
-      return [...clusters].sort();
+      return [...clusters].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     }
     
     // Otherwise, filter to only show clusters user has permission to view
@@ -151,7 +151,8 @@ export function ApplicationMetrics() {
       return [];
     }
     
-    return clusters.filter(cluster => userClusters.includes(cluster)).sort();
+    return clusters.filter(cluster => userClusters.includes(cluster))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [clusters, userClusters]);
 
   // Filter metrics by selected cluster
@@ -162,7 +163,7 @@ export function ApplicationMetrics() {
 
   // Get unique namespaces (from fetched namespaces list)
   const uniqueNamespaces = useMemo(() => {
-    return [...namespaces].sort();
+    return [...namespaces].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [namespaces]);
 
   // Get unique pods (filtered by namespace if selected, from filtered metrics)
