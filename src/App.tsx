@@ -24,9 +24,9 @@ function AppContent() {
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  const [theme, setTheme] = useState<'light' | 'dark' | 'darcula' | 'monokai'>(() => {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'darcula' | 'monokai' | 'github-dark'>(() => {
     const saved = localStorage.getItem('theme');
-    if (saved === 'light' || saved === 'dark' || saved === 'darcula' || saved === 'monokai') {
+    if (saved === 'light' || saved === 'dark' || saved === 'darcula' || saved === 'monokai' || saved === 'github-dark') {
       return saved;
     }
     return 'dark'; // default to dark theme
@@ -86,7 +86,7 @@ function AppContent() {
   useEffect(() => {
     localStorage.setItem('theme', theme);
     // Remove all theme classes
-    document.documentElement.classList.remove('dark', 'darcula', 'monokai');
+    document.documentElement.classList.remove('dark', 'darcula', 'monokai', 'github-dark');
     // Add the current theme class (except for light which has no class)
     if (theme !== 'light') {
       document.documentElement.classList.add(theme);

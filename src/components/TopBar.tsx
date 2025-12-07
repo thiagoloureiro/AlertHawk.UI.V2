@@ -37,8 +37,8 @@ const getEnvironmentInfo = (environmentId: number) => {
 };
 
 interface TopBarProps {
-  theme: 'light' | 'dark' | 'darcula' | 'monokai';
-  onThemeChange: (theme: 'light' | 'dark' | 'darcula' | 'monokai') => void;
+  theme: 'light' | 'dark' | 'darcula' | 'monokai' | 'github-dark';
+  onThemeChange: (theme: 'light' | 'dark' | 'darcula' | 'monokai' | 'github-dark') => void;
 }
 
 interface UserInfo {
@@ -174,6 +174,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
     { value: 'dark' as const, label: 'Dark', icon: <Moon className="w-4 h-4" /> },
     { value: 'darcula' as const, label: 'Darcula', icon: <Palette className="w-4 h-4" /> },
     { value: 'monokai' as const, label: 'Monokai', icon: <Palette className="w-4 h-4" /> },
+    { value: 'github-dark' as const, label: 'GitHub Dark', icon: <Palette className="w-4 h-4" /> },
   ];
 
   return (

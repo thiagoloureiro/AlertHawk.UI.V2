@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:is(.dark *, .darcula *, .monokai *));
+@custom-variant dark (&:is(.dark *, .darcula *, .monokai *, .github-dark *));
 @custom-variant darcula (&:is(.darcula *));
 @custom-variant monokai (&:is(.monokai *));
+@custom-variant github-dark (&:is(.github-dark *));
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
@@ -50,6 +51,12 @@
     --tooltip-bg: #3E3D32;
     --tooltip-border: #575651;
     --tooltip-text: #F8F8F2;
+  }
+  
+  .github-dark {
+    --tooltip-bg: #161b22;
+    --tooltip-border: #30363d;
+    --tooltip-text: #c9d1d9;
   }
 }
 
@@ -325,4 +332,141 @@
 
 .monokai ::-webkit-scrollbar-thumb:hover {
   background-color: #575651 !important;
+}
+
+/* GitHub Dark Theme Styles */
+.github-dark {
+  color-scheme: dark;
+}
+
+.github-dark body {
+  background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+.github-dark .bg-white {
+  background-color: #161b22 !important;
+}
+
+.github-dark .bg-gray-50 {
+  background-color: #0d1117 !important;
+}
+
+.github-dark .bg-gray-100 {
+  background-color: #161b22 !important;
+}
+
+.github-dark .bg-gray-200 {
+  background-color: #21262d !important;
+}
+
+.github-dark .bg-gray-800 {
+  background-color: #161b22 !important;
+}
+
+.github-dark .bg-gray-900 {
+  background-color: #0d1117 !important;
+}
+
+.github-dark .text-gray-900 {
+  color: #c9d1d9 !important;
+}
+
+.github-dark .text-gray-700 {
+  color: #c9d1d9 !important;
+}
+
+.github-dark .text-gray-600 {
+  color: #8b949e !important;
+}
+
+.github-dark .text-gray-500 {
+  color: #8b949e !important;
+}
+
+.github-dark .text-gray-400 {
+  color: #8b949e !important;
+}
+
+.github-dark .text-white {
+  color: #c9d1d9 !important;
+}
+
+.github-dark .border-gray-200 {
+  border-color: #30363d !important;
+}
+
+.github-dark .border-gray-300 {
+  border-color: #373e47 !important;
+}
+
+.github-dark .border-gray-600 {
+  border-color: #373e47 !important;
+}
+
+.github-dark .border-gray-700 {
+  border-color: #373e47 !important;
+}
+
+.github-dark .hover\:bg-gray-100:hover {
+  background-color: #21262d !important;
+}
+
+.github-dark .hover\:bg-gray-800:hover {
+  background-color: #21262d !important;
+}
+
+.github-dark ::-webkit-scrollbar-track {
+  background-color: #161b22 !important;
+}
+
+.github-dark ::-webkit-scrollbar-thumb {
+  background-color: #21262d !important;
+}
+
+.github-dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #30363d !important;
+}
+
+/* GitHub Dark button text fixes */
+.github-dark button.text-white,
+.github-dark .text-white button,
+.github-dark button[class*="text-white"] {
+  color: #c9d1d9 !important;
+}
+
+/* Buttons with blue backgrounds should have bright text */
+.github-dark button.bg-blue-500,
+.github-dark button.bg-blue-600,
+.github-dark button[class*="bg-blue-500"],
+.github-dark button[class*="bg-blue-600"],
+.github-dark .bg-blue-500,
+.github-dark .bg-blue-600 {
+  color: #FFFFFF !important;
+}
+
+.github-dark button.bg-blue-500 *,
+.github-dark button.bg-blue-600 *,
+.github-dark button[class*="bg-blue-500"] *,
+.github-dark button[class*="bg-blue-600"] * {
+  color: #FFFFFF !important;
+}
+
+.github-dark button.text-gray-700,
+.github-dark button.text-gray-900,
+.github-dark .text-gray-700 button,
+.github-dark .text-gray-900 button {
+  color: #c9d1d9 !important;
+}
+
+.github-dark button.text-gray-500,
+.github-dark button.text-gray-400,
+.github-dark .text-gray-500 button,
+.github-dark .text-gray-400 button {
+  color: #c9d1d9 !important;
+}
+
+/* Ensure buttons with colored backgrounds have visible text */
+.github-dark button[class*="bg-"]:not([class*="bg-gray"]):not([class*="bg-blue"]) {
+  color: #c9d1d9 !important;
 }

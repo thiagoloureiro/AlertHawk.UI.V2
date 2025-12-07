@@ -4,8 +4,8 @@ import { TopBar } from './TopBar';
 
 interface LayoutProps {
   children: React.ReactNode;
-  theme: 'light' | 'dark' | 'darcula' | 'monokai';
-  onThemeChange: (theme: 'light' | 'dark' | 'darcula' | 'monokai') => void;
+  theme: 'light' | 'dark' | 'darcula' | 'monokai' | 'github-dark';
+  onThemeChange: (theme: 'light' | 'dark' | 'darcula' | 'monokai' | 'github-dark') => void;
 }
 
 export function Layout({ children, theme, onThemeChange }: LayoutProps) {
