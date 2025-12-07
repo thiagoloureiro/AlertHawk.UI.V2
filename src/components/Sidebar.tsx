@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
-import { cn } from '../lib/utils';
+import { cn, isMetricsEnabled } from '../lib/utils';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -72,9 +72,16 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
     return stored ? JSON.parse(stored) : null;
   }, []);
 
-  // Combine menu items based on user role
+  // Combine menu items based on user role and metrics enabled
   const menuItems = React.useMemo(() => {
-    const items = [...baseMenuItems];
+    let items = [...baseMenuItems];
+    
+    // Filter out metrics-related items if metrics are disabled
+    if (!isMetricsEnabled()) {
+      const metricsItemIds = ['3', '4', '12']; // Cluster Metrics, Application Metrics, Clusters Diagram
+      items = items.filter(item => !metricsItemIds.includes(item.id));
+    }
+    
     if (userInfo?.isAdmin) {
       items.push(...adminMenuItems);
     }

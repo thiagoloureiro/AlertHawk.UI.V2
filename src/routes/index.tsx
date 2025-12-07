@@ -15,8 +15,11 @@ import { Settings } from '../pages/Settings';
 import { StatusDashboard } from '../pages/StatusDashboard';
 import { SSLCertificateMonitor } from '../pages/SSLCertificateMonitor';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+import { isMetricsEnabled } from '../lib/utils';
 
 export function AppRoutes() {
+  const metricsEnabled = isMetricsEnabled();
+  
   return (
     <Routes>
       {/* Public Routes */}
@@ -29,9 +32,13 @@ export function AppRoutes() {
       <Route path="/dashboard-builder" element={<DashboardBuilder />} />
       <Route path="/dashboard-builder/:dashboardId" element={<DashboardBuilder />} />
       <Route path="/dashboard/:monitorId" element={<MonitorDetails />} />
-      <Route path="/metrics" element={<Metrics />} />
-      <Route path="/application-metrics" element={<ApplicationMetrics />} />
-      <Route path="/clusters-diagram" element={<ClustersDiagram />} />
+      {metricsEnabled && (
+        <>
+          <Route path="/metrics" element={<Metrics />} />
+          <Route path="/application-metrics" element={<ApplicationMetrics />} />
+          <Route path="/clusters-diagram" element={<ClustersDiagram />} />
+        </>
+      )}
       <Route path="/alerts" element={<MonitorAlerts />} />
       <Route path="/ssl-certificates" element={<SSLCertificateMonitor />} />
       <Route path="/groups" element={<MonitorGroups />} />

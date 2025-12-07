@@ -5,6 +5,7 @@ import { CertificateExpirationModal } from '../components/CertificateExpirationM
 import { WelcomeMetricsModal, shouldShowMetricsWelcome } from '../components/WelcomeMetricsModal';
 import { Monitor, MonitorGroup } from '../types';
 import monitorService from '../services/monitorService';
+import { isMetricsEnabled } from '../lib/utils';
 
 export function Dashboard() {
   const [selectedMetric, setSelectedMetric] = useState<Monitor | null>(null);
@@ -20,9 +21,9 @@ export function Dashboard() {
     setSelectedGroup(group);
   };
 
-  // Show welcome modal on first visit
+  // Show welcome modal on first visit (only if metrics are enabled)
   useEffect(() => {
-    if (shouldShowMetricsWelcome()) {
+    if (isMetricsEnabled() && shouldShowMetricsWelcome()) {
       setShowWelcome(true);
     }
   }, []);
