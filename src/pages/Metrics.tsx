@@ -12,7 +12,7 @@ import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
 import userService from '../services/userService';
 import azurePricingService from '../services/azurePricingService';
-import { LoadingSpinner } from '../components/ui';
+import { LoadingSpinner, Switch } from '../components/ui';
 import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
 
@@ -34,6 +34,8 @@ export function Metrics() {
   const [showOnlyLiveClusters, setShowOnlyLiveClusters] = useState(true);
   const [nodePricing, setNodePricing] = useState<Map<string, number | null>>(new Map());
   const [loadingPricing, setLoadingPricing] = useState<Set<string>>(new Set());
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<10 | 30 | 60>(30);
 
   // Fetch pricing for Azure nodes
   const fetchPricingForNodes = async (metrics: NodeMetric[]) => {
@@ -139,6 +141,20 @@ export function Metrics() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [expandedChart]);
+
+  // Auto-refresh interval
+  useEffect(() => {
+    if (!autoRefreshEnabled) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      fetchMetrics(false);
+    }, autoRefreshInterval * 1000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefreshEnabled, autoRefreshInterval]);
 
   // Get current user info
   const getCurrentUser = () => {
@@ -761,6 +777,27 @@ export function Metrics() {
                   </div>
                 </div>
               </div>
+            </div>
+            {/* Auto Refresh Controls */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Auto refresh:</span>
+              <Switch
+                checked={autoRefreshEnabled}
+                onCheckedChange={setAutoRefreshEnabled}
+              />
+              {autoRefreshEnabled && (
+                <select
+                  value={autoRefreshInterval}
+                  onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
+                  className="px-3 py-1.5 rounded-lg dark:bg-gray-800 bg-white border 
+                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                           focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value={10}>10s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>60s</option>
+                </select>
+              )}
             </div>
             <button
               onClick={() => fetchMetrics(false)}

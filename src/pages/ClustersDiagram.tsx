@@ -6,7 +6,7 @@ import {
 import { NodeMetric } from '../types';
 import metricsService from '../services/metricsService';
 import userService from '../services/userService';
-import { LoadingSpinner } from '../components/ui';
+import { LoadingSpinner, Switch } from '../components/ui';
 import { toast } from 'react-hot-toast';
 
 export function ClustersDiagram() {
@@ -17,7 +17,8 @@ export function ClustersDiagram() {
   const [clusters, setClusters] = useState<string[]>([]);
   const [userClusters, setUserClusters] = useState<string[]>([]);
   const [clustersLoaded, setClustersLoaded] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<10 | 30 | 60>(30);
   const [selectedEnvironments, setSelectedEnvironments] = useState<Set<string>>(new Set());
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -103,16 +104,19 @@ export function ClustersDiagram() {
     fetchMetrics();
   }, []);
 
-  // Auto-refresh data
+  // Auto-refresh interval
   useEffect(() => {
-    if (refreshInterval && refreshInterval > 0) {
-      const interval = setInterval(() => {
-        fetchMetrics(false);
-      }, refreshInterval * 1000);
-
-      return () => clearInterval(interval);
+    if (!autoRefreshEnabled) {
+      return;
     }
-  }, [refreshInterval]);
+
+    const interval = setInterval(() => {
+      fetchMetrics(false);
+    }, autoRefreshInterval * 1000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefreshEnabled, autoRefreshInterval]);
 
   // Update current time every second for "last update" display
   useEffect(() => {
@@ -414,22 +418,26 @@ export function ClustersDiagram() {
                 </div>
               </div>
             )}
+            {/* Auto Refresh Controls */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Auto-refresh:</span>
-              <select
-                value={refreshInterval || ''}
-                onChange={(e) => setRefreshInterval(e.target.value ? Number(e.target.value) : null)}
-                className="px-3 py-1.5 text-sm rounded-lg dark:bg-gray-800 bg-white border 
-                         dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                         focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Off</option>
-                <option value="10">10s</option>
-                <option value="30">30s</option>
-                <option value="60">1m</option>
-                <option value="300">5m</option>
-                <option value="600">10m</option>
-              </select>
+              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Auto refresh:</span>
+              <Switch
+                checked={autoRefreshEnabled}
+                onCheckedChange={setAutoRefreshEnabled}
+              />
+              {autoRefreshEnabled && (
+                <select
+                  value={autoRefreshInterval}
+                  onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
+                  className="px-3 py-1.5 rounded-lg dark:bg-gray-800 bg-white border 
+                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
+                           focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value={10}>10s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>60s</option>
+                </select>
+              )}
             </div>
             <button
               onClick={() => fetchMetrics(false)}
