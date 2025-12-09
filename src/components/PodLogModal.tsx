@@ -12,7 +12,7 @@ interface PodLogModalProps {
   pod: string;
   container: string;
   clusterName?: string;
-  hours?: number;
+  hours?: number; // Keep for backward compatibility, but will be converted to minutes
 }
 
 export function PodLogModal({ 
@@ -22,7 +22,7 @@ export function PodLogModal({
   pod, 
   container, 
   clusterName,
-  hours = 24 
+  hours = 30 // This is now minutes, keeping prop name for backward compatibility
 }: PodLogModalProps) {
   const [logs, setLogs] = useState<PodLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +46,7 @@ export function PodLogModal({
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
-      const logData = await metricsService.getPodLogs(namespace, container, hours, 1, clusterName);
+      const logData = await metricsService.getPodLogs(namespace, container, hours, clusterName);
       setLogs(logData);
     } catch (error) {
       console.error('Failed to fetch pod logs:', error);

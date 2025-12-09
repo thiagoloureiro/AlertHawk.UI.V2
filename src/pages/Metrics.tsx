@@ -21,7 +21,7 @@ export function Metrics() {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hours, setHours] = useState(1);
+  const [minutes, setMinutes] = useState(30);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -89,8 +89,8 @@ export function Metrics() {
       }
       setError(null);
       const [nodeMetricsData, namespaceMetricsData] = await Promise.all([
-        metricsService.getNodeMetrics(hours, 1000, selectedCluster || undefined),
-        metricsService.getNamespaceMetrics(hours, 100, selectedCluster || undefined)
+        metricsService.getNodeMetrics(minutes, selectedCluster || undefined),
+        metricsService.getNamespaceMetrics(minutes, selectedCluster || undefined)
       ]);
       setNodeMetrics(nodeMetricsData);
       setNamespaceMetrics(namespaceMetricsData);
@@ -118,7 +118,7 @@ export function Metrics() {
       fetchMetrics(!isInitialLoad);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hours, selectedCluster]);
+  }, [minutes, selectedCluster]);
 
   // Fetch pricing when cluster changes or node metrics update
   useEffect(() => {
@@ -718,17 +718,20 @@ export function Metrics() {
             </div>
             {/* Time Range Selector */}
             <select
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
+              value={minutes}
+              onChange={(e) => setMinutes(Number(e.target.value))}
               className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
                        dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                        focus:ring-2 focus:ring-blue-500"
             >
-              <option value={1}>Last 1 hour</option>
-              <option value={6}>Last 6 hours</option>
-              <option value={24}>Last 24 hours</option>
-              <option value={48}>Last 48 hours</option>
-              <option value={168}>Last 7 days</option>
+              <option value={5}>Last 5 minutes</option>
+              <option value={10}>Last 10 minutes</option>
+              <option value={30}>Last 30 minutes</option>
+              <option value={60}>Last 1 hour</option>
+              <option value={360}>Last 6 hours</option>
+              <option value={1440}>Last 24 hours</option>
+              <option value={2880}>Last 48 hours</option>
+              <option value={10080}>Last 7 days</option>
             </select>
             {/* Show Only Live Clusters Checkbox */}
             <div className="flex items-center gap-2">

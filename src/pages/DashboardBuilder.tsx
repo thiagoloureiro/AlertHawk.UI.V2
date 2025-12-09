@@ -79,8 +79,8 @@ export function DashboardBuilder() {
         const [monitorGroups, alerts, nodeMetrics, namespaceMetrics] = await Promise.all([
           monitorService.getDashboardGroups(6), // Production environment
           alertService.getAlerts(0, 90), // All environments, 90 days
-          metricsService.getNodeMetrics(1, 1000), // Last 1 hour, up to 1000 records
-          metricsService.getNamespaceMetrics(1, 1000) // Last 1 hour, up to 1000 records
+          metricsService.getNodeMetrics(30), // Last 30 minutes
+          metricsService.getNamespaceMetrics(30) // Last 30 minutes
         ]);
         
         setData({ monitorGroups, alerts, nodeMetrics, namespaceMetrics });
@@ -109,8 +109,8 @@ export function DashboardBuilder() {
           const [monitorGroups, alerts, nodeMetrics, namespaceMetrics] = await Promise.all([
             monitorService.getDashboardGroups(6),
             alertService.getAlerts(0, 90),
-            metricsService.getNodeMetrics(1, 1000),
-            metricsService.getNamespaceMetrics(1, 1000)
+            metricsService.getNodeMetrics(30),
+            metricsService.getNamespaceMetrics(30)
           ]);
           setData({ monitorGroups, alerts, nodeMetrics, namespaceMetrics });
         } catch (err) {

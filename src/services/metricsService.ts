@@ -37,15 +37,13 @@ class MetricsService {
 
   /**
    * Fetch node metrics from the API
-   * @param hours - Number of hours of data to fetch (default: 24)
-   * @param limit - Maximum number of records to return (default: 100)
+   * @param minutes - Number of minutes of data to fetch (default: 30)
    * @param clusterName - Name of the cluster to filter by (optional)
    */
-  async getNodeMetrics(hours: number = 24, limit: number = 100, clusterName?: string): Promise<NodeMetric[]> {
+  async getNodeMetrics(minutes: number = 30, clusterName?: string): Promise<NodeMetric[]> {
     try {
-      const params: { hours: number; limit: number; clusterName?: string } = {
-        hours,
-        limit
+      const params: { minutes: number; clusterName?: string } = {
+        minutes
       };
       if (clusterName) {
         params.clusterName = clusterName;
@@ -62,16 +60,14 @@ class MetricsService {
 
   /**
    * Fetch namespace/pod metrics from the API
-   * @param hours - Number of hours of data to fetch (default: 24)
-   * @param limit - Maximum number of records to return (default: 100)
+   * @param minutes - Number of minutes of data to fetch (default: 30)
    * @param clusterName - Name of the cluster to filter by (optional)
    * @param namespace - Name of the namespace to filter by (optional)
    */
-  async getNamespaceMetrics(hours: number = 24, limit: number = 100, clusterName?: string, namespace?: string): Promise<NamespaceMetric[]> {
+  async getNamespaceMetrics(minutes: number = 30, clusterName?: string, namespace?: string): Promise<NamespaceMetric[]> {
     try {
-      const params: { hours: number; limit: number; clusterName?: string; namespace?: string } = {
-        hours,
-        limit
+      const params: { minutes: number; clusterName?: string; namespace?: string } = {
+        minutes
       };
       if (clusterName) {
         params.clusterName = clusterName;
@@ -93,15 +89,13 @@ class MetricsService {
    * Fetch pod logs from the API
    * @param namespace - Name of the namespace
    * @param container - Name of the container
-   * @param hours - Number of hours of logs to fetch (default: 24)
-   * @param limit - Maximum number of log entries to return (default: 1)
+   * @param minutes - Number of minutes of logs to fetch (default: 30)
    * @param clusterName - Name of the cluster (optional)
    */
-  async getPodLogs(namespace: string, container: string, hours: number = 24, limit: number = 1, clusterName?: string): Promise<PodLog[]> {
+  async getPodLogs(namespace: string, container: string, minutes: number = 30, clusterName?: string): Promise<PodLog[]> {
     try {
-      const params: { hours: number; limit: number; clusterName?: string } = {
-        hours,
-        limit
+      const params: { minutes: number; clusterName?: string } = {
+        minutes
       };
       if (clusterName) {
         params.clusterName = clusterName;
