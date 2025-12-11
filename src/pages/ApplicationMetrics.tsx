@@ -827,7 +827,27 @@ export function ApplicationMetrics() {
                   }}
                   formatter={(value: number) => `${value.toFixed(4)} cores`}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Legend 
+                  content={(props) => {
+                    const { payload } = props;
+                    if (!payload) return null;
+                    return (
+                      <div className="overflow-x-auto max-h-24 overflow-y-auto">
+                        <div className="flex flex-wrap gap-2 px-2 py-1">
+                          {payload.map((entry: any, index: number) => (
+                            <div key={`legend-${index}`} className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                              <div 
+                                className="w-3 h-0.5" 
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span className="dark:text-gray-300 text-gray-700">{entry.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
                 {chartContainers.map((key, index) => {
                   const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#818CF8', '#60A5FA'];
                   return (
@@ -901,7 +921,27 @@ export function ApplicationMetrics() {
                   }}
                   formatter={(value: number) => `${value.toFixed(2)} MB`}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Legend 
+                  content={(props) => {
+                    const { payload } = props;
+                    if (!payload) return null;
+                    return (
+                      <div className="overflow-x-auto max-h-24 overflow-y-auto">
+                        <div className="flex flex-wrap gap-2 px-2 py-1">
+                          {payload.map((entry: any, index: number) => (
+                            <div key={`legend-${index}`} className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                              <div 
+                                className="w-3 h-0.5" 
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span className="dark:text-gray-300 text-gray-700">{entry.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
                 {chartContainers.map((key, index) => {
                   const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#818CF8', '#60A5FA'];
                   return (
@@ -1124,7 +1164,27 @@ export function ApplicationMetrics() {
                       ? `${value.toFixed(4)} cores` 
                       : `${value.toFixed(2)} MB`}
                   />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  <Legend 
+                    content={(props) => {
+                      const { payload } = props;
+                      if (!payload) return null;
+                      return (
+                        <div className="overflow-x-auto max-h-32 overflow-y-auto">
+                          <div className="flex flex-wrap gap-2 px-2 py-1">
+                            {payload.map((entry: any, index: number) => (
+                              <div key={`legend-${index}`} className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                                <div 
+                                  className="w-3 h-0.5" 
+                                  style={{ backgroundColor: entry.color }}
+                                />
+                                <span className="dark:text-gray-300 text-gray-700">{entry.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
                   {chartContainers.map((key, index) => {
                     const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24', '#FB7185', '#A78BFA', '#818CF8', '#60A5FA'];
                     return (
