@@ -17,6 +17,7 @@ import { PodLogModal } from '../components/PodLogModal';
 
 export function ApplicationMetrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
+  const [podDetailsMetrics, setPodDetailsMetrics] = useState<NamespaceMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +65,31 @@ export function ApplicationMetrics() {
     }
   };
 
+  // Fetch pod details metrics (last minute data for pod & container details table)
+  const fetchPodDetailsMetrics = async () => {
+    if (!selectedCluster || !selectedNamespace) {
+      setPodDetailsMetrics([]);
+      return;
+    }
+    
+    try {
+      const podDetailsData = await metricsService.getNamespaceMetrics(
+        1,
+        selectedCluster,
+        selectedNamespace
+      );
+      setPodDetailsMetrics(podDetailsData);
+    } catch (err) {
+      console.error('Failed to fetch pod details metrics:', err);
+      // Don't show error toast for pod details as it's not critical
+      setPodDetailsMetrics([]);
+    }
+  };
+
   useEffect(() => {
     if (selectedCluster && selectedNamespace) {
       fetchMetrics(!isInitialLoad);
+      fetchPodDetailsMetrics();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minutes, selectedCluster, selectedNamespace]);
@@ -101,6 +124,7 @@ export function ApplicationMetrics() {
 
     const interval = setInterval(() => {
       fetchMetrics(false);
+      fetchPodDetailsMetrics();
     }, autoRefreshInterval * 1000);
 
     return () => clearInterval(interval);
@@ -265,6 +289,31 @@ export function ApplicationMetrics() {
       return a.container.localeCompare(b.container);
     });
   }, [filteredMetrics, selectedCluster, selectedNamespace, selectedPods]);
+
+  // Get latest pod details metrics (most recent from last minute data)
+  const latestPodDetailsMetrics = useMemo(() => {
+    if (!selectedCluster || !selectedNamespace || podDetailsMetrics.length === 0) {
+      return [];
+    }
+    
+    const podMap = new Map<string, NamespaceMetric>();
+    podDetailsMetrics.forEach(metric => {
+      if (metric.namespace !== selectedNamespace) return;
+      if (selectedPods.length > 0 && !selectedPods.includes(metric.pod)) return;
+
+      const key = `${metric.namespace}/${metric.pod}/${metric.container}`;
+      const existing = podMap.get(key);
+      if (!existing || new Date(metric.timestamp) > new Date(existing.timestamp)) {
+        podMap.set(key, metric);
+      }
+    });
+    
+    return Array.from(podMap.values()).sort((a, b) => {
+      if (a.namespace !== b.namespace) return a.namespace.localeCompare(b.namespace);
+      if (a.pod !== b.pod) return a.pod.localeCompare(b.pod);
+      return a.container.localeCompare(b.container);
+    });
+  }, [podDetailsMetrics, selectedCluster, selectedNamespace, selectedPods]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
@@ -1004,7 +1053,7 @@ export function ApplicationMetrics() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {latestPodMetrics.map((metric, index) => {
+                {latestPodDetailsMetrics.map((metric, index) => {
                   const cpuPercent = metric.cpuLimitCores !== null 
                     ? (metric.cpuUsageCores / metric.cpuLimitCores) * 100 
                     : null;

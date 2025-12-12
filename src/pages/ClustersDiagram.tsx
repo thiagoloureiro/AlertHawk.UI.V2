@@ -31,7 +31,7 @@ export function ClustersDiagram() {
         setIsRefreshing(true);
       }
       setError(null);
-      const metrics = await metricsService.getNodeMetrics(30);
+      const metrics = await metricsService.getNodeMetrics(1);
       setNodeMetrics(metrics);
     } catch (err) {
       console.error('Failed to fetch metrics:', err);
