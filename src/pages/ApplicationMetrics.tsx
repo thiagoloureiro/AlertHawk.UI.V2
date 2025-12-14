@@ -461,6 +461,22 @@ export function ApplicationMetrics() {
     return `${size.toFixed(2)} ${units[unitIndex]}`;
   };
 
+  // Format pod age to human readable
+  const formatPodAge = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}m`;
+    } else if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours}h`;
+    } else {
+      const days = Math.floor(seconds / 86400);
+      return `${days}d`;
+    }
+  };
+
   // Get color based on usage percentage
   const getUsageColor = (percentage: number): string => {
     if (percentage >= 90) return 'text-red-500';
@@ -1039,6 +1055,15 @@ export function ApplicationMetrics() {
                     Container
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Pod State
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Restart Count
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Pod Age
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     CPU Usage
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -1094,6 +1119,25 @@ export function ApplicationMetrics() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
                         {metric.container}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-medium ${
+                          metric.podState === 'Running' 
+                            ? 'text-green-600 dark:text-green-400' 
+                            : metric.podState === 'Pending' 
+                            ? 'text-yellow-600 dark:text-yellow-400'
+                            : metric.podState === 'Failed' || metric.podState === 'CrashLoopBackOff'
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'dark:text-white text-gray-900'
+                        }`}>
+                          {metric.podState || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                        {metric.restartCount !== undefined ? metric.restartCount : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                        {metric.podAge !== undefined ? formatPodAge(metric.podAge) : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">

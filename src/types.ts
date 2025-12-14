@@ -222,6 +222,9 @@ export interface NamespaceMetric {
   cpuLimitCores: number | null;
   memoryUsageBytes: number;
   nodeName: string;
+  podState?: string;
+  restartCount?: number;
+  podAge?: number;
 }
 
 export interface PodLog {
