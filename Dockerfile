@@ -1,12 +1,12 @@
 # Stage 1
-FROM node:25 as react-build
+FROM dhi.io/node:25 as react-build
 WORKDIR /app
 COPY . ./
 RUN npm install
 RUN npm run build
 
 # Stage 2 - the production environment
-FROM nginx:alpine
+FROM dhi.io/nginx:1-alpine3.21
 RUN chown -R nginx:nginx /usr/share/nginx/html && chmod -R 755 /usr/share/nginx/html && \
         chown -R nginx:nginx /var/cache/nginx && \
         chown -R nginx:nginx /var/log/nginx && \
