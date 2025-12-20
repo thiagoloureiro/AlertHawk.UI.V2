@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   CartesianGrid, Legend 
@@ -17,7 +17,6 @@ import { PodLogModal } from '../components/PodLogModal';
 
 export function ApplicationMetrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
-  const [podDetailsMetrics, setPodDetailsMetrics] = useState<NamespaceMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +36,7 @@ export function ApplicationMetrics() {
   const [selectedPod, setSelectedPod] = useState<{ namespace: string; pod: string; container: string; clusterName?: string } | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<10 | 30 | 60>(30);
+  const [expandedContainers, setExpandedContainers] = useState<Set<string>>(new Set());
 
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -65,31 +65,10 @@ export function ApplicationMetrics() {
     }
   };
 
-  // Fetch pod details metrics (last minute data for pod & container details table)
-  const fetchPodDetailsMetrics = async () => {
-    if (!selectedCluster || !selectedNamespace) {
-      setPodDetailsMetrics([]);
-      return;
-    }
-    
-    try {
-      const podDetailsData = await metricsService.getNamespaceMetrics(
-        1,
-        selectedCluster,
-        selectedNamespace
-      );
-      setPodDetailsMetrics(podDetailsData);
-    } catch (err) {
-      console.error('Failed to fetch pod details metrics:', err);
-      // Don't show error toast for pod details as it's not critical
-      setPodDetailsMetrics([]);
-    }
-  };
 
   useEffect(() => {
     if (selectedCluster && selectedNamespace) {
       fetchMetrics(!isInitialLoad);
-      fetchPodDetailsMetrics();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minutes, selectedCluster, selectedNamespace]);
@@ -124,7 +103,6 @@ export function ApplicationMetrics() {
 
     const interval = setInterval(() => {
       fetchMetrics(false);
-      fetchPodDetailsMetrics();
     }, autoRefreshInterval * 1000);
 
     return () => clearInterval(interval);
@@ -290,17 +268,21 @@ export function ApplicationMetrics() {
     });
   }, [filteredMetrics, selectedCluster, selectedNamespace, selectedPods]);
 
-  // Get latest pod details metrics (most recent from last minute data)
+  // Get latest pod details metrics (most recent from fetched metrics data)
   const latestPodDetailsMetrics = useMemo(() => {
-    if (!selectedCluster || !selectedNamespace || podDetailsMetrics.length === 0) {
+    if (!selectedCluster || !selectedNamespace || namespaceMetrics.length === 0) {
       return [];
     }
     
+    // Filter metrics for selected cluster and namespace, then get latest value for each pod/container
+    const filteredMetrics = namespaceMetrics.filter(m => 
+      m.clusterName === selectedCluster && 
+      m.namespace === selectedNamespace &&
+      (selectedPods.length === 0 || selectedPods.includes(m.pod))
+    );
+    
     const podMap = new Map<string, NamespaceMetric>();
-    podDetailsMetrics.forEach(metric => {
-      if (metric.namespace !== selectedNamespace) return;
-      if (selectedPods.length > 0 && !selectedPods.includes(metric.pod)) return;
-
+    filteredMetrics.forEach(metric => {
       const key = `${metric.namespace}/${metric.pod}/${metric.container}`;
       const existing = podMap.get(key);
       if (!existing || new Date(metric.timestamp) > new Date(existing.timestamp)) {
@@ -313,7 +295,51 @@ export function ApplicationMetrics() {
       if (a.pod !== b.pod) return a.pod.localeCompare(b.pod);
       return a.container.localeCompare(b.container);
     });
-  }, [podDetailsMetrics, selectedCluster, selectedNamespace, selectedPods]);
+  }, [namespaceMetrics, selectedCluster, selectedNamespace, selectedPods]);
+
+  // Group metrics by container
+  const groupedByContainer = useMemo(() => {
+    const containerMap = new Map<string, NamespaceMetric[]>();
+    
+    latestPodDetailsMetrics.forEach(metric => {
+      if (!containerMap.has(metric.container)) {
+        containerMap.set(metric.container, []);
+      }
+      containerMap.get(metric.container)!.push(metric);
+    });
+    
+    // Sort containers and pods within each container
+    const sortedContainers = Array.from(containerMap.entries()).sort((a, b) => 
+      a[0].localeCompare(b[0])
+    );
+    
+    sortedContainers.forEach(([_, metrics]) => {
+      metrics.sort((a, b) => a.pod.localeCompare(b.pod));
+    });
+    
+    return sortedContainers;
+  }, [latestPodDetailsMetrics]);
+
+  // Toggle container expansion
+  const toggleContainer = (container: string) => {
+    setExpandedContainers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(container)) {
+        newSet.delete(container);
+      } else {
+        newSet.add(container);
+      }
+      return newSet;
+    });
+  };
+
+  // Expand all containers by default when data changes
+  useEffect(() => {
+    if (groupedByContainer.length > 0) {
+      const allContainers = new Set(groupedByContainer.map(([container]) => container));
+      setExpandedContainers(allContainers);
+    }
+  }, [groupedByContainer]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
@@ -1078,99 +1104,167 @@ export function ApplicationMetrics() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {latestPodDetailsMetrics.map((metric, index) => {
-                  const cpuPercent = metric.cpuLimitCores !== null 
-                    ? (metric.cpuUsageCores / metric.cpuLimitCores) * 100 
-                    : null;
-                  const date = getLocalDateFromUTC(metric.timestamp);
+                {groupedByContainer.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                      {selectedCluster && selectedNamespace 
+                        ? 'No metrics available for the selected filters'
+                        : 'Please select a cluster and namespace to view metrics'}
+                    </td>
+                  </tr>
+                ) : (
+                  groupedByContainer.map(([container, metrics]) => {
+                  const isExpanded = expandedContainers.has(container);
+                  // Calculate aggregated stats for the container
+                  const totalCpuUsage = metrics.reduce((sum, m) => sum + m.cpuUsageCores, 0);
+                  const totalMemoryUsage = metrics.reduce((sum, m) => sum + m.memoryUsageBytes, 0);
+                  const totalCpuLimit = metrics.reduce((sum, m) => sum + (m.cpuLimitCores || 0), 0);
+                  const uniquePods = new Set(metrics.map(m => m.pod)).size;
+                  const avgCpuPercent = totalCpuLimit > 0 ? (totalCpuUsage / totalCpuLimit) * 100 : null;
                   
                   return (
-                    <tr 
-                      key={`${metric.namespace}-${metric.pod}-${metric.container}-${index}`}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Layers className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm font-medium dark:text-white text-gray-900">
-                            {metric.namespace}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPod({
-                              namespace: metric.namespace,
-                              pod: metric.pod,
-                              container: metric.container,
-                              clusterName: metric.clusterName
-                            });
-                            setShowLogModal(true);
-                          }}
-                          className="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        >
-                          <Package className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm dark:text-white text-gray-900 hover:underline">
-                            {metric.pod}
-                          </span>
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                        {metric.container}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${
-                          metric.podState === 'Running' 
-                            ? 'text-green-600 dark:text-green-400' 
-                            : metric.podState === 'Pending' 
-                            ? 'text-yellow-600 dark:text-yellow-400'
-                            : metric.podState === 'Failed' || metric.podState === 'CrashLoopBackOff'
-                            ? 'text-red-600 dark:text-red-400'
-                            : 'dark:text-white text-gray-900'
-                        }`}>
-                          {metric.podState || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                        {metric.restartCount !== undefined ? metric.restartCount : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                        {metric.podAge !== undefined ? formatPodAge(metric.podAge) : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className={`text-sm font-medium ${cpuPercent !== null ? getUsageColor(cpuPercent) : 'dark:text-white text-gray-900'}`}>
-                            {metric.cpuUsageCores.toFixed(4)} cores
-                          </span>
-                          {cpuPercent !== null && (
-                            <>
-                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                                ({cpuPercent.toFixed(1)}%)
+                    <Fragment key={container}>
+                      {/* Container Group Header */}
+                      <tr 
+                        className="bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                        onClick={() => toggleContainer(container)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap" colSpan={10}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <ChevronDown 
+                                className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
+                                  isExpanded ? 'rotate-0' : '-rotate-90'
+                                }`}
+                              />
+                              <Activity className="w-5 h-5 text-gray-400" />
+                              <span className="text-sm font-semibold dark:text-white text-gray-900">
+                                {container}
                               </span>
-                              <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                <div
-                                  className={`h-1.5 rounded-full ${getUsageBgColor(cpuPercent)}`}
-                                  style={{ width: `${Math.min(cpuPercent, 100)}%` }}
-                                ></div>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                ({uniquePods} {uniquePods === 1 ? 'pod' : 'pods'})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-6 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500 dark:text-gray-400">Total CPU:</span>
+                                <span className={`font-medium ${avgCpuPercent !== null ? getUsageColor(avgCpuPercent) : 'dark:text-white text-gray-900'}`}>
+                                  {totalCpuUsage.toFixed(4)} cores
+                                </span>
+                                {avgCpuPercent !== null && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    ({avgCpuPercent.toFixed(1)}%)
+                                  </span>
+                                )}
                               </div>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {metric.cpuLimitCores !== null ? `${metric.cpuLimitCores} cores` : 'No limit'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                        {formatBytes(metric.memoryUsageBytes)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {date ? formatCompactDate(date) : metric.timestamp}
-                      </td>
-                    </tr>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500 dark:text-gray-400">Total Memory:</span>
+                                <span className="font-medium dark:text-white text-gray-900">
+                                  {formatBytes(totalMemoryUsage)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Pod Rows (shown when expanded) */}
+                      {isExpanded && metrics.map((metric, index) => {
+                        const cpuPercent = metric.cpuLimitCores !== null 
+                          ? (metric.cpuUsageCores / metric.cpuLimitCores) * 100 
+                          : null;
+                        const date = getLocalDateFromUTC(metric.timestamp);
+                        
+                        return (
+                          <tr 
+                            key={`${metric.namespace}-${metric.pod}-${metric.container}-${index}`}
+                            className="hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap pl-12">
+                              <div className="flex items-center">
+                                <Layers className="w-4 h-4 text-gray-400 mr-2" />
+                                <span className="text-sm font-medium dark:text-white text-gray-900">
+                                  {metric.namespace}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPod({
+                                    namespace: metric.namespace,
+                                    pod: metric.pod,
+                                    container: metric.container,
+                                    clusterName: metric.clusterName
+                                  });
+                                  setShowLogModal(true);
+                                }}
+                                className="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              >
+                                <Package className="w-4 h-4 text-gray-400 mr-2" />
+                                <span className="text-sm dark:text-white text-gray-900 hover:underline">
+                                  {metric.pod}
+                                </span>
+                              </button>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                              {metric.container}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`text-sm font-medium ${
+                                metric.podState === 'Running' 
+                                  ? 'text-green-600 dark:text-green-400' 
+                                  : metric.podState === 'Pending' 
+                                  ? 'text-yellow-600 dark:text-yellow-400'
+                                  : metric.podState === 'Failed' || metric.podState === 'CrashLoopBackOff'
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'dark:text-white text-gray-900'
+                              }`}>
+                                {metric.podState || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                              {metric.restartCount !== undefined ? metric.restartCount : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                              {metric.podAge !== undefined ? formatPodAge(metric.podAge) : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <span className={`text-sm font-medium ${cpuPercent !== null ? getUsageColor(cpuPercent) : 'dark:text-white text-gray-900'}`}>
+                                  {metric.cpuUsageCores.toFixed(4)} cores
+                                </span>
+                                {cpuPercent !== null && (
+                                  <>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                      ({cpuPercent.toFixed(1)}%)
+                                    </span>
+                                    <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                      <div
+                                        className={`h-1.5 rounded-full ${getUsageBgColor(cpuPercent)}`}
+                                        style={{ width: `${Math.min(cpuPercent, 100)}%` }}
+                                      ></div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {metric.cpuLimitCores !== null ? `${metric.cpuLimitCores} cores` : 'No limit'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                              {formatBytes(metric.memoryUsageBytes)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {date ? formatCompactDate(date) : metric.timestamp}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
           </div>

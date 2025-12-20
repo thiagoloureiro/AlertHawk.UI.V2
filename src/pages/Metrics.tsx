@@ -18,7 +18,6 @@ import { toast } from 'react-hot-toast';
 
 export function Metrics() {
   const [nodeMetrics, setNodeMetrics] = useState<NodeMetric[]>([]);
-  const [nodeDetailsMetrics, setNodeDetailsMetrics] = useState<NodeMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,27 +115,10 @@ export function Metrics() {
     }
   };
 
-  // Fetch node details metrics (last minute data for node details table)
-  const fetchNodeDetailsMetrics = async () => {
-    if (!selectedCluster) {
-      setNodeDetailsMetrics([]);
-      return;
-    }
-    
-    try {
-      const nodeDetailsData = await metricsService.getNodeMetrics(1, selectedCluster);
-      setNodeDetailsMetrics(nodeDetailsData);
-    } catch (err) {
-      console.error('Failed to fetch node details metrics:', err);
-      // Don't show error toast for node details as it's not critical
-      setNodeDetailsMetrics([]);
-    }
-  };
 
   useEffect(() => {
     if (selectedCluster) {
       fetchMetrics(!isInitialLoad);
-      fetchNodeDetailsMetrics();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minutes, selectedCluster]);
@@ -169,7 +151,6 @@ export function Metrics() {
 
     const interval = setInterval(() => {
       fetchMetrics(false);
-      fetchNodeDetailsMetrics();
     }, autoRefreshInterval * 1000);
 
     return () => clearInterval(interval);
@@ -288,14 +269,16 @@ export function Metrics() {
     return metrics;
   }, [filteredMetrics, showOnlyLiveClusters]);
 
-  // Get latest node details metrics (most recent from last minute data)
+  // Get latest node details metrics (most recent from fetched metrics data)
   const latestNodeDetailsMetrics = useMemo(() => {
-    if (!selectedCluster || nodeDetailsMetrics.length === 0) {
+    if (!selectedCluster || nodeMetrics.length === 0) {
       return [];
     }
     
+    // Filter metrics for selected cluster and get latest value for each node
+    const clusterMetrics = nodeMetrics.filter(m => m.clusterName === selectedCluster);
     const nodeMap = new Map<string, NodeMetric>();
-    nodeDetailsMetrics.forEach(metric => {
+    clusterMetrics.forEach(metric => {
       const existing = nodeMap.get(metric.nodeName);
       if (!existing || new Date(metric.timestamp) > new Date(existing.timestamp)) {
         nodeMap.set(metric.nodeName, metric);
@@ -305,7 +288,7 @@ export function Metrics() {
     return Array.from(nodeMap.values()).sort((a, b) => 
       a.nodeName.localeCompare(b.nodeName)
     );
-  }, [nodeDetailsMetrics, selectedCluster]);
+  }, [nodeMetrics, selectedCluster]);
 
   // Prepare chart data for selected node or all nodes
   const chartData = useMemo(() => {
