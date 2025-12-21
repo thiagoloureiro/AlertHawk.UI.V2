@@ -646,7 +646,7 @@ export function ApplicationMetrics() {
                        transition-colors"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              
             </button>
           </div>
         </div>

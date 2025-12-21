@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   CartesianGrid, Legend, PieChart, Pie, Cell
@@ -6,7 +7,7 @@ import {
 import { 
   Server, Cpu, HardDrive, RefreshCw, 
   Activity, AlertCircle, Maximize2, Minimize2, Layers, ChevronDown, ChevronRight,
-  Code, Cloud, CheckCircle, XCircle, HelpCircle, DollarSign
+  Code, Cloud, CheckCircle, XCircle, HelpCircle, DollarSign, Bell, MessageSquare
 } from 'lucide-react';
 import { NodeMetric, NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -15,8 +16,10 @@ import azurePricingService from '../services/azurePricingService';
 import { LoadingSpinner, Switch } from '../components/ui';
 import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
+import { ClusterNotificationModal } from '../components/ClusterNotificationModal';
 
 export function Metrics() {
+  const navigate = useNavigate();
   const [nodeMetrics, setNodeMetrics] = useState<NodeMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -31,11 +34,11 @@ export function Metrics() {
   const [clustersLoaded, setClustersLoaded] = useState(false);
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [showOnlyLiveClusters, setShowOnlyLiveClusters] = useState(true);
   const [nodePricing, setNodePricing] = useState<Map<string, number | null>>(new Map());
   const [loadingPricing, setLoadingPricing] = useState<Set<string>>(new Set());
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<10 | 30 | 60>(30);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Fetch pricing for Azure nodes
   const fetchPricingForNodes = async (metrics: NodeMetric[]) => {
@@ -258,16 +261,14 @@ export function Metrics() {
     );
     
     // Filter to show only live clusters (updated within last 10 minutes)
-    if (showOnlyLiveClusters) {
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-      metrics = metrics.filter(metric => {
-        const metricDate = new Date(metric.timestamp);
-        return metricDate >= tenMinutesAgo;
-      });
-    }
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    metrics = metrics.filter(metric => {
+      const metricDate = new Date(metric.timestamp);
+      return metricDate >= tenMinutesAgo;
+    });
     
     return metrics;
-  }, [filteredMetrics, showOnlyLiveClusters]);
+  }, [filteredMetrics]);
 
   // Get latest node details metrics (most recent from fetched metrics data)
   const latestNodeDetailsMetrics = useMemo(() => {
@@ -728,15 +729,18 @@ export function Metrics() {
     <div className="h-full overflow-y-auto p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold dark:text-white text-gray-900">Cluster Metrics</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Monitor node CPU and memory usage across your cluster
+             CPU and RAM usage across your clusters
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Cluster Selector */}
+          {/* Filters - Responsive: 2 rows on small screens, 1 row on large screens */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
+            {/* Row 1: Filters */}
+            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
+              {/* Cluster Selector */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 dark:text-gray-400">Cluster:</span>
               <select
@@ -762,47 +766,18 @@ export function Metrics() {
                        dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
                        focus:ring-2 focus:ring-blue-500"
             >
-              <option value={5}>Last 5 minutes</option>
-              <option value={10}>Last 10 minutes</option>
-              <option value={30}>Last 30 minutes</option>
-              <option value={60}>Last 1 hour</option>
-              <option value={360}>Last 6 hours</option>
-              <option value={1440}>Last 24 hours</option>
-              <option value={2880}>Last 48 hours</option>
-              <option value={10080}>Last 7 days</option>
+              <option value={5}>5 minutes</option>
+              <option value={10}>10 minutes</option>
+              <option value={30}>30 minutes</option>
+              <option value={60}>1 hour</option>
+              <option value={360}>6 hours</option>
+              <option value={1440}>24 hours</option>
+              <option value={2880}>48 hours</option>
+              <option value={10080}>7 days</option>
             </select>
-            {/* Show Only Live Clusters Checkbox */}
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showOnlyLiveClusters}
-                  onChange={(e) => setShowOnlyLiveClusters(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded 
-                           focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 
-                           focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  Show only live nodes
-                </span>
-              </label>
-              <div className="relative group/tooltip">
-                <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 
-                              w-64 p-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg 
-                              shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity 
-                              pointer-events-none z-[100] invisible group-hover/tooltip:visible">
-                  Shows only nodes that have been updated within the last 10 minutes. 
-                  This helps avoid collecting data from nodes that are no longer running.
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-0">
-                    <div className="border-4 border-transparent border-b-gray-900 dark:border-b-gray-800"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
             {/* Auto Refresh Controls */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Auto refresh:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Refresh:</span>
               <Switch
                 checked={autoRefreshEnabled}
                 onCheckedChange={setAutoRefreshEnabled}
@@ -821,16 +796,46 @@ export function Metrics() {
                 </select>
               )}
             </div>
-            <button
-              onClick={() => fetchMetrics(false)}
-              disabled={isRefreshing}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
-                       flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            </div>
+            {/* Row 2: Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
+              <button
+                onClick={() => {
+                  if (selectedCluster) {
+                    setShowNotifications(true);
+                  } else {
+                    toast.error('Please select a cluster first', { position: 'bottom-right' });
+                  }
+                }}
+                disabled={!selectedCluster}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                         dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
+                         dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                         transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Notifications
+              </button>
+              <button
+                onClick={() => navigate('/alerts')}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                         bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800
+                         text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40
+                         transition-colors duration-200"
+              >
+                <Bell className="w-4 h-4" />
+                Alerts
+              </button>
+              <button
+                onClick={() => fetchMetrics(false)}
+                disabled={isRefreshing}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
+                         flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2276,6 +2281,13 @@ export function Metrics() {
             </div>
           </div>
         </div>
+      )}
+
+      {showNotifications && selectedCluster && (
+        <ClusterNotificationModal
+          clusterName={selectedCluster}
+          onClose={() => setShowNotifications(false)}
+        />
       )}
     </div>
   );

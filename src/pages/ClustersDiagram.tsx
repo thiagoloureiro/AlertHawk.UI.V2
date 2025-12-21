@@ -447,7 +447,7 @@ export function ClustersDiagram() {
                        transition-colors text-sm"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              
             </button>
           </div>
         </div>
