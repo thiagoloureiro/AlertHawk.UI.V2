@@ -235,3 +235,17 @@ export interface PodLog {
   container: string;
   logContent: string;
 }
+
+export interface MetricsAlert {
+  id: number;
+  clusterName: string;
+  nodeName?: string;
+  timeStamp: string;
+  status: boolean;
+  message: string;
+  alertType?: string;
+  severity?: string;
+  metricName?: string;
+  threshold?: number;
+  currentValue?: number;
+}

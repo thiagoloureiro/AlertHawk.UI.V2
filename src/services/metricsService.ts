@@ -1,5 +1,5 @@
 import { metricsHttp } from './httpClient';
-import { NodeMetric, NamespaceMetric, PodLog } from '../types';
+import { NodeMetric, NamespaceMetric, PodLog, MetricsAlert } from '../types';
 
 class MetricsService {
   /**
@@ -109,6 +109,68 @@ class MetricsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch pod logs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch metrics alerts from the API
+   * @param days - Number of days to look back (default: 30)
+   * @param clusterName - Optional cluster name filter
+   * @param nodeName - Optional node name filter
+   */
+  async getMetricsAlerts(days: number = 30, clusterName?: string, nodeName?: string): Promise<MetricsAlert[]> {
+    try {
+      const params: { days: number; clusterName?: string; nodeName?: string } = {
+        days
+      };
+      if (clusterName) {
+        params.clusterName = clusterName;
+      }
+      if (nodeName) {
+        params.nodeName = nodeName;
+      }
+      const response = await metricsHttp.get<MetricsAlert[]>('/api/MetricsAlert/metricsAlerts', {
+        params
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch metrics alerts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch metrics alerts by cluster
+   * @param clusterName - Cluster name
+   * @param days - Number of days to look back (default: 30)
+   */
+  async getMetricsAlertsByCluster(clusterName: string, days: number = 30): Promise<MetricsAlert[]> {
+    try {
+      const response = await metricsHttp.get<MetricsAlert[]>(`/api/MetricsAlert/metricsAlerts/cluster/${clusterName}`, {
+        params: { days }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch metrics alerts by cluster:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch metrics alerts by node
+   * @param clusterName - Cluster name
+   * @param nodeName - Node name
+   * @param days - Number of days to look back (default: 30)
+   */
+  async getMetricsAlertsByNode(clusterName: string, nodeName: string, days: number = 30): Promise<MetricsAlert[]> {
+    try {
+      const response = await metricsHttp.get<MetricsAlert[]>(`/api/MetricsAlert/metricsAlerts/cluster/${clusterName}/node/${nodeName}`, {
+        params: { days }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch metrics alerts by node:', error);
       throw error;
     }
   }
