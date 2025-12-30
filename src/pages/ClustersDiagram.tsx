@@ -368,7 +368,7 @@ export function ClustersDiagram() {
 
   return (
     <div className="h-full overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto space-y-4">
+      <div className="w-full space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

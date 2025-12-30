@@ -570,7 +570,7 @@ export function ApplicationMetrics() {
 
   return (
     <div className="h-full overflow-y-auto p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -1067,13 +1067,10 @@ export function ApplicationMetrics() {
           <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
             <h3 className="text-lg font-semibold dark:text-white text-gray-900">Pod & Container Details</h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900">
+              <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Namespace
-                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Pod
                   </th>
@@ -1106,7 +1103,7 @@ export function ApplicationMetrics() {
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {groupedByContainer.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                       {selectedCluster && selectedNamespace 
                         ? 'No metrics available for the selected filters'
                         : 'Please select a cluster and namespace to view metrics'}
@@ -1129,7 +1126,7 @@ export function ApplicationMetrics() {
                         className="bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                         onClick={() => toggleContainer(container)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap" colSpan={10}>
+                        <td className="px-6 py-4 whitespace-nowrap" colSpan={9}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <ChevronDown 
@@ -1180,14 +1177,6 @@ export function ApplicationMetrics() {
                             className="hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800"
                           >
                             <td className="px-6 py-4 whitespace-nowrap pl-12">
-                              <div className="flex items-center">
-                                <Layers className="w-4 h-4 text-gray-400 mr-2" />
-                                <span className="text-sm font-medium dark:text-white text-gray-900">
-                                  {metric.namespace}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
