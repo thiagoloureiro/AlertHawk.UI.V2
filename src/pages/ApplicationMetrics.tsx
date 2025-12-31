@@ -15,6 +15,71 @@ import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
 import { PodLogModal } from '../components/PodLogModal';
 
+// Custom tooltip component with proper z-index
+const CustomTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload || !payload.length) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        backgroundColor: '#1F2937',
+        border: '1px solid #374151',
+        borderRadius: '8px',
+        padding: '8px',
+        color: '#F9FAFB',
+        fontSize: '11px',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
+        opacity: 1,
+      }}
+    >
+      <div
+        style={{
+          fontSize: '11px',
+          marginBottom: '4px',
+          paddingBottom: '4px',
+          borderBottom: '1px solid #374151',
+          fontWeight: '500',
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </div>
+      <div>
+        {payload.map((entry: any, index: number) => (
+          <div
+            key={`tooltip-${index}`}
+            style={{
+              padding: '2px 4px',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <div
+              style={{
+                width: '12px',
+                height: '2px',
+                backgroundColor: entry.color,
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ color: '#F9FAFB' }}>{entry.name}:</span>
+            <span style={{ color: '#F9FAFB', fontWeight: '500' }}>
+              {formatter ? formatter(entry.value) : entry.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export function ApplicationMetrics() {
   const [namespaceMetrics, setNamespaceMetrics] = useState<NamespaceMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -896,27 +961,8 @@ export function ApplicationMetrics() {
                   label={{ value: 'CPU (cores)', angle: -90, position: 'insideLeft' , dy: 30, fontSize: 15}}
                 />
                 <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                    fontSize: '11px',
-                    padding: '8px',
-                    maxHeight: '300px',
-                    overflowY: 'auto'
-                  }}
-                  itemStyle={{
-                    padding: '2px 4px',
-                    fontSize: '11px'
-                  }}
-                  labelStyle={{
-                    fontSize: '11px',
-                    marginBottom: '4px',
-                    paddingBottom: '4px',
-                    borderBottom: '1px solid #374151'
-                  }}
-                  formatter={(value: number) => `${value.toFixed(4)} cores`}
+                  content={<CustomTooltip formatter={(value: number) => `${value.toFixed(4)} cores`} />}
+                  wrapperStyle={{ zIndex: 9999 }}
                 />
                 <Legend 
                   content={(props) => {
@@ -990,27 +1036,8 @@ export function ApplicationMetrics() {
                   label={{ value: 'Memory (MB)', angle: -90, position: 'insideLeft', dy: 35, fontSize: 15}}
                 />
                 <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                    fontSize: '11px',
-                    padding: '8px',
-                    maxHeight: '300px',
-                    overflowY: 'auto'
-                  }}
-                  itemStyle={{
-                    padding: '2px 4px',
-                    fontSize: '11px'
-                  }}
-                  labelStyle={{
-                    fontSize: '11px',
-                    marginBottom: '4px',
-                    paddingBottom: '4px',
-                    borderBottom: '1px solid #374151'
-                  }}
-                  formatter={(value: number) => `${value.toFixed(2)} MB`}
+                  content={<CustomTooltip formatter={(value: number) => `${value.toFixed(2)} MB`} />}
+                  wrapperStyle={{ zIndex: 9999 }}
                 />
                 <Legend 
                   content={(props) => {
@@ -1316,29 +1343,10 @@ export function ApplicationMetrics() {
                     }}
                   />
                   <Tooltip 
-                    contentStyle={{
-                      backgroundColor: '#1F2937',
-                      border: '1px solid #374151',
-                      borderRadius: '8px',
-                      color: '#F9FAFB',
-                      fontSize: '11px',
-                      padding: '8px',
-                      maxHeight: '300px',
-                      overflowY: 'auto'
-                    }}
-                    itemStyle={{
-                      padding: '2px 4px',
-                      fontSize: '11px'
-                    }}
-                    labelStyle={{
-                      fontSize: '11px',
-                      marginBottom: '4px',
-                      paddingBottom: '4px',
-                      borderBottom: '1px solid #374151'
-                    }}
-                    formatter={(value: number) => expandedChart === 'cpu' 
+                    content={<CustomTooltip formatter={(value: number) => expandedChart === 'cpu' 
                       ? `${value.toFixed(4)} cores` 
-                      : `${value.toFixed(2)} MB`}
+                      : `${value.toFixed(2)} MB`} />}
+                    wrapperStyle={{ zIndex: 9999 }}
                   />
                   <Legend 
                     content={(props) => {

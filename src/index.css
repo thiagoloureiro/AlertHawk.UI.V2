@@ -470,3 +470,21 @@
 .github-dark button[class*="bg-"]:not([class*="bg-gray"]):not([class*="bg-blue"]) {
   color: #c9d1d9 !important;
 }
+
+/* Ensure Recharts tooltip appears above legend */
+.recharts-tooltip-wrapper {
+  z-index: 9999 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+.recharts-default-tooltip {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure legend stays below tooltip */
+.recharts-legend-wrapper {
+  z-index: 1 !important;
+  position: relative;
+}
