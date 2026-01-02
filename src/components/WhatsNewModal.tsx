@@ -13,6 +13,25 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Enhanced Monitor Creation Wizard",
+    description: "Completely redesigned monitor creation and editing experience with an intuitive step-by-step wizard interface for improved usability and user guidance.",
+    date: "January 2nd, 2026",
+    features: [
+      "New step-by-step wizard interface replacing the single-page form for monitor creation and editing",
+      "Type selection as the first step (HTTP, TCP, or Kubernetes) with clear visual indicators",
+      "Conditional form fields that dynamically appear based on selected monitor type",
+      "Automatic group creation step when no monitor groups exist for the user",
+      "Improved navigation with Next/Previous buttons and step indicators",
+      "Step-by-step validation ensuring all required fields are completed before proceeding",
+      "Enhanced review step for HTTP monitors to review all settings before submission",
+      "Fixed group display issues for Kubernetes monitors in edit mode",
+      "Better error handling and user feedback throughout the creation process",
+      "Removed Beta tag from Kubernetes monitor type for production readiness",
+      "Improved form submission control to prevent accidental auto-submissions",
+      "Dark theme support with consistent styling across all wizard steps"
+    ]
+  },
+  {
     title: "Kubernetes Metrics Monitoring",
     description: "New dedicated metrics pages for monitoring Kubernetes cluster nodes and namespaces with comprehensive CPU and memory tracking powered by the new alerthawk-metrics microservice.",
     date: "November 19th, 2025",

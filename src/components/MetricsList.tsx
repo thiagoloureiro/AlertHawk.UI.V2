@@ -409,14 +409,19 @@ export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, up
         // Fetch Kubernetes details
         const k8sDetails = await monitorService.getMonitorK8sDetails(monitor.id);
         // Create the monitor object with K8s details
+        // Preserve monitorGroup from the original monitor or from k8sDetails
+        // API returns monitorGroup (lowercase) - check lowercase first, then uppercase for compatibility
+        const groupId = monitor.monitorGroup || (k8sDetails as any).monitorGroup || (k8sDetails as any).MonitorGroup || k8sDetails.MonitorGroup || 0;
         const monitorWithK8s: Monitor = {
           ...monitor,
+          monitorGroup: groupId,
           monitorK8s: {
-            clusterName: k8sDetails.ClusterName,
-            kubeConfig: k8sDetails.KubeConfig,
+            clusterName: k8sDetails.ClusterName || (k8sDetails as any).clusterName,
+            kubeConfig: k8sDetails.KubeConfig || (k8sDetails as any).kubeConfig,
             monitorK8sNodes: k8sDetails.monitorK8sNodes
           }
         };
+        console.log('K8s monitor with group:', { monitorGroup: groupId, k8sDetails });
         onSelectMetric(monitorWithK8s);
       } else {
         onSelectMetric(monitor);
@@ -729,8 +734,15 @@ export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, up
           onClose={() => setShowAddModal(false)}
           onAdd={async (newMonitor) => {
             try {
-              await monitorService.createMonitor(newMonitor);
-              // Refresh the list
+              // Check if this is a K8s monitor that was already created
+              // K8s monitors are created directly in AddMonitorModal, so we just need to refresh
+              const isK8sMonitor = (newMonitor as any)?.MonitorTypeId === 4 || (newMonitor as any)?.monitorTypeId === 4;
+              
+              if (!isK8sMonitor) {
+                // For HTTP and TCP monitors, create them here
+                await monitorService.createMonitor(newMonitor);
+              }
+              // Refresh the list for all monitor types
               const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
               setGroups(updatedGroups);
               setShowAddModal(false);
