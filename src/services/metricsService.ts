@@ -1,5 +1,5 @@
 import { metricsHttp } from './httpClient';
-import { NodeMetric, NamespaceMetric, PodLog, MetricsAlert } from '../types';
+import { NodeMetric, NamespaceMetric, PodLog, MetricsAlert, KubernetesEventDto } from '../types';
 
 class MetricsService {
   /**
@@ -171,6 +171,102 @@ class MetricsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch metrics alerts by node:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch Kubernetes events
+   * @param namespace - Optional namespace filter
+   * @param involvedObjectKind - Optional involved object kind filter (e.g., Pod, Node)
+   * @param involvedObjectName - Optional involved object name filter
+   * @param eventType - Optional event type filter (Normal, Warning)
+   * @param minutes - Number of minutes to look back (default: 1440 = 24 hours)
+   * @param limit - Maximum number of results (default: 1000)
+   * @param clusterName - Optional cluster name filter
+   */
+  async getKubernetesEvents(
+    namespace?: string,
+    involvedObjectKind?: string,
+    involvedObjectName?: string,
+    eventType?: string,
+    minutes: number = 1440,
+    limit: number = 1000,
+    clusterName?: string
+  ): Promise<KubernetesEventDto[]> {
+    try {
+      const params: {
+        namespace?: string;
+        involvedObjectKind?: string;
+        involvedObjectName?: string;
+        eventType?: string;
+        minutes?: number;
+        limit?: number;
+        clusterName?: string;
+      } = {
+        minutes,
+        limit
+      };
+      
+      if (namespace) params.namespace = namespace;
+      if (involvedObjectKind) params.involvedObjectKind = involvedObjectKind;
+      if (involvedObjectName) params.involvedObjectName = involvedObjectName;
+      if (eventType) params.eventType = eventType;
+      if (clusterName) params.clusterName = clusterName;
+
+      const response = await metricsHttp.get<KubernetesEventDto[]>('/api/events', {
+        params
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch Kubernetes events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch Kubernetes events for a specific namespace
+   * @param namespace - Namespace name
+   * @param involvedObjectKind - Optional involved object kind filter
+   * @param involvedObjectName - Optional involved object name filter
+   * @param eventType - Optional event type filter
+   * @param minutes - Number of minutes to look back (default: 1440 = 24 hours)
+   * @param limit - Maximum number of results (default: 1000)
+   * @param clusterName - Optional cluster name filter
+   */
+  async getKubernetesEventsByNamespace(
+    namespace: string,
+    involvedObjectKind?: string,
+    involvedObjectName?: string,
+    eventType?: string,
+    minutes: number = 1440,
+    limit: number = 1000,
+    clusterName?: string
+  ): Promise<KubernetesEventDto[]> {
+    try {
+      const params: {
+        involvedObjectKind?: string;
+        involvedObjectName?: string;
+        eventType?: string;
+        minutes?: number;
+        limit?: number;
+        clusterName?: string;
+      } = {
+        minutes,
+        limit
+      };
+      
+      if (involvedObjectKind) params.involvedObjectKind = involvedObjectKind;
+      if (involvedObjectName) params.involvedObjectName = involvedObjectName;
+      if (eventType) params.eventType = eventType;
+      if (clusterName) params.clusterName = clusterName;
+
+      const response = await metricsHttp.get<KubernetesEventDto[]>(`/api/events/namespace/${namespace}`, {
+        params
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch Kubernetes events by namespace:', error);
       throw error;
     }
   }

@@ -249,3 +249,21 @@ export interface MetricsAlert {
   threshold?: number;
   currentValue?: number;
 }
+
+export interface KubernetesEventDto {
+  timestamp: string;
+  clusterName: string;
+  namespace: string;
+  eventName: string;
+  eventUid: string;
+  involvedObjectKind: string;
+  involvedObjectName: string;
+  involvedObjectNamespace: string;
+  eventType: string;
+  reason: string;
+  message: string;
+  sourceComponent: string;
+  count: number;
+  firstTimestamp?: string;
+  lastTimestamp?: string;
+}
