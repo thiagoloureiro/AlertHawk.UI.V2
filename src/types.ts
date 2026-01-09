@@ -267,3 +267,22 @@ export interface KubernetesEventDto {
   firstTimestamp?: string;
   lastTimestamp?: string;
 }
+
+export interface ClusterPrice {
+  timestamp: string;
+  clusterName: string;
+  nodeName: string;
+  region: string;
+  instanceType: string;
+  operatingSystem: string;
+  cloudProvider: string;
+  currencyCode: string;
+  unitPrice: number;
+  retailPrice: number;
+  meterName: string;
+  productName: string;
+  skuName: string;
+  serviceName: string;
+  armRegionName: string;
+  effectiveStartDate: string;
+}
