@@ -150,6 +150,37 @@ export function ClusterPrices() {
     return () => clearInterval(interval);
   }, [autoRefreshEnabled, autoRefreshInterval, selectedCluster, minutes]);
 
+  // Prepare chart data for overall cluster (sum of all nodes at each timestamp)
+  const chartDataOverall = useMemo(() => {
+    if (prices.length === 0) return [];
+
+    // Group prices by timestamp and sum all node prices
+    const groupedByTime: Record<string, number> = {};
+
+    prices.forEach(price => {
+      const timestamp = price.timestamp;
+      
+      if (!groupedByTime[timestamp]) {
+        groupedByTime[timestamp] = 0;
+      }
+      
+      // Sum up all unitPrices at this timestamp (total cluster cost per hour)
+      groupedByTime[timestamp] += price.unitPrice;
+    });
+
+    // Convert to array format for recharts
+    return Object.entries(groupedByTime)
+      .map(([timestamp, totalPrice]) => ({
+        timestamp: timestamp,
+        clusterPrice: totalPrice
+      }))
+      .sort((a, b) => {
+        const dateA = new Date(a.timestamp).getTime();
+        const dateB = new Date(b.timestamp).getTime();
+        return dateA - dateB;
+      });
+  }, [prices]);
+
   // Prepare chart data grouped by node (for individual node chart)
   const chartDataByNode = useMemo(() => {
     if (prices.length === 0) return [];
@@ -446,12 +477,82 @@ export function ClusterPrices() {
               </div>
             </div>
 
+            {/* Overall Cluster Chart */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Cluster Price Over Time
+              </h2>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartDataOverall}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                    <XAxis 
+                      dataKey="timestamp" 
+                      stroke="#6B7280"
+                      fontSize={12}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      tickFormatter={(time) => {
+                        try {
+                          const date = getLocalDateFromUTC(time);
+                          return formatCompactDate(date);
+                        } catch (error) {
+                          console.error('Error formatting tick:', error);
+                          return 'Invalid Date';
+                        }
+                      }}
+                    />
+                    <YAxis 
+                      stroke="#6B7280"
+                      fontSize={12}
+                      label={{ 
+                        value: 'Total Price per Hour (USD)', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        style: { textAnchor: 'middle' }
+                      }}
+                      tickFormatter={(value) => `$${value.toFixed(3)}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#F9FAFB',
+                        fontSize: '12px',
+                        padding: '8px'
+                      }}
+                      labelFormatter={(label) => {
+                        try {
+                          const date = getLocalDateFromUTC(label);
+                          return formatCompactDate(date);
+                        } catch (error) {
+                          return label;
+                        }
+                      }}
+                      formatter={(value: number) => `$${value.toFixed(4)}/hr`}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="clusterPrice"
+                      stroke="#818CF8"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6 }}
+                      name="Cluster Price"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
             {/* Chart by Node */}
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Price Over Time by Node
               </h2>
-              <div className="h-96">
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartDataByNode}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
