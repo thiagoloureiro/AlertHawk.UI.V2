@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  CartesianGrid, Legend, PieChart, Pie, Cell
+  CartesianGrid, Legend
 } from 'recharts';
 import { ClusterPrice } from '../types';
 import clusterPriceService from '../services/clusterPriceService';
@@ -184,37 +184,6 @@ export function ClusterPrices() {
         const dateB = new Date(b.timestamp as string).getTime();
         return dateA - dateB;
       });
-  }, [prices]);
-
-  // Prepare pie chart data showing total cost per node
-  const pieChartData = useMemo(() => {
-    if (prices.length === 0) return [];
-
-    // Get the latest price per node (most recent timestamp for each node)
-    const latestNodePrices = new Map<string, number>();
-    
-    // Sort prices by timestamp descending to get latest first
-    const sortedPrices = [...prices].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-    
-    // Get the latest price for each node
-    sortedPrices.forEach(price => {
-      if (!latestNodePrices.has(price.nodeName)) {
-        latestNodePrices.set(price.nodeName, price.unitPrice);
-      }
-    });
-
-    // Convert to array format for pie chart
-    // Calculate monthly cost per node (price per hour * 730 hours)
-    const monthlyHours = 730;
-    return Array.from(latestNodePrices.entries())
-      .map(([nodeName, pricePerHour]) => ({
-        name: nodeName,
-        value: pricePerHour * monthlyHours,
-        pricePerHour: pricePerHour
-      }))
-      .sort((a, b) => b.value - a.value); // Sort by value descending
   }, [prices]);
 
   // Get unique node names for legend
@@ -474,54 +443,6 @@ export function ClusterPrices() {
                   </div>
                   <DollarSign className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                 </div>
-              </div>
-            </div>
-
-            {/* Overall Cluster Pie Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Total Cluster Cost by Node
-              </h2>
-              <div className="h-70">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={nodeColors[index % nodeColors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#1F2937',
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#F9FAFB',
-                        fontSize: '12px',
-                        padding: '8px'
-                      }}
-                      formatter={(value: number, name: string, props: any) => [
-                        `$${value.toFixed(2)}/month ($${props.payload.pricePerHour.toFixed(4)}/hr)`,
-                        'Monthly Cost'
-                      ]}
-                    />
-                    <Legend 
-                      wrapperStyle={{ fontSize: '12px' }}
-                      formatter={(value, entry: any) => {
-                        const percent = ((entry.payload.value / pieChartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);
-                        return `${value} (${percent}%)`;
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
               </div>
             </div>
 
