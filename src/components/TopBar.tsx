@@ -130,12 +130,29 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
 
     fetchMonitorStatus();
     fetchMonitorExecutionStatus();
+    
+    // Listen for maintenance window updates
+    const handleMaintenanceWindowUpdate = () => {
+      fetchMonitorExecutionStatus();
+    };
+    
+    // Listen for monitor execution status updates
+    const handleMonitorExecutionUpdate = () => {
+      fetchMonitorExecutionStatus();
+    };
+    
+    window.addEventListener('maintenanceWindowUpdated', handleMaintenanceWindowUpdate);
+    window.addEventListener('monitorExecutionStatusUpdated', handleMonitorExecutionUpdate);
+    
     // Refresh every 30 seconds
     const statusInterval = setInterval(fetchMonitorStatus, 30000);
     const executionInterval = setInterval(fetchMonitorExecutionStatus, 30000);
+    
     return () => {
       clearInterval(statusInterval);
       clearInterval(executionInterval);
+      window.removeEventListener('maintenanceWindowUpdated', handleMaintenanceWindowUpdate);
+      window.removeEventListener('monitorExecutionStatusUpdated', handleMonitorExecutionUpdate);
     };
   }, [selectedEnvironment]);
 

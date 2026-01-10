@@ -1,9 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Download, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, Download, Save, AlertTriangle, Loader2, Calendar, X } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import monitorService from '../services/monitorService';
 import { metricsHttp } from '../services/httpClient';
 import { toast } from 'react-hot-toast';
+
+// Helper function to format date in 24-hour format (UTC)
+const formatDateTime24Hour = (dateString: string): string => {
+  const date = new Date(dateString);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
+
+// Custom 24-hour time input component
+const TimeInput24Hour: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  className?: string;
+}> = ({ value, onChange, required, className }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let inputValue = e.target.value;
+    
+    // Remove any non-digit characters except colon
+    inputValue = inputValue.replace(/[^\d:]/g, '');
+    
+    // Auto-format as user types (HH:MM)
+    if (inputValue.length === 1 && parseInt(inputValue) > 2) {
+      inputValue = '0' + inputValue + ':';
+    } else if (inputValue.length === 2 && !inputValue.includes(':')) {
+      const hours = parseInt(inputValue);
+      if (hours > 23) {
+        inputValue = '23:';
+      } else {
+        inputValue = inputValue + ':';
+      }
+    } else if (inputValue.length === 3 && !inputValue.includes(':')) {
+      inputValue = inputValue.slice(0, 2) + ':' + inputValue.slice(2);
+    } else if (inputValue.length > 5) {
+      inputValue = inputValue.slice(0, 5);
+    }
+    
+    // Validate format
+    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (inputValue.length === 5 && !timePattern.test(inputValue)) {
+      // If invalid, don't update
+      return;
+    }
+    
+    onChange(inputValue);
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    
+    if (inputValue && !timePattern.test(inputValue)) {
+      // Reset to empty or last valid value
+      onChange('');
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder="HH:MM"
+      pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+      required={required}
+      maxLength={5}
+      className={className}
+    />
+  );
+};
 
 export function Administration() {
   const [retentionDays, setRetentionDays] = useState<number>(0);
@@ -21,6 +96,22 @@ export function Administration() {
   const [isMonitorExecutionDisabled, setIsMonitorExecutionDisabled] = useState<boolean>(false);
   const [isTogglingExecution, setIsTogglingExecution] = useState(false);
   const [showExecutionConfirmationModal, setShowExecutionConfirmationModal] = useState(false);
+  const [maintenanceWindow, setMaintenanceWindow] = useState<{
+    startUtc: string | null;
+    endUtc: string | null;
+    isInMaintenanceWindow: boolean;
+  }>({
+    startUtc: null,
+    endUtc: null,
+    isInMaintenanceWindow: false
+  });
+  const [isLoadingMaintenanceWindow, setIsLoadingMaintenanceWindow] = useState(false);
+  const [isSavingMaintenanceWindow, setIsSavingMaintenanceWindow] = useState(false);
+  const [showMaintenanceWindowModal, setShowMaintenanceWindowModal] = useState(false);
+  const [maintenanceStartDate, setMaintenanceStartDate] = useState<string>('');
+  const [maintenanceStartTime, setMaintenanceStartTime] = useState<string>('');
+  const [maintenanceEndDate, setMaintenanceEndDate] = useState<string>('');
+  const [maintenanceEndTime, setMaintenanceEndTime] = useState<string>('');
 
   useEffect(() => {
     const loadRetention = async () => {
@@ -46,8 +137,26 @@ export function Administration() {
       }
     };
 
+    const loadMaintenanceWindow = async () => {
+      setIsLoadingMaintenanceWindow(true);
+      try {
+        const window = await monitorService.getMaintenanceWindow();
+        setMaintenanceWindow({
+          startUtc: window.startUtc,
+          endUtc: window.endUtc,
+          isInMaintenanceWindow: window.isInMaintenanceWindow
+        });
+      } catch (error) {
+        console.error('Failed to load maintenance window:', error);
+        toast.error('Failed to load maintenance window', { position: 'bottom-right' });
+      } finally {
+        setIsLoadingMaintenanceWindow(false);
+      }
+    };
+
     loadRetention();
     loadMonitorExecutionStatus();
+    loadMaintenanceWindow();
   }, []);
 
   const handleExportBackup = async () => {
@@ -141,8 +250,31 @@ export function Administration() {
       const newStatus = !isMonitorExecutionDisabled;
       await monitorService.setMonitorExecutionDisabled(newStatus);
       setIsMonitorExecutionDisabled(newStatus);
+      
+      // If enabling monitors, clear the maintenance window
+      if (!newStatus) {
+        try {
+          await monitorService.setMaintenanceWindow(null, null);
+          // Reload maintenance window state
+          const maintenanceWindowData = await monitorService.getMaintenanceWindow();
+          setMaintenanceWindow({
+            startUtc: maintenanceWindowData.startUtc,
+            endUtc: maintenanceWindowData.endUtc,
+            isInMaintenanceWindow: maintenanceWindowData.isInMaintenanceWindow
+          });
+          // Notify TopBar to refresh
+          window.dispatchEvent(new CustomEvent('maintenanceWindowUpdated'));
+        } catch (error) {
+          console.error('Failed to clear maintenance window:', error);
+          // Don't fail the whole operation if clearing maintenance window fails
+        }
+      }
+      
+      // Notify TopBar to refresh monitor execution status
+      window.dispatchEvent(new CustomEvent('monitorExecutionStatusUpdated'));
+      
       toast.success(
-        `Monitor execution has been ${newStatus ? 'disabled' : 'enabled'}`,
+        `Monitor execution has been ${newStatus ? 'disabled' : 'enabled'}${!newStatus ? ' and maintenance window cleared' : ''}`,
         { position: 'bottom-right' }
       );
     } catch (error) {
@@ -150,6 +282,123 @@ export function Administration() {
       toast.error('Failed to update monitor execution status', { position: 'bottom-right' });
     } finally {
       setIsTogglingExecution(false);
+    }
+  };
+
+  const handleOpenMaintenanceWindowModal = () => {
+    if (maintenanceWindow.startUtc && maintenanceWindow.endUtc) {
+      const startDate = new Date(maintenanceWindow.startUtc);
+      const endDate = new Date(maintenanceWindow.endUtc);
+      
+      // Convert UTC to local date/time strings for display
+      const startYear = startDate.getUTCFullYear();
+      const startMonth = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+      const startDay = String(startDate.getUTCDate()).padStart(2, '0');
+      const startHours = String(startDate.getUTCHours()).padStart(2, '0');
+      const startMinutes = String(startDate.getUTCMinutes()).padStart(2, '0');
+      
+      const endYear = endDate.getUTCFullYear();
+      const endMonth = String(endDate.getUTCMonth() + 1).padStart(2, '0');
+      const endDay = String(endDate.getUTCDate()).padStart(2, '0');
+      const endHours = String(endDate.getUTCHours()).padStart(2, '0');
+      const endMinutes = String(endDate.getUTCMinutes()).padStart(2, '0');
+      
+      setMaintenanceStartDate(`${startYear}-${startMonth}-${startDay}`);
+      setMaintenanceStartTime(`${startHours}:${startMinutes}`);
+      setMaintenanceEndDate(`${endYear}-${endMonth}-${endDay}`);
+      setMaintenanceEndTime(`${endHours}:${endMinutes}`);
+    } else {
+      setMaintenanceStartDate('');
+      setMaintenanceStartTime('');
+      setMaintenanceEndDate('');
+      setMaintenanceEndTime('');
+    }
+    setShowMaintenanceWindowModal(true);
+  };
+
+  const handleSaveMaintenanceWindow = async () => {
+    // Validate that all fields are filled
+    if (!maintenanceStartDate || !maintenanceStartTime || !maintenanceEndDate || !maintenanceEndTime) {
+      toast.error('Please fill in all date and time fields', { position: 'bottom-right' });
+      return;
+    }
+
+    setIsSavingMaintenanceWindow(true);
+    try {
+      // Parse the date/time strings as UTC
+      const [startYear, startMonth, startDay] = maintenanceStartDate.split('-').map(Number);
+      const [startHours, startMinutes] = maintenanceStartTime.split(':').map(Number);
+      const startDateTime = new Date(Date.UTC(startYear, startMonth - 1, startDay, startHours, startMinutes, 0));
+      
+      const [endYear, endMonth, endDay] = maintenanceEndDate.split('-').map(Number);
+      const [endHours, endMinutes] = maintenanceEndTime.split(':').map(Number);
+      const endDateTime = new Date(Date.UTC(endYear, endMonth - 1, endDay, endHours, endMinutes, 0));
+      
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        toast.error('Invalid date/time format', { position: 'bottom-right' });
+        setIsSavingMaintenanceWindow(false);
+        return;
+      }
+
+      if (endDateTime <= startDateTime) {
+        toast.error('End time must be after start time', { position: 'bottom-right' });
+        setIsSavingMaintenanceWindow(false);
+        return;
+      }
+
+      const startUtc = startDateTime.toISOString();
+      const endUtc = endDateTime.toISOString();
+
+      await monitorService.setMaintenanceWindow(startUtc, endUtc);
+      
+      // Reload maintenance window
+      const maintenanceWindowData = await monitorService.getMaintenanceWindow();
+      setMaintenanceWindow({
+        startUtc: maintenanceWindowData.startUtc,
+        endUtc: maintenanceWindowData.endUtc,
+        isInMaintenanceWindow: maintenanceWindowData.isInMaintenanceWindow
+      });
+      
+      // Notify TopBar to refresh
+      window.dispatchEvent(new CustomEvent('maintenanceWindowUpdated'));
+      
+      setShowMaintenanceWindowModal(false);
+      toast.success(
+        startUtc && endUtc 
+          ? 'Maintenance window set successfully' 
+          : 'Maintenance window cleared successfully',
+        { position: 'bottom-right' }
+      );
+    } catch (error) {
+      console.error('Failed to save maintenance window:', error);
+      toast.error('Failed to save maintenance window', { position: 'bottom-right' });
+    } finally {
+      setIsSavingMaintenanceWindow(false);
+    }
+  };
+
+  const handleClearMaintenanceWindow = async () => {
+    setIsSavingMaintenanceWindow(true);
+    try {
+      await monitorService.setMaintenanceWindow(null, null);
+      
+      // Reload maintenance window
+      const maintenanceWindowData = await monitorService.getMaintenanceWindow();
+      setMaintenanceWindow({
+        startUtc: maintenanceWindowData.startUtc,
+        endUtc: maintenanceWindowData.endUtc,
+        isInMaintenanceWindow: maintenanceWindowData.isInMaintenanceWindow
+      });
+      
+      // Notify TopBar to refresh
+      window.dispatchEvent(new CustomEvent('maintenanceWindowUpdated'));
+      
+      toast.success('Maintenance window cleared successfully', { position: 'bottom-right' });
+    } catch (error) {
+      console.error('Failed to clear maintenance window:', error);
+      toast.error('Failed to clear maintenance window', { position: 'bottom-right' });
+    } finally {
+      setIsSavingMaintenanceWindow(false);
     }
   };
 
@@ -297,6 +546,84 @@ export function Administration() {
               {isMonitorExecutionDisabled ? 'Enable Monitor Execution' : 'Disable Monitor Execution'}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Maintenance Window Section */}
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
+        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Maintenance Window</h2>
+        
+        <div className="space-y-4">
+          {isLoadingMaintenanceWindow ? (
+            <div className="flex items-center justify-center py-4">
+              <LoadingSpinner size="sm" />
+            </div>
+          ) : (
+            <>
+              <div className={`p-4 rounded-lg border ${
+                maintenanceWindow.isInMaintenanceWindow
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                  : maintenanceWindow.startUtc && maintenanceWindow.endUtc
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                  : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+              }`}>
+                <p className={`text-sm ${
+                  maintenanceWindow.isInMaintenanceWindow
+                    ? 'dark:text-yellow-200 text-yellow-800'
+                    : maintenanceWindow.startUtc && maintenanceWindow.endUtc
+                    ? 'dark:text-blue-200 text-blue-800'
+                    : 'dark:text-gray-300 text-gray-600'
+                }`}>
+                  {maintenanceWindow.isInMaintenanceWindow ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4 inline mr-2" />
+                      <strong>Currently in maintenance window.</strong>
+                      {maintenanceWindow.endUtc && (
+                        <> Scheduled until {formatDateTime24Hour(maintenanceWindow.endUtc)} UTC</>
+                      )}
+                    </>
+                  ) : maintenanceWindow.startUtc && maintenanceWindow.endUtc ? (
+                    <>
+                      <Calendar className="w-4 h-4 inline mr-2" />
+                      <strong>Maintenance window scheduled:</strong>
+                      <br />
+                      From {formatDateTime24Hour(maintenanceWindow.startUtc)} UTC
+                      <br />
+                      To {formatDateTime24Hour(maintenanceWindow.endUtc)} UTC
+                    </>
+                  ) : (
+                    <>
+                      No maintenance window is currently set. Monitors will run continuously.
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleOpenMaintenanceWindowModal}
+                  disabled={isSavingMaintenanceWindow}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
+                           text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Calendar className="w-4 h-4" />
+                  {maintenanceWindow.startUtc && maintenanceWindow.endUtc ? 'Edit Maintenance Window' : 'Set Maintenance Window'}
+                </button>
+                
+                {maintenanceWindow.startUtc && maintenanceWindow.endUtc && (
+                  <button
+                    onClick={handleClearMaintenanceWindow}
+                    disabled={isSavingMaintenanceWindow}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 
+                             text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear Maintenance Window
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -557,6 +884,110 @@ export function Administration() {
                   <>
                     <AlertTriangle className="w-4 h-4" />
                     {isMonitorExecutionDisabled ? 'Enable' : 'Disable'}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance Window Modal */}
+      {showMaintenanceWindowModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Set Maintenance Window
+            </h3>
+            
+            <div className="mb-6 space-y-4">
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 
+                            text-blue-800 dark:text-blue-200 text-sm">
+                <p className="font-medium mb-1">Maintenance Window Information</p>
+                <p>
+                  During the maintenance window, monitor execution will be automatically disabled. 
+                  All times should be entered in UTC.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2">
+                  Start Date & Time (UTC) <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={maintenanceStartDate}
+                    onChange={(e) => setMaintenanceStartDate(e.target.value)}
+                    required
+                    className="px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                             dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  />
+                  <TimeInput24Hour
+                    value={maintenanceStartTime}
+                    onChange={(value) => setMaintenanceStartTime(value)}
+                    required
+                    className="px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                             dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2">
+                  End Date & Time (UTC) <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={maintenanceEndDate}
+                    onChange={(e) => setMaintenanceEndDate(e.target.value)}
+                    required
+                    className="px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                             dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  />
+                  <TimeInput24Hour
+                    value={maintenanceEndTime}
+                    onChange={(value) => setMaintenanceEndTime(value)}
+                    required
+                    className="px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
+                             dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowMaintenanceWindowModal(false)}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
+                         transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveMaintenanceWindow}
+                disabled={
+                  isSavingMaintenanceWindow || 
+                  !maintenanceStartDate || 
+                  !maintenanceStartTime || 
+                  !maintenanceEndDate || 
+                  !maintenanceEndTime
+                }
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white
+                         transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed 
+                         flex items-center gap-2"
+              >
+                {isSavingMaintenanceWindow ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Maintenance Window
                   </>
                 )}
               </button>

@@ -286,3 +286,25 @@ export interface ClusterPrice {
   armRegionName: string;
   effectiveStartDate: string;
 }
+
+export interface MaintenanceWindowRequest {
+  startUtc: string | null;
+  endUtc: string | null;
+}
+
+export interface MaintenanceWindow {
+  startUtc: string | null;
+  endUtc: string | null;
+  isInMaintenanceWindow: boolean;
+  message: string;
+}
+
+export interface MonitorExecutionStatus {
+  isDisabled: boolean;
+  isInMaintenanceWindow: boolean;
+  maintenanceWindow: {
+    startUtc: string | null;
+    endUtc: string | null;
+  };
+  message: string;
+}

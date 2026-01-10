@@ -392,13 +392,54 @@ export class MonitorService {
     }
   }
 
-  async getMonitorExecutionStatus(): Promise<{ isDisabled: boolean; message: string }> {
-    const response = await monitoringHttp.get<{ isDisabled: boolean; message: string }>('/api/monitor/getMonitorExecutionStatus');
+  async getMonitorExecutionStatus(): Promise<{ 
+    isDisabled: boolean; 
+    isInMaintenanceWindow: boolean;
+    maintenanceWindow: { startUtc: string | null; endUtc: string | null };
+    message: string;
+  }> {
+    const response = await monitoringHttp.get<{ 
+      isDisabled: boolean; 
+      isInMaintenanceWindow: boolean;
+      maintenanceWindow: { startUtc: string | null; endUtc: string | null };
+      message: string;
+    }>('/api/monitor/getMonitorExecutionStatus');
     return response.data;
   }
 
   async setMonitorExecutionDisabled(disabled: boolean): Promise<void> {
     await monitoringHttp.put(`/api/monitor/setMonitorExecutionDisabled/${disabled}`);
+  }
+
+  async getMaintenanceWindow(): Promise<{
+    startUtc: string | null;
+    endUtc: string | null;
+    isInMaintenanceWindow: boolean;
+    message: string;
+  }> {
+    const response = await monitoringHttp.get<{
+      startUtc: string | null;
+      endUtc: string | null;
+      isInMaintenanceWindow: boolean;
+      message: string;
+    }>('/api/monitor/getMaintenanceWindow');
+    return response.data;
+  }
+
+  async setMaintenanceWindow(startUtc: string | null, endUtc: string | null): Promise<{
+    message: string;
+    startUtc: string | null;
+    endUtc: string | null;
+  }> {
+    const response = await monitoringHttp.put<{
+      message: string;
+      startUtc: string | null;
+      endUtc: string | null;
+    }>('/api/monitor/setMaintenanceWindow', {
+      startUtc: startUtc ? new Date(startUtc).toISOString() : null,
+      endUtc: endUtc ? new Date(endUtc).toISOString() : null
+    });
+    return response.data;
   }
 
   // ... other existing methods ...
