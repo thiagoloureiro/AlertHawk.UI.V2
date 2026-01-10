@@ -97,13 +97,13 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
 
   return (
     <div 
-      className={`bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out flex flex-col
-        ${isCollapsed ? 'w-[60px]' : 'w-[250px]'}`}
+      className={`bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm text-gray-900 dark:text-white border-r border-gray-200/50 dark:border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col shadow-sm
+        ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}
     >
-      <div className="flex-none p-4">
+      <div className="flex-none p-4 border-b border-gray-200/50 dark:border-gray-800/50">
         <button
           onClick={toggleSidebar}
-          className="w-full flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-700 dark:text-white"
+          className="w-full flex items-center justify-center p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-xl transition-all duration-200 text-gray-700 dark:text-white hover:scale-105 active:scale-95"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -114,7 +114,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
         </button>
       </div>
       
-      <nav className="flex-1 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
           const isNew = item.id === '3' || item.id === '4' || item.id === '12' || item.id === '13' || item.id === '14'; // Cluster Metrics, Application Metrics, Clusters Diagram, Cluster Events, and Cluster Prices
@@ -122,30 +122,45 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
             <NavLink
               key={item.id}
               to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 mx-3 px-3 py-3 rounded-lg transition-colors text-gray-700 dark:text-white relative",
-                isActive 
-                  ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-white" 
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
-              )}
+              className={({ isActive }) => {
+                return cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-gray-700 dark:text-white relative group",
+                  isActive 
+                    ? "bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 text-blue-600 dark:text-blue-400 shadow-sm border border-blue-200/50 dark:border-blue-800/30" 
+                    : "hover:bg-gray-100/80 dark:hover:bg-gray-800/50 hover:translate-x-1"
+                );
+              }}
             >
-              <div className="relative flex-none">
-                <Icon className="w-5 h-5" />
-                {isNew && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-white dark:border-gray-900"></span>
-                )}
-              </div>
-              {!isCollapsed && (
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-                    {item.name}
-                  </span>
-                  {isNew && (
-                    <span className="px-1.5 py-0.5 text-xs font-semibold bg-blue-500 text-white rounded flex-shrink-0">
-                      NEW
-                    </span>
+              {({ isActive }) => (
+                <>
+                  <div className="relative flex-none">
+                    <Icon className={cn(
+                      "w-5 h-5 transition-transform duration-200",
+                      isActive ? "scale-110" : "group-hover:scale-110"
+                    )} />
+                    {isNew && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></span>
+                    )}
+                  </div>
+                  {!isCollapsed && (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className={cn(
+                        "text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis",
+                        isActive && "font-semibold"
+                      )}>
+                        {item.name}
+                      </span>
+                      {isNew && (
+                        <span className="px-2 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md flex-shrink-0 shadow-sm">
+                          NEW
+                        </span>
+                      )}
+                    </div>
                   )}
-                </div>
+                  {isActive && !isCollapsed && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full"></div>
+                  )}
+                </>
               )}
             </NavLink>
           );

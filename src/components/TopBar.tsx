@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut, Sparkles, Activity, Palette, AlertTriangle } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, Activity, Palette, AlertTriangle, Shield } from 'lucide-react';
 import { LoadingSpinner } from './ui';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
@@ -210,23 +210,26 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
   ];
 
   return (
-    <div className="h-16 px-4 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between
-                    dark:bg-gray-900 bg-white transition-colors duration-200">
+    <div className="h-16 px-6 py-2 border-b dark:border-gray-800/50 border-gray-200/50 flex items-center justify-between
+                    dark:bg-gray-900/95 bg-white/95 backdrop-blur-sm transition-colors duration-200
+                    shadow-sm dark:shadow-gray-900/20 relative z-[9999]">
       {/* Logo and App Name */}
       <div className="flex items-center gap-3">
-        <img 
-          src="../assets/logo.png" 
-          alt="AlertHawk Logo" 
-          className="w-8 h-8 object-contain"
-        />
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-semibold dark:text-white text-gray-900">
+        <div className="relative">
+          <img 
+            src="../assets/logo.png" 
+            alt="AlertHawk Logo" 
+            className="w-9 h-9 object-contain drop-shadow-sm"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
             AlertHawk
           </span>
           {(() => {
             const envInfo = getEnvironmentInfo(selectedEnvironment);
             return (
-              <div className={`px-2 py-1 rounded-md text-xs font-semibold border ${envInfo.bgColor} ${envInfo.textColor} ${envInfo.borderColor}`}>
+              <div className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${envInfo.bgColor} ${envInfo.textColor} ${envInfo.borderColor} shadow-sm`}>
                 {envInfo.name}
               </div>
             );
@@ -235,52 +238,60 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
       </div>
 
       {/* Monitor Status */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3">
         {isLoadingStatus ? (
           <LoadingSpinner size="sm" text="Loading status..." />
         ) : isMonitorExecutionDisabled ? (
-          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+          <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-200/50 dark:border-yellow-800/50 shadow-sm backdrop-blur-sm">
+            <div className="p-1.5 rounded-md bg-yellow-100 dark:bg-yellow-900/50">
+              <AlertTriangle className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+            </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+              <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 leading-tight">
                 Monitor Execution Disabled
               </span>
-              <span className="text-xs text-yellow-700 dark:text-yellow-300">
+              <span className="text-[10px] text-yellow-600/80 dark:text-yellow-400/80 leading-tight">
                 All monitors are paused for maintenance
               </span>
             </div>
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-800/30 shadow-sm hover:shadow-md transition-shadow">
+              <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/40">
+                <Activity className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+              </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-bold text-green-500 dark:text-green-400">
+                <span className="text-lg font-bold text-green-600 dark:text-green-400 leading-tight">
                   {monitorStatus.online}
                 </span>
-                <span className="text-sm font-medium dark:text-white text-gray-900">
+                <span className="text-[10px] font-medium text-green-700/70 dark:text-green-300/70 leading-tight">
                   Online
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-red-500 dark:text-red-400" />
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200/50 dark:border-red-800/30 shadow-sm hover:shadow-md transition-shadow">
+              <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/40">
+                <Activity className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+              </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-bold text-red-500 dark:text-red-400">
+                <span className="text-lg font-bold text-red-600 dark:text-red-400 leading-tight">
                   {monitorStatus.offline}
                 </span>
-                <span className="text-sm font-medium dark:text-white text-gray-900">
+                <span className="text-[10px] font-medium text-red-700/70 dark:text-red-300/70 leading-tight">
                   Offline
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/30 dark:to-slate-800/30 border border-gray-200/50 dark:border-gray-700/30 shadow-sm hover:shadow-md transition-shadow">
+              <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800/50">
+                <Activity className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+              </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-bold text-gray-400 dark:text-gray-500">
+                <span className="text-lg font-bold text-gray-500 dark:text-gray-400 leading-tight">
                   {monitorStatus.paused}
                 </span>
-                <span className="text-sm font-medium dark:text-white text-gray-900">
+                <span className="text-[10px] font-medium text-gray-600/70 dark:text-gray-400/70 leading-tight">
                   Paused
                 </span>
               </div>
@@ -290,18 +301,18 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
       </div>
 
       {/* Right Side: Theme Toggle, Notifications, and User Menu */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Theme Selector */}
-        <div ref={themeMenuRef} className="relative">
+        <div ref={themeMenuRef} className="relative z-[10000]">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-105 active:scale-95"
             title="Select theme"
           >
             {getThemeIcon()}
           </button>
           {showThemeMenu && (
-            <div className="absolute top-full right-0 mt-1 w-40 py-1 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200 z-50">
+            <div className="absolute top-full right-0 mt-2 w-48 py-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-xl border dark:border-gray-800/50 border-gray-200/50 z-[10000] animate-in fade-in slide-in-from-top-2 duration-200">
               {themes.map((t) => (
                 <button
                   key={t.value}
@@ -309,16 +320,16 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
                     onThemeChange(t.value);
                     setShowThemeMenu(false);
                   }}
-                  className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                  className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-all duration-150 ${
                     theme === t.value
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                      ? 'bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 text-blue-600 dark:text-blue-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   }`}
                 >
                   {t.icon}
-                  {t.label}
+                  <span className="flex-1">{t.label}</span>
                   {theme === t.value && (
-                    <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">✓</span>
                   )}
                 </button>
               ))}
@@ -326,25 +337,26 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
           )}
         </div>
         
-       {/* <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+       {/* <button className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-105 active:scale-95 relative">
           <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
         </button>
         */}
         {/* User Menu */}
-        <div ref={menuRef} className="relative">
+        <div ref={menuRef} className="relative z-[10000]">
           <button 
             onClick={() => setShowUserMenu(!showUserMenu)} 
-            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-105 active:scale-95 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 flex items-center justify-center text-white overflow-hidden shadow-md ring-2 ring-blue-100 dark:ring-blue-900/50">
               {userPhoto ? (
                 <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
               ) : (
-                displayName.charAt(0).toUpperCase()
+                <span className="text-sm font-semibold">{displayName.charAt(0).toUpperCase()}</span>
               )}
             </div>
-            <div className="text-left">
-              <div className="text-sm font-medium dark:text-white text-gray-900">
+            <div className="text-left hidden sm:block">
+              <div className="text-sm font-semibold dark:text-white text-gray-900">
                 {displayName}
               </div>
               <div className="text-xs dark:text-gray-400 text-gray-600">
@@ -354,10 +366,13 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-1 w-48 py-1 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg border dark:border-gray-700 border-gray-200">
+            <div className="absolute top-full right-0 mt-2 w-56 py-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-xl border dark:border-gray-800/50 border-gray-200/50 z-[10000] animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
               {userInfo?.isAdmin && (
-                <div className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
-                  Administrator
+                <div className="px-4 py-2 mb-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 border-b dark:border-gray-800/50 border-gray-200/50">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-3.5 h-3.5" />
+                    Administrator
+                  </div>
                 </div>
               )}
               <button
@@ -365,14 +380,15 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
                   setShowWhatsNew(true);
                   setShowUserMenu(false);
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors duration-150"
               >
                 <Sparkles className="w-4 h-4" />
                 What's New
               </button>
+              <div className="h-px bg-gray-200 dark:bg-gray-800/50 my-1"></div>
               <button
                 onClick={handleLogout}
-                className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors duration-150"
               >
                 <LogOut className="w-4 h-4" />
                 Sign Out
