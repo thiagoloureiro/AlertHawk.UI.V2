@@ -13,6 +13,23 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Monitor Execution Control",
+    description: "New system maintenance mode feature allowing administrators to globally enable or disable monitor execution across all monitor types (HTTP, TCP, K8s) for system maintenance and troubleshooting.",
+    date: "January 10th, 2026",
+    features: [
+      "New Monitor Execution section in Administration page for controlling global monitor execution",
+      "Enable/Disable toggle with confirmation modal to prevent accidental changes",
+      "Visual warning indicators when monitor execution is disabled",
+      "TopBar status indicator showing when all monitors are paused for maintenance",
+      "Real-time status updates across the application when execution state changes",
+      "Clear messaging explaining that disabling pauses all monitor runners (HTTP, TCP, K8s)",
+      "Admin-only access control for system maintenance operations",
+      "Automatic status refresh every 30 seconds to keep UI synchronized",
+      "Warning banner in TopBar replacing monitor status when execution is disabled",
+      "Confirmation dialogs with appropriate warnings for disabling and simpler messages for enabling"
+    ]
+  },
+  {
     title: "Enhanced Monitor Creation Wizard",
     description: "Completely redesigned monitor creation and editing experience with an intuitive step-by-step wizard interface for improved usability and user guidance.",
     date: "January 2nd, 2026",

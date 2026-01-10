@@ -18,6 +18,9 @@ export function Administration() {
   const [metricsCleanupDays, setMetricsCleanupDays] = useState<number>(7);
   const [isClearingMetrics, setIsClearingMetrics] = useState(false);
   const [showClearMetricsModal, setShowClearMetricsModal] = useState(false);
+  const [isMonitorExecutionDisabled, setIsMonitorExecutionDisabled] = useState<boolean>(false);
+  const [isTogglingExecution, setIsTogglingExecution] = useState(false);
+  const [showExecutionConfirmationModal, setShowExecutionConfirmationModal] = useState(false);
 
   useEffect(() => {
     const loadRetention = async () => {
@@ -33,7 +36,18 @@ export function Administration() {
       }
     };
 
+    const loadMonitorExecutionStatus = async () => {
+      try {
+        const status = await monitorService.getMonitorExecutionStatus();
+        setIsMonitorExecutionDisabled(status.isDisabled);
+      } catch (error) {
+        console.error('Failed to load monitor execution status:', error);
+        toast.error('Failed to load monitor execution status', { position: 'bottom-right' });
+      }
+    };
+
     loadRetention();
+    loadMonitorExecutionStatus();
   }, []);
 
   const handleExportBackup = async () => {
@@ -118,6 +132,24 @@ export function Administration() {
       toast.error('Failed to clear metrics', { position: 'bottom-right' });
     } finally {
       setIsClearingMetrics(false);
+    }
+  };
+
+  const handleToggleMonitorExecution = async () => {
+    setIsTogglingExecution(true);
+    try {
+      const newStatus = !isMonitorExecutionDisabled;
+      await monitorService.setMonitorExecutionDisabled(newStatus);
+      setIsMonitorExecutionDisabled(newStatus);
+      toast.success(
+        `Monitor execution has been ${newStatus ? 'disabled' : 'enabled'}`,
+        { position: 'bottom-right' }
+      );
+    } catch (error) {
+      console.error('Failed to toggle monitor execution:', error);
+      toast.error('Failed to update monitor execution status', { position: 'bottom-right' });
+    } finally {
+      setIsTogglingExecution(false);
     }
   };
 
@@ -226,6 +258,45 @@ export function Administration() {
             <AlertTriangle className="w-4 h-4" />
             Clear All Statistics
           </button>
+        </div>
+      </div>
+
+      {/* Monitor Execution Section */}
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
+        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Monitor Execution</h2>
+        
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <p className="dark:text-blue-200 text-blue-800 text-sm mb-3">
+              {isMonitorExecutionDisabled ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 inline mr-2" />
+                  <strong>Monitor execution is currently disabled.</strong> All monitor runners (HTTP, TCP, K8s) are paused. 
+                  This is typically used for system maintenance.
+                </>
+              ) : (
+                <>
+                  Monitor execution is currently <strong>enabled</strong>. All monitors are running normally.
+                </>
+              )}
+            </p>
+          </div>
+
+          <div>
+            <button
+              onClick={() => setShowExecutionConfirmationModal(true)}
+              disabled={isTogglingExecution}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors duration-200
+                       disabled:opacity-50 disabled:cursor-not-allowed ${
+                         isMonitorExecutionDisabled
+                           ? 'bg-green-500 hover:bg-green-600'
+                           : 'bg-red-500 hover:bg-red-600'
+                       }`}
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {isMonitorExecutionDisabled ? 'Enable Monitor Execution' : 'Disable Monitor Execution'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -418,6 +489,76 @@ export function Administration() {
                   <AlertTriangle className="w-4 h-4" />
                 )}
                 {isClearingMetrics ? 'Clearing...' : metricsCleanupDays === 0 ? 'Truncate All' : 'Clear Metrics'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Monitor Execution Confirmation Modal */}
+      {showExecutionConfirmationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              {isMonitorExecutionDisabled ? 'Enable Monitor Execution' : 'Disable Monitor Execution'}
+            </h3>
+            
+            <div className="mb-6">
+              {isMonitorExecutionDisabled ? (
+                <p className="dark:text-gray-300 text-gray-600">
+                  Are you sure you want to <span className="font-medium text-green-600 dark:text-green-400">enable</span> monitor execution?
+                  <br />
+                  <br />
+                  This will resume all monitor runners (HTTP, TCP, K8s) and monitoring will continue normally.
+                </p>
+              ) : (
+                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 
+                            text-yellow-800 dark:text-yellow-200 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium mb-1">Warning: This will pause all monitors</p>
+                    <p className="text-sm">
+                      Disabling monitor execution will pause all monitor runners (HTTP, TCP, K8s). 
+                      This is typically used for system maintenance. Monitors will not execute until execution is re-enabled.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowExecutionConfirmationModal(false)}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                         dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
+                         transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowExecutionConfirmationModal(false);
+                  await handleToggleMonitorExecution();
+                }}
+                disabled={isTogglingExecution}
+                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200
+                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                           isMonitorExecutionDisabled
+                             ? 'bg-green-500 hover:bg-green-600'
+                             : 'bg-red-500 hover:bg-red-600'
+                         }`}
+              >
+                {isTogglingExecution ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    {isMonitorExecutionDisabled ? 'Enabling...' : 'Disabling...'}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-4 h-4" />
+                    {isMonitorExecutionDisabled ? 'Enable' : 'Disable'}
+                  </>
+                )}
               </button>
             </div>
           </div>

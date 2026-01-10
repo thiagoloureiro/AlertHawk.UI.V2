@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut, Sparkles, Activity, Palette } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, Activity, Palette, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from './ui';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
@@ -63,6 +63,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
   const [monitorStatus, setMonitorStatus] = useState<MonitorStatus>({ online: 0, offline: 0, paused: 0 });
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [selectedEnvironment, setSelectedEnvironment] = useState<number>(getStoredEnvironment());
+  const [isMonitorExecutionDisabled, setIsMonitorExecutionDisabled] = useState<boolean>(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   
@@ -118,10 +119,24 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
       }
     }
 
+    async function fetchMonitorExecutionStatus() {
+      try {
+        const status = await monitorService.getMonitorExecutionStatus();
+        setIsMonitorExecutionDisabled(status.isDisabled);
+      } catch (error) {
+        console.error('Failed to fetch monitor execution status:', error);
+      }
+    }
+
     fetchMonitorStatus();
+    fetchMonitorExecutionStatus();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchMonitorStatus, 30000);
-    return () => clearInterval(interval);
+    const statusInterval = setInterval(fetchMonitorStatus, 30000);
+    const executionInterval = setInterval(fetchMonitorExecutionStatus, 30000);
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(executionInterval);
+    };
   }, [selectedEnvironment]);
 
   const handleLogout = async () => {
@@ -206,6 +221,18 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
       <div className="flex items-center gap-6">
         {isLoadingStatus ? (
           <LoadingSpinner size="sm" text="Loading status..." />
+        ) : isMonitorExecutionDisabled ? (
+          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+                Monitor Execution Disabled
+              </span>
+              <span className="text-xs text-yellow-700 dark:text-yellow-300">
+                All monitors are paused for maintenance
+              </span>
+            </div>
+          </div>
         ) : (
           <>
             <div className="flex items-center gap-2">

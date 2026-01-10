@@ -392,6 +392,15 @@ export class MonitorService {
     }
   }
 
+  async getMonitorExecutionStatus(): Promise<{ isDisabled: boolean; message: string }> {
+    const response = await monitoringHttp.get<{ isDisabled: boolean; message: string }>('/api/monitor/getMonitorExecutionStatus');
+    return response.data;
+  }
+
+  async setMonitorExecutionDisabled(disabled: boolean): Promise<void> {
+    await monitoringHttp.put(`/api/monitor/setMonitorExecutionDisabled/${disabled}`);
+  }
+
   // ... other existing methods ...
 }
 
