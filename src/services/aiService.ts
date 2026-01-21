@@ -21,7 +21,7 @@ class AiService {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/developers/get_models/`, {
+      const response = await fetch(`${this.baseUrl}/developers/models/`, {
         method: 'GET',
         headers: {
           'X-ABBY-API-Key': this.apiKey,
