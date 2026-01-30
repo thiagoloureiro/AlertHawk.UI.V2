@@ -177,6 +177,17 @@
   border-color: #6B6E70 !important;
 }
 
+/* Sidebar & header: opacity variants (match bg-white/95 and dark:bg-gray-900/95) */
+.darcula [class*="bg-white/95"],
+.darcula [class*="dark:bg-gray-900/95"] {
+  background-color: #3C3F41 !important;
+}
+
+.darcula [class*="dark:border-gray-800/50"],
+.darcula [class*="border-gray-200/50"] {
+  border-color: #5A5D5F !important;
+}
+
 .darcula .hover\:bg-gray-100:hover {
   background-color: #4E5254 !important;
 }
@@ -314,6 +325,17 @@
   border-color: #6B6A5F !important;
 }
 
+/* Sidebar & header: opacity variants */
+.monokai [class*="bg-white/95"],
+.monokai [class*="dark:bg-gray-900/95"] {
+  background-color: #3E3D32 !important;
+}
+
+.monokai [class*="dark:border-gray-800/50"],
+.monokai [class*="border-gray-200/50"] {
+  border-color: #575651 !important;
+}
+
 .monokai .hover\:bg-gray-100:hover {
   background-color: #49483E !important;
 }
@@ -406,6 +428,17 @@
 
 .github-dark .border-gray-700 {
   border-color: #373e47 !important;
+}
+
+/* Sidebar & header: opacity variants */
+.github-dark [class*="bg-white/95"],
+.github-dark [class*="dark:bg-gray-900/95"] {
+  background-color: #161b22 !important;
+}
+
+.github-dark [class*="dark:border-gray-800/50"],
+.github-dark [class*="border-gray-200/50"] {
+  border-color: #30363d !important;
 }
 
 .github-dark .hover\:bg-gray-100:hover {
