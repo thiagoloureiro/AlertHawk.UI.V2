@@ -1,5 +1,5 @@
 import { metricsHttp } from './httpClient';
-import { NodeMetric, NamespaceMetric, PodLog, MetricsAlert, KubernetesEventDto } from '../types';
+import { NodeMetric, NamespaceMetric, PodLog, MetricsAlert, KubernetesEventDto, PVCMetric } from '../types';
 
 class MetricsService {
   /**
@@ -220,6 +220,37 @@ class MetricsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch Kubernetes events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch PVC (Persistent Volume Claim) metrics from the API
+   * @param namespace - Name of the namespace to filter by (optional)
+   * @param minutes - Number of minutes of data to fetch (default: 1440 = 24 hours)
+   * @param clusterName - Name of the cluster to filter by (optional)
+   */
+  async getPvcMetrics(
+    namespace?: string,
+    minutes: number = 1440,
+    clusterName?: string
+  ): Promise<PVCMetric[]> {
+    try {
+      const params: { minutes: number; namespace?: string; clusterName?: string } = {
+        minutes
+      };
+      if (namespace) {
+        params.namespace = namespace;
+      }
+      if (clusterName) {
+        params.clusterName = clusterName;
+      }
+      const response = await metricsHttp.get<PVCMetric[]>('/api/metrics/pvc', {
+        params
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch PVC metrics:', error);
       throw error;
     }
   }

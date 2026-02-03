@@ -200,6 +200,11 @@ export interface NodeMetric {
   cpuCapacityCores: number;
   memoryUsageBytes: number;
   memoryCapacityBytes: number;
+  diskReadBytes?: number;
+  diskWriteBytes?: number;
+  diskReadOps?: number;
+  diskWriteOps?: number;
+  networkUsageBytes?: number;
   kubernetesVersion?: string;
   cloudProvider?: string;
   isReady?: boolean;
@@ -221,6 +226,11 @@ export interface NamespaceMetric {
   cpuUsageCores: number;
   cpuLimitCores: number | null;
   memoryUsageBytes: number;
+  diskReadBytes?: number;
+  diskWriteBytes?: number;
+  diskReadOps?: number;
+  diskWriteOps?: number;
+  networkUsageBytes?: number;
   nodeName: string;
   podState?: string;
   restartCount?: number;
@@ -307,4 +317,17 @@ export interface MonitorExecutionStatus {
     endUtc: string | null;
   };
   message: string;
+}
+
+export interface PVCMetric {
+  timestamp: string;
+  clusterName: string;
+  namespace: string;
+  pod: string;
+  pvcNamespace: string;
+  pvcName: string;
+  volumeName: string;
+  usedBytes: number;
+  availableBytes: number;
+  capacityBytes: number;
 }

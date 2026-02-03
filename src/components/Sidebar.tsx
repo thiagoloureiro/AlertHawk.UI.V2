@@ -15,7 +15,8 @@ import {
   Package,
   Network,
   Activity,
-  DollarSign
+  DollarSign,
+  HardDrive
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
@@ -34,6 +35,7 @@ const baseMenuItems: MenuItem[] = [
   { id: '2', name: 'Dashboard Builder', icon: 'BarChart3', path: '/dashboard-builder' },
   { id: '3', name: 'Cluster Metrics', icon: 'LineChart', path: '/metrics' },
   { id: '4', name: 'Application Metrics', icon: 'Package', path: '/application-metrics' },
+  { id: '15', name: 'Volume Metrics', icon: 'HardDrive', path: '/volume-metrics' },
   { id: '12', name: 'Clusters Diagram', icon: 'Network', path: '/clusters-diagram' },
   { id: '13', name: 'Cluster Events', icon: 'Activity', path: '/cluster-events' },
   { id: '14', name: 'Cluster Prices', icon: 'DollarSign', path: '/cluster-prices' },
@@ -66,6 +68,7 @@ const iconMap: Record<string, React.ElementType> = {
   Settings,
   Shield,
   Package,
+  HardDrive,
   Network,
   Activity,
   DollarSign,
@@ -84,7 +87,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
     
     // Filter out metrics-related items if metrics are disabled
     if (!isMetricsEnabled()) {
-      const metricsItemIds = ['3', '4', '12', '13', '14']; // Cluster Metrics, Application Metrics, Clusters Diagram, Cluster Events, Cluster Prices
+      const metricsItemIds = ['3', '4', '15', '12', '13', '14']; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events, Cluster Prices
       items = items.filter(item => !metricsItemIds.includes(item.id));
     }
     
@@ -117,7 +120,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const isNew = item.id === '3' || item.id === '4' || item.id === '12' || item.id === '13' || item.id === '14'; // Cluster Metrics, Application Metrics, Clusters Diagram, Cluster Events, and Cluster Prices
+          const isNew = item.id === '3' || item.id === '4' || item.id === '15' || item.id === '12' || item.id === '13' || item.id === '14'; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events, and Cluster Prices
           return (
             <NavLink
               key={item.id}
