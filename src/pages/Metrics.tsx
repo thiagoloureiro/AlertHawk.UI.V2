@@ -28,7 +28,7 @@ export function Metrics() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | 'disk' | 'network' | 'cpu-pie' | 'memory-pie' | null>(null);
+  const [expandedChart, setExpandedChart] = useState<'cpu' | 'memory' | 'cpu-pie' | 'memory-pie' | null>(null);
   const [clusters, setClusters] = useState<string[]>([]);
   const [userClusters, setUserClusters] = useState<string[]>([]);
   const [clustersLoaded, setClustersLoaded] = useState(false);
@@ -1168,160 +1168,6 @@ export function Metrics() {
             </ResponsiveContainer>
           </div>
 
-          {/* Disk Usage Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
-                <HardDrive className="w-5 h-5" />
-                Disk Usage Over Time
-              </h3>
-              <button
-                onClick={() => setExpandedChart('disk')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Expand chart"
-              >
-                <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                <XAxis 
-                  dataKey="timestamp" 
-                  stroke="#6B7280"
-                  fontSize={12}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  stroke="#6B7280"
-                  fontSize={12}
-                  label={{ value: 'Bytes', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                    fontSize: '11px',
-                    padding: '8px'
-                  }}
-                  itemStyle={{
-                    padding: '2px 4px',
-                    fontSize: '11px'
-                  }}
-                  labelStyle={{
-                    fontSize: '11px',
-                    marginBottom: '4px',
-                    paddingBottom: '4px',
-                    borderBottom: '1px solid #374151'
-                  }}
-                  formatter={(value: number) => formatBytes(value)}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                {(selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
-                  const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
-                  return (
-                    <React.Fragment key={node}>
-                      <Line
-                        type="monotone"
-                        dataKey={`${node}_diskReadBytes`}
-                        stroke={colors[index % colors.length]}
-                        strokeWidth={2}
-                        dot={false}
-                        connectNulls={true}
-                        name={`${node} Disk Read`}
-                        strokeDasharray="5 5"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey={`${node}_diskWriteBytes`}
-                        stroke={colors[(index + 1) % colors.length]}
-                        strokeWidth={2}
-                        dot={false}
-                        connectNulls={true}
-                        name={`${node} Disk Write`}
-                      />
-                    </React.Fragment>
-                  );
-                })}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Network Usage Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
-                <Network className="w-5 h-5" />
-                Network Usage Over Time
-              </h3>
-              <button
-                onClick={() => setExpandedChart('network')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Expand chart"
-              >
-                <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                <XAxis 
-                  dataKey="timestamp" 
-                  stroke="#6B7280"
-                  fontSize={12}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  stroke="#6B7280"
-                  fontSize={12}
-                  label={{ value: 'Bytes', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                    fontSize: '11px',
-                    padding: '8px'
-                  }}
-                  itemStyle={{
-                    padding: '2px 4px',
-                    fontSize: '11px'
-                  }}
-                  labelStyle={{
-                    fontSize: '11px',
-                    marginBottom: '4px',
-                    paddingBottom: '4px',
-                    borderBottom: '1px solid #374151'
-                  }}
-                  formatter={(value: number) => formatBytes(value)}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                {(selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
-                  const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
-                  return (
-                    <Line
-                      key={`${node}_network`}
-                      type="monotone"
-                      dataKey={`${node}_networkBytes`}
-                      stroke={colors[index % colors.length]}
-                      strokeWidth={2}
-                      dot={false}
-                      connectNulls={true}
-                      name={`${node} Network`}
-                    />
-                  );
-                })}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
         </div>
 
         {/* Namespace Distribution Pie Charts */}
@@ -2242,16 +2088,6 @@ export function Metrics() {
                     <HardDrive className="w-6 h-6" />
                     Memory Usage Over Time
                   </>
-                ) : expandedChart === 'disk' ? (
-                  <>
-                    <HardDrive className="w-6 h-6" />
-                    Disk Usage Over Time
-                  </>
-                ) : expandedChart === 'network' ? (
-                  <>
-                    <Network className="w-6 h-6" />
-                    Network Usage Over Time
-                  </>
                 ) : expandedChart === 'cpu-pie' ? (
                   <>
                     <Cpu className="w-6 h-6" />
@@ -2413,7 +2249,6 @@ export function Metrics() {
                     label={{ 
                       value: expandedChart === 'cpu' ? 'CPU %' 
                         : expandedChart === 'memory' ? 'Memory %'
-                        : expandedChart === 'disk' ? 'Bytes'
                         : 'Bytes', 
                       angle: -90, 
                       position: 'insideLeft'
@@ -2446,56 +2281,23 @@ export function Metrics() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  {expandedChart === 'disk' ? (
-                    (selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
-                      const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
-                      return (
-                        <React.Fragment key={node}>
-                          <Line
-                            type="monotone"
-                            dataKey={`${node}_diskReadBytes`}
-                            stroke={colors[index % colors.length]}
-                            strokeWidth={2}
-                            dot={false}
-                            connectNulls={true}
-                            name={`${node} Disk Read`}
-                            strokeDasharray="5 5"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey={`${node}_diskWriteBytes`}
-                            stroke={colors[(index + 1) % colors.length]}
-                            strokeWidth={2}
-                            dot={false}
-                            connectNulls={true}
-                            name={`${node} Disk Write`}
-                          />
-                        </React.Fragment>
-                      );
-                    })
-                  ) : (
-                    (selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
-                      const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
-                      const chartName = expandedChart === 'cpu' ? 'CPU' 
-                        : expandedChart === 'memory' ? 'Memory'
-                        : 'Network';
-                      const dataKey = expandedChart === 'cpu' ? `${node}_cpu`
-                        : expandedChart === 'memory' ? `${node}_memory`
-                        : `${node}_networkBytes`;
-                      return (
-                        <Line
-                          key={`${node}_${expandedChart}`}
-                          type="monotone"
-                          dataKey={dataKey}
-                          stroke={colors[index % colors.length]}
-                          strokeWidth={2}
-                          dot={false}
-                          connectNulls={true}
-                          name={`${node} ${chartName}`}
-                        />
-                      );
-                    })
-                  )}
+                  {(selectedNode ? [selectedNode] : uniqueNodes).map((node, index) => {
+                    const colors = ['#818CF8', '#94A3B8', '#A78BFA', '#60A5FA', '#34D399', '#FBBF24'];
+                    const chartName = expandedChart === 'cpu' ? 'CPU' : 'Memory';
+                    const dataKey = expandedChart === 'cpu' ? `${node}_cpu` : `${node}_memory`;
+                    return (
+                      <Line
+                        key={`${node}_${expandedChart}`}
+                        type="monotone"
+                        dataKey={dataKey}
+                        stroke={colors[index % colors.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls={true}
+                        name={`${node} ${chartName}`}
+                      />
+                    );
+                  })}
                 </LineChart>
               </ResponsiveContainer>
               )}
