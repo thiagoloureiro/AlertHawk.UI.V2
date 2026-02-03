@@ -13,6 +13,9 @@ import {
   HardDrive,
   RefreshCw,
   AlertCircle,
+  ChevronDown,
+  Search,
+  X,
 } from 'lucide-react';
 import { PVCMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -57,6 +60,9 @@ export function VolumeMetrics() {
   const [minutes, setMinutes] = useState(1440);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<string | null>(null);
+  const [selectedPods, setSelectedPods] = useState<string[]>([]);
+  const [isPodDropdownOpen, setIsPodDropdownOpen] = useState(false);
+  const [podSearchFilter, setPodSearchFilter] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [clusters, setClusters] = useState<string[]>([]);
   const [namespaces, setNamespaces] = useState<string[]>([]);
@@ -94,6 +100,17 @@ export function VolumeMetrics() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minutes, selectedCluster, selectedNamespace]);
+
+  // Close pod dropdown on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPodDropdownOpen) {
+        setIsPodDropdownOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isPodDropdownOpen]);
 
   const getCurrentUser = () => {
     const stored = localStorage.getItem('userInfo');
@@ -147,6 +164,24 @@ export function VolumeMetrics() {
     return [...namespaces].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [namespaces]);
 
+  // PVC metrics filtered by selected pods (for table and chart)
+  const filteredPvcMetrics = useMemo(() => {
+    if (selectedPods.length === 0) return pvcMetrics;
+    return pvcMetrics.filter((m) => selectedPods.includes(m.pod));
+  }, [pvcMetrics, selectedPods]);
+
+  // Unique pod names from current metrics (for pod filter dropdown)
+  const uniquePods = useMemo(() => {
+    const pods = new Set(pvcMetrics.map((m) => m.pod));
+    return Array.from(pods).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [pvcMetrics]);
+
+  const filteredPods = useMemo(() => {
+    if (!podSearchFilter.trim()) return uniquePods;
+    const searchLower = podSearchFilter.toLowerCase();
+    return uniquePods.filter((pod) => pod.toLowerCase().includes(searchLower));
+  }, [uniquePods, podSearchFilter]);
+
   useEffect(() => {
     const load = async () => {
       await Promise.all([fetchClusters(), fetchUserClusters()]);
@@ -175,7 +210,7 @@ export function VolumeMetrics() {
 
   // Chart data: time series of used bytes per PVC (by pvcName + pod to distinguish same volume on different pods)
   const chartData = useMemo(() => {
-    if (!pvcMetrics.length) return [];
+    if (!filteredPvcMetrics.length) return [];
 
     const dataMap = new Map<
       string,
@@ -184,7 +219,7 @@ export function VolumeMetrics() {
 
     const seriesKeys = new Set<string>();
 
-    pvcMetrics.forEach((m) => {
+    filteredPvcMetrics.forEach((m) => {
       const date = getLocalDateFromUTC(m.timestamp);
       const timeKey = date ? formatCompactDate(date) : m.timestamp;
       const timestampValue = date ? date.getTime() : new Date(m.timestamp).getTime();
@@ -202,12 +237,12 @@ export function VolumeMetrics() {
     return Array.from(dataMap.values()).sort(
       (a, b) => (a.timestampValue as number) - (b.timestampValue as number)
     );
-  }, [pvcMetrics]);
+  }, [filteredPvcMetrics]);
 
-  // Latest value per PVC (for table and summary)
+  // Latest value per PVC (for table)
   const latestByPvc = useMemo(() => {
     const map = new Map<string, PVCMetric>();
-    pvcMetrics.forEach((m) => {
+    filteredPvcMetrics.forEach((m) => {
       const key = `${m.clusterName}/${m.pvcNamespace}/${m.pvcName}/${m.pod}`;
       const existing = map.get(key);
       if (!existing || new Date(m.timestamp) > new Date(existing.timestamp)) {
@@ -218,7 +253,7 @@ export function VolumeMetrics() {
       if (a.volumeName !== b.volumeName) return a.volumeName.localeCompare(b.volumeName);
       return a.pod.localeCompare(b.pod);
     });
-  }, [pvcMetrics]);
+  }, [filteredPvcMetrics]);
 
   const chartColors = [
     '#6366f1',
@@ -233,9 +268,9 @@ export function VolumeMetrics() {
 
   const uniqueSeriesKeys = useMemo(() => {
     const keys = new Set<string>();
-    pvcMetrics.forEach((m) => keys.add(`${m.volumeName} (${m.pod})`));
+    filteredPvcMetrics.forEach((m) => keys.add(`${m.volumeName} (${m.pod})`));
     return Array.from(keys).sort();
-  }, [pvcMetrics]);
+  }, [filteredPvcMetrics]);
 
   const hasNoPermissions =
     clustersLoaded && uniqueClusters.length === 0 && !getCurrentUser()?.isAdmin;
@@ -306,6 +341,8 @@ export function VolumeMetrics() {
                 onChange={(e) => {
                   setSelectedCluster(e.target.value || null);
                   setSelectedNamespace(null);
+                  setSelectedPods([]);
+                  setIsPodDropdownOpen(false);
                 }}
                 className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
               >
@@ -322,7 +359,11 @@ export function VolumeMetrics() {
               </span>
               <select
                 value={selectedNamespace ?? ''}
-                onChange={(e) => setSelectedNamespace(e.target.value || null)}
+                onChange={(e) => {
+                  setSelectedNamespace(e.target.value || null);
+                  setSelectedPods([]);
+                  setIsPodDropdownOpen(false);
+                }}
                 className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All namespaces</option>
@@ -333,6 +374,124 @@ export function VolumeMetrics() {
                 ))}
               </select>
             </div>
+            {/* Pod filter */}
+            {selectedCluster && (
+              <div className="flex items-center gap-2 relative">
+                <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                  Pod:
+                </span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPodDropdownOpen(!isPodDropdownOpen);
+                      if (!isPodDropdownOpen) setPodSearchFilter('');
+                    }}
+                    className="px-3 py-2 rounded-lg text-sm dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 min-w-[200px] text-left flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate">
+                      {selectedPods.length === 0
+                        ? 'All Pods'
+                        : selectedPods.length === 1
+                          ? selectedPods[0]
+                          : `${selectedPods.length} pods selected`}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isPodDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isPodDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsPodDropdownOpen(false)}
+                        aria-hidden
+                      />
+                      <div className="absolute z-20 mt-1 w-full max-w-[300px] dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden flex flex-col">
+                        <div className="p-2 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between gap-2">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPods([...uniquePods])}
+                              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            >
+                              Select All
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPods([])}
+                              className="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                            >
+                              Clear All
+                            </button>
+                          </div>
+                          {selectedPods.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPods([])}
+                              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="p-2 border-b dark:border-gray-700 border-gray-200">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search pods..."
+                              value={podSearchFilter}
+                              onChange={(e) => setPodSearchFilter(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full pl-8 pr-3 py-1.5 text-sm dark:bg-gray-700 bg-gray-50 border dark:border-gray-600 border-gray-300 rounded-lg dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
+                            />
+                            {podSearchFilter && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPodSearchFilter('');
+                                }}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto max-h-48 p-2">
+                          {filteredPods.length === 0 ? (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                              No pods found
+                            </div>
+                          ) : (
+                            filteredPods.map((pod) => (
+                              <label
+                                key={pod}
+                                className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPods.includes(pod)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedPods([...selectedPods, pod]);
+                                    } else {
+                                      setSelectedPods(selectedPods.filter((p) => p !== pod));
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                />
+                                <span className="text-sm dark:text-white text-gray-900 truncate">{pod}</span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
             <select
               value={minutes}
               onChange={(e) => setMinutes(Number(e.target.value))}
