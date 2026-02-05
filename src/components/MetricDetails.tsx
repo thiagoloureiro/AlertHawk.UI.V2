@@ -687,9 +687,7 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
     try {
       setIsLoadingK8s(true);
       const response = await monitoringHttp.get(`/api/Monitor/getMonitorK8sByMonitorId/${currentMetric.id}`);
-      console.log('Kubernetes details:', response.data);
-      console.log('Cluster name from API:', response.data.clusterName || response.data.ClusterName);
-      
+            
       // Normalize the response data to ensure consistent property names
       const normalizedData = {
         ...response.data,
@@ -964,9 +962,7 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
     
     try {
       let monitorData: Monitor;
-      
-      console.log('Monitor Type ID:', currentMetric.monitorTypeId);
-      
+            
       if (currentMetric.monitorTypeId === 3) {
         const tcpDetails = await monitorService.getMonitorTcpDetails(currentMetric.id);
         monitorData = {
@@ -1010,9 +1006,7 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
           httpResponseCodeTo: httpDetails.httpResponseCodeTo
         };
       }
-      
-      console.log('Monitor Data being sent to modal:', monitorData);
-      
+            
       setMonitorToEdit(monitorData);
       setShowEditModal(true);
     } catch (error) {

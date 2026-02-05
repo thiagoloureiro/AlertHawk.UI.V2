@@ -70,7 +70,6 @@ class AiService {
       }
 
       const responseData = await response.json();
-      console.log('Received API response:', responseData);
       
       // Call the callback with the response data
       onMessage(responseData);

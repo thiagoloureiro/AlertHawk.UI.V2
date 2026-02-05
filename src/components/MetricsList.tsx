@@ -421,7 +421,6 @@ export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger, up
             monitorK8sNodes: k8sDetails.monitorK8sNodes
           }
         };
-        console.log('K8s monitor with group:', { monitorGroup: groupId, k8sDetails });
         onSelectMetric(monitorWithK8s);
       } else {
         onSelectMetric(monitor);

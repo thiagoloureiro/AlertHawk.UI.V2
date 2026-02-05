@@ -204,7 +204,6 @@ export function DashboardBuilder() {
         navigate(`/dashboard-builder/${newDashboard.id}`);
       }
     }
-    console.log(`Dashboard "${dashboardName}" ${isUpdate ? 'updated' : 'saved'} successfully`);
   };
 
 
