@@ -65,7 +65,11 @@ interface MonitorAlert {
   periodOffline: number;
 }
 
-const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeStamp: string }[] }) => {
+const StatusTimeline = ({ historyData, uptimeFromTiles }: { 
+  historyData: { status: boolean; timeStamp: string }[]; 
+  /** Uptime % from dashboard tiles (e.g. monitorStatusDashboard.uptime1Hr) - preferred over timeline-derived value */
+  uptimeFromTiles?: number | null;
+}) => {
   const userTimeZone = localStorage.getItem('userTimezone') || 
     Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -103,11 +107,12 @@ const StatusTimeline = ({ historyData }: { historyData: { status: boolean; timeS
       }
     });
 
-  // Calculate statistics
+  // Calculate statistics (online/offline counts still from timeline; uptime % from tiles when provided)
   const totalChecks = timelineData.length;
   const onlineChecks = timelineData.filter(p => p.status).length;
   const offlineChecks = totalChecks - onlineChecks;
-  const uptimePercentage = totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0;
+  const uptimeFromHistory = totalChecks > 0 ? (onlineChecks / totalChecks) * 100 : 0;
+  const uptimePercentage = uptimeFromTiles != null && uptimeFromTiles !== -1 ? uptimeFromTiles : uptimeFromHistory;
 
   return (
     <div className="dark:bg-gray-800 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -1391,8 +1396,18 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
         })}
       </div>
 
-      {/* Status Timeline */}
-      <StatusTimeline historyData={historyData} />
+      {/* Status Timeline - use uptime from tiles for selected period */}
+      <StatusTimeline
+        historyData={historyData}
+        uptimeFromTiles={
+          selectedPeriod.label === '1 Hour' ? currentMetric.monitorStatusDashboard.uptime1Hr
+          : selectedPeriod.label === '24 Hours' ? currentMetric.monitorStatusDashboard.uptime24Hrs
+          : selectedPeriod.label === '7 Days' ? currentMetric.monitorStatusDashboard.uptime7Days
+          : selectedPeriod.label === '30 Days' ? currentMetric.monitorStatusDashboard.uptime30Days
+          : selectedPeriod.label === '3 Months' ? currentMetric.monitorStatusDashboard.uptime3Months
+          : currentMetric.monitorStatusDashboard.uptime6Months
+        }
+      />
 
       {/* Response Time Chart - Only show for HTTP monitors */}
       {currentMetric.monitorTypeId === 1 && (
