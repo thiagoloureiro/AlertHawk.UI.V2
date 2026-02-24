@@ -319,7 +319,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
           const groupId = (k8sDetails as any).monitorGroup || (k8sDetails as any).MonitorGroup || k8sDetails.MonitorGroup;
           if (groupId && groupId > 0) {
             setSelectedGroupId(groupId);
-            console.log('Found monitorGroup from K8s details API:', groupId, 'Full k8sDetails:', k8sDetails);
+            
           } else {
             console.warn('monitorGroup not found in K8s details or is 0:', k8sDetails);
           }

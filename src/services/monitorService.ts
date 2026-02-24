@@ -287,9 +287,7 @@ export class MonitorService {
       const endpoint = 'monitorTypeId' in monitor && monitor.monitorTypeId === 3 
         ? '/api/Monitor/CreateMonitorTcp'
         : '/api/Monitor/CreateMonitorHttp';
-
-        console.log('monitor:', monitor);
-        
+       
       await monitoringHttp.post(endpoint, monitor);
       return true;
     } catch (error) {
