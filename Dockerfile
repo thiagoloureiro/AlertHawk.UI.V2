@@ -5,8 +5,8 @@ COPY . ./
 RUN npm install
 RUN npm run build
 
-# Stage 2 - the production environment
-FROM dhi.io/nginx:1-alpine3.23
+# Stage 2 - the produbction environment
+FROM dhi.io/nginx:stable
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY privacy.html /usr/share/nginx/html
