@@ -6,7 +6,7 @@ RUN npm install
 RUN npm run build
 
 # Stage 2 - the produbction environment
-FROM dhi.io/nginx:stable
+FROM dhi.io/nginx:1
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY privacy.html /usr/share/nginx/html
