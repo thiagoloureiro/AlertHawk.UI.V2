@@ -115,6 +115,9 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   const maxCost = chartData.length ? Math.max(...chartData.map((p) => p.cost)) : 0;
 
   const barWidth = granularity === 'daily' && chartData.length > 60 ? 6 : undefined;
+  const gridStroke = '#6b7280';
+  const gridOpacity = 0.18;
+  const axisTickColor = '#6b7280';
 
   return (
     <div
@@ -219,16 +222,16 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                   <div style={{ minWidth: granularity === 'daily' ? Math.max(chartData.length * 14, 600) : 500 }}>
                     <ResponsiveContainer width="100%" height={320}>
                       <BarChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 60 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="2 6" stroke={gridStroke} strokeOpacity={gridOpacity} vertical={false} />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 11, fill: '#6b7280' }}
+                          tick={{ fontSize: 11, fill: axisTickColor }}
                           angle={-45}
                           textAnchor="end"
                           interval={granularity === 'daily' && chartData.length > 30 ? Math.floor(chartData.length / 20) : 0}
                         />
                         <YAxis
-                          tick={{ fontSize: 11, fill: '#6b7280' }}
+                          tick={{ fontSize: 11, fill: axisTickColor }}
                           tickFormatter={(v) => `$${v}`}
                           width={60}
                         />
