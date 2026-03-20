@@ -40,6 +40,12 @@ export interface AiRecommendation {
   analysisRun: unknown;
 }
 
+/** Distinct subscriptions from analysis runs (FinOps SubscriptionController). */
+export interface SubscriptionSummary {
+  subscriptionId: string;
+  subscriptionName: string;
+}
+
 export interface HistoricalCostDetail {
   id: number;
   analysisRunId: number;
@@ -55,6 +61,16 @@ export interface HistoricalCostDetail {
 }
 
 class FinopsService {
+  async getSubscriptions(): Promise<SubscriptionSummary[]> {
+    try {
+      const response = await finopsHttp.get<SubscriptionSummary[]>('/api/Subscription');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch FinOps subscriptions:', error);
+      throw error;
+    }
+  }
+
   async getLatestPerSubscription(): Promise<FinopsAnalysisRun[]> {
     try {
       const response = await finopsHttp.get<FinopsAnalysisRun[]>('/api/AnalysisRuns/latest-per-subscription');

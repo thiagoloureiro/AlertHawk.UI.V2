@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, AlertCircle, Check, Loader2, Edit, Trash2, X, Users, Server } from 'lucide-react';
+import { Search, AlertCircle, Check, Loader2, Trash2, X, Users, Server, CreditCard } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import userService, { UserListItem, UserGroup, UserCluster } from '../services/userService';
+import finopsService, { SubscriptionSummary } from '../services/finopsService';
 import monitorService, { MonitorGroup } from '../services/monitorService';
 import metricsService from '../services/metricsService';
 import { toast } from 'react-hot-toast';
@@ -35,6 +36,13 @@ export function UserManagement() {
   const [isLoadingClusters, setIsLoadingClusters] = useState(false);
   const [isSavingClusters, setIsSavingClusters] = useState(false);
   const [clusterValidationError, setClusterValidationError] = useState<string | null>(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [selectedUserForSubscriptions, setSelectedUserForSubscriptions] = useState<UserListItem | null>(null);
+  const [allSubscriptions, setAllSubscriptions] = useState<SubscriptionSummary[]>([]);
+  const [selectedSubscriptionIds, setSelectedSubscriptionIds] = useState<Set<string>>(new Set());
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(false);
+  const [isSavingSubscriptions, setIsSavingSubscriptions] = useState(false);
+  const [subscriptionValidationError, setSubscriptionValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -131,6 +139,27 @@ export function UserManagement() {
     }
   };
 
+  const handleEditSubscriptions = async (user: UserListItem) => {
+    setSelectedUserForSubscriptions(user);
+    setShowSubscriptionModal(true);
+    setIsLoadingSubscriptions(true);
+
+    try {
+      const [userSubsData, finopsSubs] = await Promise.all([
+        userService.getUserSubscriptions(user.id),
+        finopsService.getSubscriptions()
+      ]);
+
+      setSelectedSubscriptionIds(new Set(userSubsData.map(us => us.subscriptionId)));
+      setAllSubscriptions(finopsSubs);
+    } catch (err: unknown) {
+      console.error('Failed to load user subscriptions:', err);
+      toast.error('Failed to load user subscriptions', { position: 'bottom-right' });
+    } finally {
+      setIsLoadingSubscriptions(false);
+    }
+  };
+
   const handleDelete = (user: UserListItem) => {
     setUserToDelete(user);
     setShowDeleteConfirmation(true);
@@ -152,6 +181,22 @@ export function UserManagement() {
   const handleRemoveAllClusters = () => {
     setSelectedClusters(new Set());
   };
+
+  const handleSelectAllSubscriptions = () => {
+    setSelectedSubscriptionIds(new Set(sortedSubscriptions.map(s => s.subscriptionId)));
+  };
+
+  const handleRemoveAllSubscriptions = () => {
+    setSelectedSubscriptionIds(new Set());
+  };
+
+  const sortedSubscriptions = useMemo(() => {
+    return [...allSubscriptions].sort((a, b) => {
+      const byName = a.subscriptionName.localeCompare(b.subscriptionName, undefined, { sensitivity: 'base' });
+      if (byName !== 0) return byName;
+      return a.subscriptionId.localeCompare(b.subscriptionId);
+    });
+  }, [allSubscriptions]);
 
   const sortedGroups = useMemo(() => {
     return [...allGroups].sort((a, b) => a.name.localeCompare(b.name));
@@ -288,6 +333,14 @@ export function UserManagement() {
                           title="Edit User Clusters"
                         >
                           <Server className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEditSubscriptions(user)}
+                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
+                                   transition-colors duration-200 text-emerald-500 dark:text-emerald-400"
+                          title="Edit User Subscriptions (FinOps)"
+                        >
+                          <CreditCard className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
@@ -727,6 +780,180 @@ export function UserManagement() {
                                disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isSavingClusters ? (
+                        <>
+                          <LoadingSpinner size="sm" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Management Modal (FinOps) */}
+      {showSubscriptionModal && selectedUserForSubscriptions && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-2xl dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative max-h-[80vh] flex flex-col">
+            <button
+              onClick={() => {
+                setShowSubscriptionModal(false);
+                setSelectedUserForSubscriptions(null);
+                setSubscriptionValidationError(null);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                       transition-colors duration-200 text-gray-500 dark:text-gray-400"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+              Edit User Subscriptions — {selectedUserForSubscriptions.username}
+            </h3>
+            <p className="text-sm dark:text-gray-400 text-gray-600 mb-4">
+              Subscriptions are loaded from FinOps analysis runs. Assign which subscriptions this user may access.
+            </p>
+
+            {isLoadingSubscriptions ? (
+              <div className="flex items-center justify-center py-8">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto pr-2">
+                  <div className="flex justify-end gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllSubscriptions}
+                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveAllSubscriptions}
+                      className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      Remove All
+                    </button>
+                  </div>
+
+                  {sortedSubscriptions.length === 0 ? (
+                    <p className="text-sm dark:text-gray-400 text-gray-600 py-4 text-center">
+                      No subscriptions returned from FinOps. Run an analysis or check the FinOps API connection.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {sortedSubscriptions.map(sub => {
+                        const isChecked = selectedSubscriptionIds.has(sub.subscriptionId);
+                        const toggleSub = () => {
+                          setSelectedSubscriptionIds(prev => {
+                            const next = new Set(prev);
+                            if (isChecked) next.delete(sub.subscriptionId);
+                            else next.add(sub.subscriptionId);
+                            return next;
+                          });
+                        };
+
+                        return (
+                          <div
+                            key={sub.subscriptionId}
+                            onClick={toggleSub}
+                            className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50
+                                     bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
+                                     transition-colors duration-200"
+                          >
+                            <div className="min-w-0 pr-3">
+                              <h4 className="font-medium dark:text-white text-gray-900 truncate">
+                                {sub.subscriptionName || sub.subscriptionId}
+                              </h4>
+                              <p className="text-xs dark:text-gray-400 text-gray-500 font-mono truncate mt-0.5">
+                                {sub.subscriptionId}
+                              </p>
+                            </div>
+                            <div className="flex items-center shrink-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={toggleSub}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  toggleSub();
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500
+                                         cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                  {subscriptionValidationError && (
+                    <div className="text-sm text-red-500 dark:text-red-400 mb-2">
+                      {subscriptionValidationError}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setShowSubscriptionModal(false);
+                        setSelectedUserForSubscriptions(null);
+                        setSubscriptionValidationError(null);
+                      }}
+                      className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
+                               dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!selectedUserForSubscriptions) return;
+
+                        setSubscriptionValidationError(null);
+                        setIsSavingSubscriptions(true);
+                        try {
+                          const success = await userService.updateUserSubscriptions(
+                            selectedUserForSubscriptions.id,
+                            Array.from(selectedSubscriptionIds)
+                          );
+
+                          if (success) {
+                            toast.success('User subscriptions updated successfully', {
+                              position: 'bottom-right'
+                            });
+                            setShowSubscriptionModal(false);
+                            setSelectedUserForSubscriptions(null);
+                            setSubscriptionValidationError(null);
+                          } else {
+                            toast.error('Failed to update user subscriptions', { position: 'bottom-right' });
+                          }
+                        } catch {
+                          toast.error('Failed to update user subscriptions', { position: 'bottom-right' });
+                        } finally {
+                          setIsSavingSubscriptions(false);
+                        }
+                      }}
+                      disabled={isSavingSubscriptions}
+                      className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
+                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isSavingSubscriptions ? (
                         <>
                           <LoadingSpinner size="sm" />
                           Saving...

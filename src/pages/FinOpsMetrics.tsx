@@ -2,15 +2,24 @@ import { useEffect, useState } from 'react';
 import { DollarSign, Database, Sparkles, RefreshCw, AlertCircle, BarChart2, BrainCircuit, TrendingUp } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import finopsService, { FinopsAnalysisRun } from '../services/finopsService';
+import userService from '../services/userService';
 import { CostDetailsModal } from '../components/CostDetailsModal';
 import { AiRecommendationsModal } from '../components/AiRecommendationsModal';
 import { HistoricalResultsModal } from '../components/HistoricalResultsModal';
+
+function getCurrentUser(): { id: string; isAdmin?: boolean } | null {
+  const stored = localStorage.getItem('userInfo');
+  return stored ? JSON.parse(stored) : null;
+}
 
 export function FinOpsMetrics() {
   const [runs, setRuns] = useState<FinopsAnalysisRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  /** How many subscriptions this user is assigned (0 = none); admins still fetch but UI ignores for access. */
+  const [assignedSubscriptionCount, setAssignedSubscriptionCount] = useState(0);
   const [selectedRun, setSelectedRun] = useState<FinopsAnalysisRun | null>(null);
   const [aiRun, setAiRun] = useState<FinopsAnalysisRun | null>(null);
   const [historyRun, setHistoryRun] = useState<FinopsAnalysisRun | null>(null);
@@ -24,14 +33,27 @@ export function FinOpsMetrics() {
       }
       setError(null);
 
-      const response = await finopsService.getLatestPerSubscription();
-      setRuns(response);
+      const user = getCurrentUser();
+      const [latestRuns, userSubs] = await Promise.all([
+        finopsService.getLatestPerSubscription(),
+        user?.id ? userService.getUserSubscriptions(user.id) : Promise.resolve([])
+      ]);
+
+      const allowedIds = new Set(userSubs.map(s => s.subscriptionId));
+      const visible =
+        user?.isAdmin === true
+          ? latestRuns
+          : latestRuns.filter(r => allowedIds.has(r.subscriptionId));
+
+      setAssignedSubscriptionCount(user?.id ? userSubs.length : 0);
+      setRuns(visible);
     } catch (err) {
       console.error('Failed to load FinOps metrics:', err);
       setError('Failed to load FinOps metrics. Please try again.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setPermissionsLoaded(true);
     }
   };
 
@@ -39,10 +61,34 @@ export function FinOpsMetrics() {
     fetchLatestRuns();
   }, []);
 
+  const user = getCurrentUser();
+  const hasNoSubscriptionAccess =
+    permissionsLoaded &&
+    !error &&
+    user?.isAdmin !== true &&
+    assignedSubscriptionCount === 0;
+
   if (isLoading) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (hasNoSubscriptionAccess) {
+    return (
+      <div className="p-6 min-h-[400px] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            No subscription access
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            You don&apos;t have permission to view any FinOps subscriptions. Ask an administrator to assign
+            subscriptions to your account in User Management.
+          </p>
+        </div>
       </div>
     );
   }
@@ -76,7 +122,9 @@ export function FinOpsMetrics() {
 
       {!error && runs.length === 0 && (
         <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 text-center text-gray-600 dark:text-gray-400">
-          No FinOps analysis runs found.
+          {user?.isAdmin === true
+            ? 'No FinOps analysis runs found.'
+            : 'No FinOps analysis runs found for the subscriptions you have access to.'}
         </div>
       )}
 
