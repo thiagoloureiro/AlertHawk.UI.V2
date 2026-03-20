@@ -5,7 +5,6 @@ import { Metrics } from '../pages/Metrics';
 import { ApplicationMetrics } from '../pages/ApplicationMetrics';
 import { ClustersDiagram } from '../pages/ClustersDiagram';
 import { ClusterEvents } from '../pages/ClusterEvents';
-import { ClusterPrices } from '../pages/ClusterPrices';
 import { VolumeMetrics } from '../pages/VolumeMetrics';
 import { FinOpsMetrics } from '../pages/FinOpsMetrics';
 import { MonitorDetails } from '../pages/MonitorDetails';
@@ -43,7 +42,6 @@ export function AppRoutes() {
           <Route path="/application-metrics" element={<ApplicationMetrics />} />
           <Route path="/clusters-diagram" element={<ClustersDiagram />} />
           <Route path="/cluster-events" element={<ClusterEvents />} />
-          <Route path="/cluster-prices" element={<ClusterPrices />} />
           <Route path="/volume-metrics" element={<VolumeMetrics />} />
         </>
       )}

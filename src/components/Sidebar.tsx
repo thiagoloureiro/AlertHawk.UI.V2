@@ -38,7 +38,6 @@ const baseMenuItems: MenuItem[] = [
   { id: '15', name: 'Volume Metrics', icon: 'HardDrive', path: '/volume-metrics' },
   { id: '12', name: 'Clusters Diagram', icon: 'Network', path: '/clusters-diagram' },
   { id: '13', name: 'Cluster Events', icon: 'Activity', path: '/cluster-events' },
-  { id: '14', name: 'Cluster Prices', icon: 'DollarSign', path: '/cluster-prices' },
   { id: '16', name: 'FinOps', icon: 'DollarSign', path: '/finops-metrics' },
   { id: '5', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '6', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
@@ -88,7 +87,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
     
     // Filter out metrics-related items if metrics are disabled
     if (!isMetricsEnabled()) {
-      const metricsItemIds = ['3', '4', '15', '12', '13', '14']; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events, Cluster Prices
+      const metricsItemIds = ['3', '4', '15', '12', '13']; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events
       items = items.filter(item => !metricsItemIds.includes(item.id));
     }
     
@@ -121,7 +120,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
-          const isNew = item.id === '3' || item.id === '4' || item.id === '15' || item.id === '12' || item.id === '13' || item.id === '14'; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events, and Cluster Prices
+          const isNew = item.id === '3' || item.id === '4' || item.id === '15' || item.id === '12' || item.id === '13'; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events
           return (
             <NavLink
               key={item.id}
