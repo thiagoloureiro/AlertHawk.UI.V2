@@ -7,6 +7,7 @@ class HttpClient {
   private static authInstance: HttpClient;
   private static notificationInstance: HttpClient;
   private static metricsInstance: HttpClient;
+  private static finopsInstance: HttpClient;
   private axiosInstance: AxiosInstance;
   private msalInstance: PublicClientApplication;
   private initialized: boolean = false;
@@ -157,6 +158,14 @@ class HttpClient {
     }
     return HttpClient.metricsInstance.axiosInstance;
   }
+
+  public static async getFinopsInstance(): Promise<AxiosInstance> {
+    if (!HttpClient.finopsInstance) {
+      HttpClient.finopsInstance = new HttpClient(import.meta.env.VITE_APP_FINOPS_API_URL);
+      await HttpClient.finopsInstance.initialize();
+    }
+    return HttpClient.finopsInstance.axiosInstance;
+  }
 }
 
 // Create and initialize instances
@@ -164,6 +173,7 @@ let monitoringHttp: AxiosInstance;
 let authHttp: AxiosInstance;
 let notificationHttp: AxiosInstance;
 let metricsHttp: AxiosInstance;
+let finopsHttp: AxiosInstance;
 
 // Initialize instances
 (async () => {
@@ -171,6 +181,7 @@ let metricsHttp: AxiosInstance;
   authHttp = await HttpClient.getAuthInstance();
   notificationHttp = await HttpClient.getNotificationInstance();
   metricsHttp = await HttpClient.getMetricsInstance();
+  finopsHttp = await HttpClient.getFinopsInstance();
 })();
 
-export { monitoringHttp, authHttp, notificationHttp, metricsHttp }; 
+export { monitoringHttp, authHttp, notificationHttp, metricsHttp, finopsHttp }; 

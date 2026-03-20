@@ -39,6 +39,7 @@ const baseMenuItems: MenuItem[] = [
   { id: '12', name: 'Clusters Diagram', icon: 'Network', path: '/clusters-diagram' },
   { id: '13', name: 'Cluster Events', icon: 'Activity', path: '/cluster-events' },
   { id: '14', name: 'Cluster Prices', icon: 'DollarSign', path: '/cluster-prices' },
+  { id: '16', name: 'FinOps', icon: 'DollarSign', path: '/finops-metrics' },
   { id: '5', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '6', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
   { id: '7', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
