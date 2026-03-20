@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, Layers, Server, AlertCircle } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
@@ -27,14 +27,95 @@ interface CostDetailsModalProps {
   subscriptionName: string;
 }
 
+/** Maps Azure resource provider namespaces to product-style labels for the cost-by-service chart. */
+const AZURE_NAMESPACE_LABELS: Record<string, string> = {
+  'Microsoft.OperationalInsights': 'Log Analytics',
+  'Microsoft.Compute': 'Virtual Machines',
+  'Microsoft.Storage': 'Storage',
+  'Microsoft.Network': 'Networking',
+  'Microsoft.Sql': 'SQL Database',
+  'Microsoft.DocumentDB': 'Cosmos DB',
+  'Microsoft.Web': 'App Service',
+  'Microsoft.KeyVault': 'Key Vault',
+  'Microsoft.Insights': 'Azure Monitor',
+  'microsoft.insights': 'Azure Monitor',
+  'Microsoft.DBforPostgreSQL': 'PostgreSQL',
+  'Microsoft.DBforMySQL': 'MySQL',
+  'Microsoft.Cache': 'Redis Cache',
+  'Microsoft.ContainerService': 'Kubernetes Service (AKS)',
+  'Microsoft.ContainerRegistry': 'Container Registry',
+  'Microsoft.ServiceBus': 'Service Bus',
+  'Microsoft.EventHub': 'Event Hubs',
+  'Microsoft.Logic': 'Logic Apps',
+  'Microsoft.StreamAnalytics': 'Stream Analytics',
+  'Microsoft.DataFactory': 'Data Factory',
+  'Microsoft.Search': 'Azure AI Search',
+  'Microsoft.AnalysisServices': 'Analysis Services',
+  'Microsoft.MachineLearningServices': 'Machine Learning',
+  'Microsoft.CognitiveServices': 'Cognitive Services',
+  'Microsoft.Media': 'Media Services',
+  'Microsoft.BotService': 'Bot Service',
+  'Microsoft.SignalRService': 'SignalR',
+  'Microsoft.Automation': 'Automation',
+  'Microsoft.RecoveryServices': 'Backup',
+  'Microsoft.Databricks': 'Databricks',
+  'Microsoft.Synapse': 'Synapse Analytics',
+  'Microsoft.PowerBIDedicated': 'Power BI',
+  'Microsoft.ApiManagement': 'API Management',
+  'Microsoft.EventGrid': 'Event Grid',
+  'Microsoft.NotificationHubs': 'Notification Hubs',
+  'Microsoft.Relay': 'Relay',
+  'Microsoft.TimeSeriesInsights': 'Time Series Insights',
+  'Microsoft.DigitalTwins': 'Digital Twins',
+  'Microsoft.IoTCentral': 'IoT Central',
+  'Microsoft.Devices': 'IoT Hub',
+  'Microsoft.Maps': 'Azure Maps',
+  'Microsoft.Cdn': 'CDN',
+  'Microsoft.FrontDoor': 'Front Door',
+};
+
+function formatNamespaceFallback(ns: string): string {
+  return ns.replace(/^Microsoft\./, '').replace(/\./g, ' ');
+}
+
+/**
+ * Groups individual service/meter rows into a product-style label (e.g. Log Analytics)
+ * from ARM-style names or Microsoft.* provider strings.
+ */
+function deriveServiceTypeLabel(rawName: string | null | undefined): string {
+  const trimmed = rawName?.trim();
+  if (!trimmed) return 'Other';
+
+  const armMatch = trimmed.match(/\/providers\/([^/]+)\//i);
+  if (armMatch) {
+    const ns = armMatch[1];
+    return AZURE_NAMESPACE_LABELS[ns] ?? formatNamespaceFallback(ns);
+  }
+
+  const slashIdx = trimmed.indexOf('/');
+  if (slashIdx > 0 && trimmed.startsWith('Microsoft.')) {
+    const ns = trimmed.slice(0, slashIdx);
+    return AZURE_NAMESPACE_LABELS[ns] ?? formatNamespaceFallback(ns);
+  }
+
+  if (trimmed.startsWith('Microsoft.')) {
+    return AZURE_NAMESPACE_LABELS[trimmed] ?? formatNamespaceFallback(trimmed);
+  }
+
+  return trimmed;
+}
+
 function CostPieChart({
   data,
   title,
   icon,
+  amountSuffix,
 }: {
   data: { name: string; value: number }[];
   title: string;
   icon: React.ReactNode;
+  /** When set, shows next to the total (e.g. month-to-date). */
+  amountSuffix?: string;
 }) {
   if (data.length === 0) {
     return (
@@ -59,6 +140,9 @@ function CostPieChart({
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
         <span className="ml-auto text-sm font-semibold text-emerald-600 dark:text-emerald-400">
           ${total.toFixed(2)}
+          {amountSuffix ? (
+            <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">{amountSuffix}</span>
+          ) : null}
         </span>
       </div>
       <ResponsiveContainer width="100%" height={320}>
@@ -83,7 +167,7 @@ function CostPieChart({
             contentStyle={TOOLTIP_STYLE}
             itemStyle={{ color: 'var(--tooltip-text, #F9FAFB)' }}
             labelStyle={{ color: 'var(--tooltip-text, #F9FAFB)' }}
-            formatter={(value) => [`$${Number(value ?? 0).toFixed(2)}`, 'Cost']}
+            formatter={(value) => [`$${Number(value ?? 0).toFixed(2)}`, 'Cost (MTD)']}
           />
           <Legend
             wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
@@ -107,6 +191,8 @@ export function CostDetailsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tableView, setTableView] = useState<'ResourceGroup' | 'Service'>('ResourceGroup');
+  const [nameFilter, setNameFilter] = useState('');
+  const [resourceGroupFilter, setResourceGroupFilter] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -128,22 +214,55 @@ export function CostDetailsModal({
     fetchData();
   }, [isOpen, analysisRunId]);
 
+  const rgData = useMemo(
+    () =>
+      details
+        .filter((d) => d.costType === 'ResourceGroup')
+        .sort((a, b) => b.cost - a.cost)
+        .map((d) => ({ name: d.name, value: d.cost })),
+    [details],
+  );
+
+  const svcData = useMemo(() => {
+    const byType = new Map<string, number>();
+    for (const d of details) {
+      if (d.costType !== 'Service') continue;
+      const label = deriveServiceTypeLabel(d.name);
+      byType.set(label, (byType.get(label) ?? 0) + d.cost);
+    }
+    return [...byType.entries()]
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [details]);
+
+  const tableRowCount = useMemo(
+    () => details.filter((d) => d.costType === tableView).length,
+    [details, tableView],
+  );
+
+  const sortedDetails = useMemo(() => {
+    const nameQ = nameFilter.trim().toLowerCase();
+    const rgQ = resourceGroupFilter.trim().toLowerCase();
+    let rows = details
+      .filter((d) => d.costType === tableView)
+      .slice()
+      .sort((a, b) => b.cost - a.cost);
+    if (nameQ) {
+      rows = rows.filter((d) => {
+        const displayName = d.costType === 'ResourceGroup' ? (d.resourceGroup ?? '') : (d.name ?? '');
+        return displayName.toLowerCase().includes(nameQ);
+      });
+    }
+    if (rgQ && tableView === 'Service') {
+      rows = rows.filter((d) => (d.resourceGroup ?? '').toLowerCase().includes(rgQ));
+    }
+    return rows;
+  }, [details, tableView, nameFilter, resourceGroupFilter]);
+
+  const filtersActive =
+    nameFilter.trim() !== '' || (tableView === 'Service' && resourceGroupFilter.trim() !== '');
+
   if (!isOpen) return null;
-
-  const rgData = details
-    .filter((d) => d.costType === 'ResourceGroup')
-    .sort((a, b) => b.cost - a.cost)
-    .map((d) => ({ name: d.name, value: d.cost }));
-
-  const svcData = details
-    .filter((d) => d.costType === 'Service')
-    .sort((a, b) => b.cost - a.cost)
-    .map((d) => ({ name: d.name, value: d.cost }));
-
-  const sortedDetails = details
-    .filter((d) => d.costType === tableView)
-    .slice()
-    .sort((a, b) => b.cost - a.cost);
 
   return (
     <div
@@ -158,6 +277,9 @@ export function CostDetailsModal({
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cost Details</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{subscriptionName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              All costs shown are month-to-date (MTD).
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -196,11 +318,13 @@ export function CostDetailsModal({
                   data={rgData}
                   title="Cost by Resource Group"
                   icon={<Layers className="w-4 h-4 text-indigo-500" />}
+                  amountSuffix="MTD"
                 />
                 <CostPieChart
                   data={svcData}
-                  title="Cost by Service"
+                  title="Cost by Service Type"
                   icon={<Server className="w-4 h-4 text-blue-500" />}
+                  amountSuffix="MTD"
                 />
               </div>
 
@@ -232,6 +356,39 @@ export function CostDetailsModal({
                   </div>
                 </div>
 
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="min-w-[160px] flex-1">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={nameFilter}
+                      onChange={(e) => setNameFilter(e.target.value)}
+                      placeholder={
+                        tableView === 'ResourceGroup'
+                          ? 'Filter by resource group name…'
+                          : 'Filter by service name…'
+                      }
+                      className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  {tableView === 'Service' && (
+                    <div className="min-w-[160px] flex-1">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Resource group
+                      </label>
+                      <input
+                        type="text"
+                        value={resourceGroupFilter}
+                        onChange={(e) => setResourceGroupFilter(e.target.value)}
+                        placeholder="Filter by resource group…"
+                        className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -241,7 +398,7 @@ export function CostDetailsModal({
                         <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Resource Group</th>
                       )}
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Type</th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Cost</th>
+                      <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Cost (MTD)</th>
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Recorded At</th>
                     </tr>
                   </thead>
@@ -249,7 +406,9 @@ export function CostDetailsModal({
                     {sortedDetails.length === 0 && (
                       <tr>
                         <td className="px-4 py-6 text-center text-gray-500 dark:text-gray-400" colSpan={tableView === 'Service' ? 5 : 4}>
-                          No {tableView === 'ResourceGroup' ? 'resource group' : 'service'} records found.
+                          {filtersActive && tableRowCount > 0
+                            ? 'No rows match your filters.'
+                            : `No ${tableView === 'ResourceGroup' ? 'resource group' : 'service'} records found.`}
                         </td>
                       </tr>
                     )}

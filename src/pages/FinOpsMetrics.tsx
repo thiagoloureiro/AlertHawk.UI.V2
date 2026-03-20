@@ -97,7 +97,7 @@ export function FinOpsMetrics() {
               <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-emerald-600" />
-                  <span>Monthly Cost: ${run.totalMonthlyCost.toFixed(2)}</span>
+                  <span>Monthly Cost (MTD): ${run.totalMonthlyCost.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Database className="w-4 h-4 text-indigo-600" />
