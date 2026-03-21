@@ -18,6 +18,11 @@ export interface UserCluster {
   clusterName: string;
 }
 
+export interface UserSubscription {
+  userId: string;
+  subscriptionId: string;
+}
+
 export class UserService {
   private static instance: UserService;
   private baseUrl: string;
@@ -102,6 +107,31 @@ export class UserService {
       return true;
     } catch (error) {
       console.error('Failed to update user clusters:', error);
+      return false;
+    }
+  }
+
+  async getUserSubscriptions(userId: string): Promise<UserSubscription[]> {
+    try {
+      const response = await authHttp.get<UserSubscription[]>(
+        `/api/UserSubscriptions/GetAllByUserId/${userId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user subscriptions:', error);
+      return [];
+    }
+  }
+
+  async updateUserSubscriptions(userId: string, subscriptionIds: string[]): Promise<boolean> {
+    try {
+      await authHttp.post('/api/UserSubscriptions/CreateOrUpdate', {
+        userId,
+        subscriptions: subscriptionIds
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to update user subscriptions:', error);
       return false;
     }
   }
