@@ -30,21 +30,30 @@ function RecommendationCard({ rec }: { rec: AiRecommendation }) {
         </span>
       </div>
 
-      {/* Full markdown body */}
+      {/* Full markdown body — descendant selectors: markdown-it nests <p> inside <li>, so [&>p] misses dark mode */}
       <div
-        className="px-5 py-5 prose prose-sm dark:prose-invert max-w-none
-          [&>h2]:text-base [&>h2]:font-semibold [&>h2]:text-gray-900 [&>h2]:dark:text-white [&>h2]:mt-5 [&>h2]:mb-2
-          [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:text-gray-800 [&>h3]:dark:text-gray-100 [&>h3]:mt-4 [&>h3]:mb-1.5
-          [&>h4]:text-sm [&>h4]:font-medium [&>h4]:text-gray-700 [&>h4]:dark:text-gray-200 [&>h4]:mt-3 [&>h4]:mb-1
-          [&>p]:text-sm [&>p]:text-gray-700 [&>p]:dark:text-gray-300 [&>p]:mb-3 [&>p]:leading-relaxed
-          [&>ul]:pl-5 [&>ul]:mb-3 [&>ul>li]:text-sm [&>ul>li]:text-gray-700 [&>ul>li]:dark:text-gray-300 [&>ul>li]:mb-1 [&>ul>li]:list-disc
-          [&>blockquote]:border-l-4 [&>blockquote]:border-purple-300 [&>blockquote]:dark:border-purple-700 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-600 [&>blockquote]:dark:text-gray-400
-          [&>hr]:border-gray-200 [&>hr]:dark:border-gray-700 [&>hr]:my-4
-          [&>table]:w-full [&>table]:text-xs [&>table]:border-collapse [&>table]:mb-4
+        className="markdown-body px-5 py-5 prose prose-sm max-w-none text-gray-700 dark:text-gray-300
+          dark:prose-invert
+          [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-gray-900 [&_h1]:dark:text-white [&_h1]:mt-5 [&_h1]:mb-2
+          [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h2]:dark:text-white [&_h2]:mt-5 [&_h2]:mb-2
+          [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:dark:text-gray-100 [&_h3]:mt-4 [&_h3]:mb-1.5
+          [&_h4]:text-sm [&_h4]:font-medium [&_h4]:text-gray-700 [&_h4]:dark:text-gray-200 [&_h4]:mt-3 [&_h4]:mb-1
+          [&_p]:text-sm [&_p]:text-gray-700 [&_p]:dark:text-gray-300 [&_p]:mb-3 [&_p]:leading-relaxed
+          [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:pl-5 [&_ol]:mb-3
+          [&_li]:text-sm [&_li]:text-gray-700 [&_li]:dark:text-gray-300 [&_li]:mb-1 [&_li]:marker:text-gray-500 [&_li]:dark:marker:text-gray-400
+          [&_li_p]:mb-1 [&_li_p]:text-inherit [&_li_p]:dark:text-inherit
+          [&_span]:text-inherit [&_span]:dark:text-inherit
+          [&_div]:text-inherit [&_div]:dark:text-inherit
+          [&_em]:text-gray-700 [&_em]:dark:text-gray-300
+          [&_a]:text-purple-600 [&_a]:dark:text-purple-300 [&_a]:underline
+          [&_blockquote]:border-l-4 [&_blockquote]:border-purple-300 [&_blockquote]:dark:border-purple-700 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:dark:text-gray-400
+          [&_hr]:border-gray-200 [&_hr]:dark:border-gray-700 [&_hr]:my-4
+          [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:mb-4
           [&_th]:bg-gray-100 [&_th]:dark:bg-gray-700 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-700 [&_th]:dark:text-gray-300 [&_th]:border [&_th]:border-gray-200 [&_th]:dark:border-gray-600
           [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-700 [&_td]:dark:text-gray-300 [&_td]:border [&_td]:border-gray-200 [&_td]:dark:border-gray-600
           [&_tr:nth-child(even)_td]:bg-gray-50 [&_tr:nth-child(even)_td]:dark:bg-gray-800/30
           [&_strong]:font-semibold [&_strong]:text-gray-900 [&_strong]:dark:text-white
+          [&_b]:font-semibold [&_b]:text-gray-900 [&_b]:dark:text-white
           [&_code]:bg-gray-100 [&_code]:dark:bg-gray-700 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_code]:text-purple-700 [&_code]:dark:text-purple-300"
         dangerouslySetInnerHTML={{ __html: html }}
       />
