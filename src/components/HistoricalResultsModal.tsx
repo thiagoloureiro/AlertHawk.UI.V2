@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { X, TrendingUp, AlertCircle, CalendarDays } from 'lucide-react';
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -67,13 +68,65 @@ function getSixMonthsCutoff(): Date {
   return d;
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
+/** Cent-rounded match so peak day / peak month bars always highlight (avoids float drift). */
+function isPeakCost(cost: number, maxCost: number): boolean {
+  if (maxCost <= 0) return false;
+  return Math.round(cost * 100) === Math.round(maxCost * 100);
+}
+
+/** Matches Tailwind `text-amber-600` / `dark:text-amber-400` on the Peak card */
+const PEAK_BAR_LIGHT = '#d97706';
+const PEAK_BAR_DARK = '#fbbf24';
+const DEFAULT_BAR_FILL = '#0d9488'; // teal-600, matches header / toggle
+
+function subscribeDarkClass(callback: () => void) {
+  const el = document.documentElement;
+  const obs = new MutationObserver(callback);
+  obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+  return () => obs.disconnect();
+}
+
+function getIsDarkModeSnapshot() {
+  return document.documentElement.classList.contains('dark');
+}
+
+function useIsDarkMode() {
+  return useSyncExternalStore(subscribeDarkClass, getIsDarkModeSnapshot, () => false);
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  maxCost,
+  granularity,
+}: {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+  maxCost: number;
+  granularity: Granularity;
+}) => {
   if (!active || !payload?.length) return null;
+  const value = payload[0]?.value ?? 0;
+  const isPeak = isPeakCost(value, maxCost);
+  const peakLabel = granularity === 'daily' ? 'peak day' : 'peak month';
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 shadow-lg text-sm">
       <p className="font-medium text-gray-900 dark:text-white mb-1">{label}</p>
-      <p className="text-emerald-600 dark:text-emerald-400 font-semibold">
-        ${(payload[0]?.value ?? 0).toFixed(2)}
+      <p
+        className={
+          isPeak
+            ? 'text-amber-600 dark:text-amber-400 font-semibold'
+            : 'text-emerald-600 dark:text-emerald-400 font-semibold'
+        }
+      >
+        ${value.toFixed(2)}
+        {isPeak && (
+          <span className="ml-1.5 text-xs font-normal text-amber-700/80 dark:text-amber-300/90">
+            ({peakLabel})
+          </span>
+        )}
       </p>
     </div>
   );
@@ -84,6 +137,7 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [granularity, setGranularity] = useState<Granularity>('daily');
+  const isDarkMode = useIsDarkMode();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -112,12 +166,14 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
 
   const totalCost = chartData.reduce((s, p) => s + p.cost, 0);
   const avgCost = chartData.length ? totalCost / chartData.length : 0;
-  const maxCost = chartData.length ? Math.max(...chartData.map((p) => p.cost)) : 0;
+  const maxCostRaw = chartData.length ? Math.max(...chartData.map((p) => p.cost)) : 0;
+  const maxCost = Math.round(maxCostRaw * 100) / 100;
 
   const barWidth = granularity === 'daily' && chartData.length > 60 ? 6 : undefined;
   const gridStroke = '#6b7280';
   const gridOpacity = 0.18;
   const axisTickColor = '#6b7280';
+  const peakBarFill = isDarkMode ? PEAK_BAR_DARK : PEAK_BAR_LIGHT;
 
   return (
     <div
@@ -221,7 +277,11 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                 <div className="overflow-x-auto">
                   <div style={{ minWidth: granularity === 'daily' ? Math.max(chartData.length * 14, 600) : 500 }}>
                     <ResponsiveContainer width="100%" height={320}>
-                      <BarChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 60 }}>
+                      <BarChart
+                        key={granularity}
+                        data={chartData}
+                        margin={{ top: 8, right: 16, left: 8, bottom: 60 }}
+                      >
                         <CartesianGrid strokeDasharray="2 6" stroke={gridStroke} strokeOpacity={gridOpacity} vertical={false} />
                         <XAxis
                           dataKey="label"
@@ -235,13 +295,25 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                           tickFormatter={(v) => `$${v}`}
                           width={60}
                         />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip
+                          content={<CustomTooltip maxCost={maxCost} granularity={granularity} />}
+                        />
                         <Bar
                           dataKey="cost"
-                          fill="#0d9488"
+                          fill={DEFAULT_BAR_FILL}
                           radius={[3, 3, 0, 0]}
                           maxBarSize={barWidth ?? 40}
-                        />
+                        >
+                          {chartData.map((entry, index) => {
+                            const isPeak = isPeakCost(entry.cost, maxCost);
+                            return (
+                              <Cell
+                                key={`bar-${entry.label}-${index}`}
+                                fill={isPeak ? peakBarFill : DEFAULT_BAR_FILL}
+                              />
+                            );
+                          })}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

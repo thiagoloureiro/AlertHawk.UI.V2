@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { DollarSign, Database, Sparkles, RefreshCw, AlertCircle, BarChart2, BrainCircuit, TrendingUp } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { DollarSign, Database, Sparkles, RefreshCw, AlertCircle, BarChart2, BrainCircuit, TrendingUp, Search } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import finopsService, { FinopsAnalysisRun } from '../services/finopsService';
 import userService from '../services/userService';
@@ -10,6 +10,22 @@ import { HistoricalResultsModal } from '../components/HistoricalResultsModal';
 function getCurrentUser(): { id: string; isAdmin?: boolean } | null {
   const stored = localStorage.getItem('userInfo');
   return stored ? JSON.parse(stored) : null;
+}
+
+/** Parse API run date and show in the user's locale and local timezone. */
+function formatRunDateInUserTimezone(runDate: string): string {
+  if (!runDate?.trim()) return '—';
+  const trimmed = runDate.trim();
+  // If API sends ISO without timezone, treat instant as UTC (common .NET / SQL pattern)
+  const isoWithoutTz =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(trimmed) &&
+    !/[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
+  const d = isoWithoutTz ? new Date(`${trimmed}Z`) : new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return runDate;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(d);
 }
 
 export function FinOpsMetrics() {
@@ -23,6 +39,18 @@ export function FinOpsMetrics() {
   const [selectedRun, setSelectedRun] = useState<FinopsAnalysisRun | null>(null);
   const [aiRun, setAiRun] = useState<FinopsAnalysisRun | null>(null);
   const [historyRun, setHistoryRun] = useState<FinopsAnalysisRun | null>(null);
+  const [subscriptionFilter, setSubscriptionFilter] = useState('');
+
+  const filteredRuns = useMemo(() => {
+    const q = subscriptionFilter.trim().toLowerCase();
+    if (!q) return runs;
+    return runs.filter((run) => {
+      const name = (run.subscriptionName ?? '').toLowerCase();
+      const id = (run.subscriptionId ?? '').toLowerCase().replace(/\s/g, '');
+      const qNorm = q.replace(/\s/g, '');
+      return name.includes(q) || id.includes(qNorm);
+    });
+  }, [runs, subscriptionFilter]);
 
   const fetchLatestRuns = async (isManualRefresh = false) => {
     try {
@@ -95,18 +123,41 @@ export function FinOpsMetrics() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">FinOps Metrics</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Latest analysis run per subscription
           </p>
+          {runs.length > 0 && (
+            <div className="mt-4 max-w-md">
+              <label htmlFor="finops-subscription-filter" className="sr-only">
+                Filter by subscription name or ID
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <input
+                  id="finops-subscription-filter"
+                  type="search"
+                  value={subscriptionFilter}
+                  onChange={(e) => setSubscriptionFilter(e.target.value)}
+                  placeholder="Filter by subscription name or ID…"
+                  className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+              {subscriptionFilter.trim() && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                  Showing {filteredRuns.length} of {runs.length} subscription{runs.length === 1 ? '' : 's'}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <button
           onClick={() => fetchLatestRuns(true)}
           disabled={isRefreshing}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-60 shrink-0 self-start lg:self-auto"
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh
@@ -128,9 +179,15 @@ export function FinOpsMetrics() {
         </div>
       )}
 
-      {runs.length > 0 && (
+      {!error && runs.length > 0 && filteredRuns.length === 0 && (
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-6 text-center text-amber-900 dark:text-amber-200 text-sm">
+          No subscriptions match &quot;{subscriptionFilter.trim()}&quot;. Try a different name or ID.
+        </div>
+      )}
+
+      {filteredRuns.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {runs.map((run) => (
+          {filteredRuns.map((run) => (
             <div
               key={run.id}
               className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
@@ -153,7 +210,7 @@ export function FinOpsMetrics() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Run Date: {new Date(run.runDate).toLocaleString()}</span>
+                  <span title={run.runDate}>Run Date: {formatRunDateInUserTimezone(run.runDate)}</span>
                 </div>
               </div>
 
