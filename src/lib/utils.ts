@@ -13,4 +13,9 @@ export function isMetricsEnabled(): boolean {
     return true;
   }
   return value === 'true';
+}
+
+/** Sidebar “QR Code” entry and mobile setup dialog */
+export function isQrCodeEnabled(): boolean {
+  return import.meta.env.VITE_APP_QR_CODE === 'true';
 } 

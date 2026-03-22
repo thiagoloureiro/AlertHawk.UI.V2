@@ -16,11 +16,13 @@ import {
   Network,
   Activity,
   DollarSign,
-  HardDrive
+  HardDrive,
+  QrCode
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
-import { cn, isMetricsEnabled } from '../lib/utils';
+import { cn, isMetricsEnabled, isQrCodeEnabled } from '../lib/utils';
+import { MobileAppQrDialog } from './MobileAppQrDialog';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -72,9 +74,11 @@ const iconMap: Record<string, React.ElementType> = {
   Network,
   Activity,
   DollarSign,
+  QrCode,
 };
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
+  const [qrDialogOpen, setQrDialogOpen] = React.useState(false);
   // Get user info from localStorage
   const userInfo = React.useMemo(() => {
     const stored = localStorage.getItem('userInfo');
@@ -93,6 +97,9 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
     
     if (userInfo?.isAdmin) {
       items.push(...adminMenuItems);
+    }
+    if (isQrCodeEnabled()) {
+      items.push({ id: 'qr-mobile', name: 'Install Mobile app', icon: 'QrCode', path: '#' });
     }
     items.push(settingsMenuItem);
     return items;
@@ -121,6 +128,31 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
         {menuItems.map((item) => {
           const Icon = iconMap[item.icon];
           const isNew = item.id === '3' || item.id === '4' || item.id === '15' || item.id === '12' || item.id === '13'; // Cluster Metrics, Application Metrics, Volume Metrics, Clusters Diagram, Cluster Events
+
+          if (item.path === '#') {
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setQrDialogOpen(true)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-gray-700 dark:text-white relative group',
+                  'hover:bg-gray-100/80 dark:hover:bg-gray-800/50 hover:translate-x-1 text-left'
+                )}
+                aria-label="Install mobile app — open setup instructions"
+              >
+                <div className="relative flex-none">
+                  <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+                </div>
+                {!isCollapsed && (
+                  <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                    {item.name}
+                  </span>
+                )}
+              </button>
+            );
+          }
+
           return (
             <NavLink
               key={item.id}
@@ -169,6 +201,10 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           );
         })}
       </nav>
+
+      {isQrCodeEnabled() && (
+        <MobileAppQrDialog isOpen={qrDialogOpen} onClose={() => setQrDialogOpen(false)} />
+      )}
     </div>
   );
 }
