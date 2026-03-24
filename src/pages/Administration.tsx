@@ -1,9 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Download, Save, AlertTriangle, Loader2, Calendar, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Download, Save, AlertTriangle, Loader2, Calendar, X, DollarSign, PlusCircle, Info } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import monitorService from '../services/monitorService';
 import { metricsHttp } from '../services/httpClient';
+import finopsService from '../services/finopsService';
 import { toast } from 'react-hot-toast';
+
+const AZURE_SUBSCRIPTION_GUID_RE =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+const FINOPS_ANALYSIS_POLL_MS = 2000;
+const FINOPS_ANALYSIS_MAX_WAIT_MS = 20 * 60 * 1000;
+
+function finopsAsyncErrorMessage(err: unknown): string {
+  const ax = err as {
+    response?: { data?: { message?: string; Message?: string } };
+    message?: string;
+  };
+  const d = ax.response?.data;
+  return d?.message ?? d?.Message ?? ax.message ?? 'Request failed';
+}
 
 // Helper function to format date in 24-hour format (UTC)
 const formatDateTime24Hour = (dateString: string): string => {
@@ -112,6 +128,21 @@ export function Administration() {
   const [maintenanceStartTime, setMaintenanceStartTime] = useState<string>('');
   const [maintenanceEndDate, setMaintenanceEndDate] = useState<string>('');
   const [maintenanceEndTime, setMaintenanceEndTime] = useState<string>('');
+  const [showFinOpsOnboardModal, setShowFinOpsOnboardModal] = useState(false);
+  const [finOpsSubscriptionGuid, setFinOpsSubscriptionGuid] = useState('');
+  const [finOpsOnboarding, setFinOpsOnboarding] = useState<{
+    busy: boolean;
+    progress: string;
+    error: string | null;
+  }>({ busy: false, progress: '', error: null });
+  const finOpsOnboardMountedRef = useRef(true);
+
+  useEffect(() => {
+    finOpsOnboardMountedRef.current = true;
+    return () => {
+      finOpsOnboardMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const loadRetention = async () => {
@@ -402,6 +433,91 @@ export function Administration() {
     }
   };
 
+  const openFinOpsOnboardModal = () => {
+    setFinOpsSubscriptionGuid('');
+    setFinOpsOnboarding({ busy: false, progress: '', error: null });
+    setShowFinOpsOnboardModal(true);
+  };
+
+  const handleFinOpsOnboardSubmit = async () => {
+    const trimmed = finOpsSubscriptionGuid.trim();
+    if (!trimmed) {
+      setFinOpsOnboarding((prev) => ({ ...prev, error: 'Enter the subscription GUID.' }));
+      return;
+    }
+    if (!AZURE_SUBSCRIPTION_GUID_RE.test(trimmed)) {
+      setFinOpsOnboarding((prev) => ({
+        ...prev,
+        error: 'Enter a valid Azure subscription GUID (format 8-4-4-4-12 hexadecimal).',
+      }));
+      return;
+    }
+
+    setFinOpsOnboarding({ busy: true, progress: 'Starting…', error: null });
+    const started = Date.now();
+    try {
+      const { jobId } = await finopsService.startAnalysisAsync(trimmed);
+      if (!finOpsOnboardMountedRef.current) return;
+
+      while (Date.now() - started < FINOPS_ANALYSIS_MAX_WAIT_MS) {
+        const job = await finopsService.getAnalysisJobStatus(jobId);
+        if (!finOpsOnboardMountedRef.current) return;
+
+        const st = (job.status ?? '').toLowerCase();
+        if (st === 'failed') {
+          setFinOpsOnboarding({
+            busy: false,
+            progress: '',
+            error: job.message ?? job.errorDetails ?? 'Analysis failed.',
+          });
+          return;
+        }
+        if (st === 'completed') {
+          if (job.success === false) {
+            setFinOpsOnboarding({
+              busy: false,
+              progress: '',
+              error: job.message ?? job.errorDetails ?? 'Analysis completed with errors.',
+            });
+            return;
+          }
+          const name = job.subscriptionName?.trim();
+          toast.success(
+            name
+              ? `FinOps analysis finished for “${name}”. The subscription is ready in FinOps.`
+              : 'FinOps analysis finished. The subscription is ready in FinOps.',
+            { position: 'bottom-right' }
+          );
+          setShowFinOpsOnboardModal(false);
+          setFinOpsSubscriptionGuid('');
+          setFinOpsOnboarding({ busy: false, progress: '', error: null });
+          return;
+        }
+
+        const progress =
+          st === 'pending' ? 'Queued…' : st === 'running' ? 'Analyzing…' : job.status || 'Working…';
+        setFinOpsOnboarding({ busy: true, progress, error: null });
+
+        await new Promise((r) => setTimeout(r, FINOPS_ANALYSIS_POLL_MS));
+      }
+
+      if (!finOpsOnboardMountedRef.current) return;
+      setFinOpsOnboarding({
+        busy: false,
+        progress: '',
+        error: 'Analysis is still running. Check FinOps Metrics in a few minutes.',
+      });
+    } catch (err) {
+      console.error('FinOps onboard failed:', err);
+      if (!finOpsOnboardMountedRef.current) return;
+      setFinOpsOnboarding({
+        busy: false,
+        progress: '',
+        error: finopsAsyncErrorMessage(err),
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
@@ -624,6 +740,27 @@ export function Administration() {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      {/* FinOps Section */}
+      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
+        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">FinOps</h2>
+
+        <div className="space-y-4">
+          <p className="dark:text-gray-300 text-gray-700 text-sm">
+            Onboard a new Azure subscription for FinOps cost analysis. This queues the same background analysis used on
+            the FinOps Metrics page.
+          </p>
+          <button
+            type="button"
+            onClick={openFinOpsOnboardModal}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700
+                     text-white transition-colors duration-200"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add FinOps subscription
+          </button>
         </div>
       </div>
 
@@ -884,6 +1021,125 @@ export function Administration() {
                   <>
                     <AlertTriangle className="w-4 h-4" />
                     {isMonitorExecutionDisabled ? 'Enable' : 'Disable'}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FinOps — add subscription modal */}
+      {showFinOpsOnboardModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div
+            className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6"
+            role="dialog"
+            aria-labelledby="finops-onboard-title"
+            aria-modal="true"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                <DollarSign className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <h3
+                  id="finops-onboard-title"
+                  className="text-xl font-semibold dark:text-white text-gray-900"
+                >
+                  Add FinOps subscription
+                </h3>
+                <p className="text-sm dark:text-gray-400 text-gray-600 mt-1">
+                  Enter the Azure subscription ID to queue cost analysis and register the subscription in FinOps.
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 shrink-0 text-amber-700 dark:text-amber-400 mt-0.5" />
+                <div className="text-sm text-amber-950 dark:text-amber-100">
+                  <p className="font-medium text-amber-900 dark:text-amber-200 mb-1">
+                    AlertHawk FinOps access requirements
+                  </p>
+                  <p className="text-amber-900/90 dark:text-amber-100/90">
+                    The FinOps integration identity needs <strong>Cost Management Reader</strong> and{' '}
+                    <strong>Reader</strong> Azure RBAC roles assigned at the <strong>subscription</strong> scope before
+                    analysis can succeed.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="finops-onboard-subscription-guid"
+                className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2"
+              >
+                Subscription GUID
+              </label>
+              <input
+                id="finops-onboard-subscription-guid"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                value={finOpsSubscriptionGuid}
+                onChange={(e) => {
+                  setFinOpsSubscriptionGuid(e.target.value);
+                  if (finOpsOnboarding.error) {
+                    setFinOpsOnboarding((prev) => ({ ...prev, error: null }));
+                  }
+                }}
+                disabled={finOpsOnboarding.busy}
+                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600 dark:text-white
+                         text-gray-900 font-mono text-sm focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+              />
+            </div>
+
+            {finOpsOnboarding.error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-800 dark:text-red-200">
+                {finOpsOnboarding.error}
+              </div>
+            )}
+
+            {finOpsOnboarding.busy && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <Loader2 className="w-4 h-4 shrink-0 animate-spin text-emerald-600 dark:text-emerald-400" />
+                <span>{finOpsOnboarding.progress}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!finOpsOnboarding.busy) {
+                    setShowFinOpsOnboardModal(false);
+                    setFinOpsSubscriptionGuid('');
+                    setFinOpsOnboarding({ busy: false, progress: '', error: null });
+                  }
+                }}
+                disabled={finOpsOnboarding.busy}
+                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900
+                         dark:hover:bg-gray-600 hover:bg-gray-200 transition-colors duration-200
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleFinOpsOnboardSubmit()}
+                disabled={finOpsOnboarding.busy}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors
+                         duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {finOpsOnboarding.busy ? (
+                  'Working…'
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4" />
+                    Start analysis
                   </>
                 )}
               </button>
