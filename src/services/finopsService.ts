@@ -4,6 +4,7 @@ export interface FinopsAnalysisRun {
   id: number;
   subscriptionId: string;
   subscriptionName: string;
+  description: string;
   runDate: string;
   totalMonthlyCost: number;
   totalResourcesAnalyzed: number;
@@ -44,6 +45,12 @@ export interface AiRecommendation {
 export interface SubscriptionSummary {
   subscriptionId: string;
   subscriptionName: string;
+  description?: string | null;
+}
+
+export interface CreateSubscriptionDto {
+  subscriptionId: string;
+  description?: string | null;
 }
 
 export interface HistoricalCostDetail {
@@ -93,6 +100,16 @@ class FinopsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch FinOps subscriptions:', error);
+      throw error;
+    }
+  }
+
+  async createOrUpdateSubscription(dto: CreateSubscriptionDto): Promise<SubscriptionSummary> {
+    try {
+      const response = await finopsHttp.post<SubscriptionSummary>('/api/Subscriptions', dto);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create or update FinOps subscription:', error);
       throw error;
     }
   }
