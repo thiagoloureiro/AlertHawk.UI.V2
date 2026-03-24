@@ -22,9 +22,29 @@ interface Props {
 
 type Granularity = 'daily' | 'monthly';
 
+/** Fixed monthly overlay for charts ($400/mo); daily view splits by calendar days in each month. */
+const INFRA_SUPPORT_MONTHLY_USD = 400;
+
 interface ChartPoint {
   label: string;
-  cost: number;
+  /** YYYY-MM-DD for daily, YYYY-MM for monthly */
+  periodKey: string;
+  cloudCost: number;
+}
+
+function daysInCalendarMonth(year: number, month1To12: number): number {
+  return new Date(year, month1To12, 0).getDate();
+}
+
+/** Infra share for one bucket: full $400 per month bar; per-day = 400 / days in that calendar month. */
+function infraSupportForBucket(periodKey: string, granularity: Granularity): number {
+  if (granularity === 'monthly') {
+    return Math.round(INFRA_SUPPORT_MONTHLY_USD * 100) / 100;
+  }
+  const y = Number(periodKey.slice(0, 4));
+  const m = Number(periodKey.slice(5, 7));
+  const dim = daysInCalendarMonth(y, m);
+  return Math.round((INFRA_SUPPORT_MONTHLY_USD / dim) * 100) / 100;
 }
 
 function buildDailyData(records: HistoricalCostDetail[], cutoff: Date): ChartPoint[] {
@@ -39,8 +59,9 @@ function buildDailyData(records: HistoricalCostDetail[], cutoff: Date): ChartPoi
   return Object.entries(totals)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([day, cost]) => ({
+      periodKey: day,
       label: new Date(day + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      cost: Math.round(cost * 100) / 100,
+      cloudCost: Math.round(cost * 100) / 100,
     }));
 }
 
@@ -56,8 +77,9 @@ function buildMonthlyData(records: HistoricalCostDetail[], cutoff: Date): ChartP
   return Object.entries(totals)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, cost]) => ({
+      periodKey: month,
       label: new Date(month + '-15').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-      cost: Math.round(cost * 100) / 100,
+      cloudCost: Math.round(cost * 100) / 100,
     }));
 }
 
@@ -94,40 +116,76 @@ function useIsDarkMode() {
   return useSyncExternalStore(subscribeDarkClass, getIsDarkModeSnapshot, () => false);
 }
 
+const INFRA_BAR_FILL_LIGHT = '#6366f1';
+const INFRA_BAR_FILL_DARK = '#818cf8';
+
 const CustomTooltip = ({
   active,
   payload,
   label,
-  maxCost,
+  maxTotal,
   granularity,
+  includeInfraSupport,
 }: {
   active?: boolean;
-  payload?: { value: number }[];
+  payload?: { dataKey?: string; value?: number; color?: string; name?: string }[];
   label?: string;
-  maxCost: number;
+  maxTotal: number;
   granularity: Granularity;
+  includeInfraSupport: boolean;
 }) => {
   if (!active || !payload?.length) return null;
-  const value = payload[0]?.value ?? 0;
-  const isPeak = isPeakCost(value, maxCost);
+
+  const cloud = payload.find((p) => p.dataKey === 'cloudCost')?.value ?? 0;
+  const infra = includeInfraSupport
+    ? (payload.find((p) => p.dataKey === 'infraSupport')?.value ?? 0)
+    : 0;
+  const total = includeInfraSupport ? cloud + infra : cloud;
+  const isPeak = isPeakCost(total, maxTotal);
   const peakLabel = granularity === 'daily' ? 'peak day' : 'peak month';
+
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 shadow-lg text-sm">
       <p className="font-medium text-gray-900 dark:text-white mb-1">{label}</p>
-      <p
-        className={
-          isPeak
-            ? 'text-amber-600 dark:text-amber-400 font-semibold'
-            : 'text-emerald-600 dark:text-emerald-400 font-semibold'
-        }
-      >
-        ${value.toFixed(2)}
-        {isPeak && (
-          <span className="ml-1.5 text-xs font-normal text-amber-700/80 dark:text-amber-300/90">
-            ({peakLabel})
-          </span>
-        )}
-      </p>
+      {includeInfraSupport ? (
+        <div className="space-y-0.5">
+          <p className="text-teal-600 dark:text-teal-400">
+            Cloud: <span className="font-semibold">${cloud.toFixed(2)}</span>
+          </p>
+          <p className="text-indigo-600 dark:text-indigo-400">
+            Infra support: <span className="font-semibold">${infra.toFixed(2)}</span>
+          </p>
+          <p
+            className={
+              isPeak
+                ? 'text-amber-600 dark:text-amber-400 font-semibold pt-1 border-t border-gray-200 dark:border-gray-600 mt-1'
+                : 'text-gray-900 dark:text-white font-semibold pt-1 border-t border-gray-200 dark:border-gray-600 mt-1'
+            }
+          >
+            Total: ${total.toFixed(2)}
+            {isPeak && (
+              <span className="ml-1.5 text-xs font-normal text-amber-700/80 dark:text-amber-300/90">
+                ({peakLabel})
+              </span>
+            )}
+          </p>
+        </div>
+      ) : (
+        <p
+          className={
+            isPeak
+              ? 'text-amber-600 dark:text-amber-400 font-semibold'
+              : 'text-emerald-600 dark:text-emerald-400 font-semibold'
+          }
+        >
+          ${cloud.toFixed(2)}
+          {isPeak && (
+            <span className="ml-1.5 text-xs font-normal text-amber-700/80 dark:text-amber-300/90">
+              ({peakLabel})
+            </span>
+          )}
+        </p>
+      )}
     </div>
   );
 };
@@ -137,6 +195,7 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [granularity, setGranularity] = useState<Granularity>('daily');
+  const [includeInfraSupport, setIncludeInfraSupport] = useState(false);
   const isDarkMode = useIsDarkMode();
 
   useEffect(() => {
@@ -159,14 +218,22 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   if (!isOpen) return null;
 
   const cutoff = getSixMonthsCutoff();
-  const chartData: ChartPoint[] =
+  const baseChartData: ChartPoint[] =
     granularity === 'daily'
       ? buildDailyData(records, cutoff)
       : buildMonthlyData(records, cutoff);
 
-  const totalCost = chartData.reduce((s, p) => s + p.cost, 0);
+  const chartData = baseChartData.map((p) => {
+    const infraSupport = includeInfraSupport
+      ? infraSupportForBucket(p.periodKey, granularity)
+      : 0;
+    const total = p.cloudCost + infraSupport;
+    return { ...p, infraSupport, total };
+  });
+
+  const totalCost = chartData.reduce((s, p) => s + p.total, 0);
   const avgCost = chartData.length ? totalCost / chartData.length : 0;
-  const maxCostRaw = chartData.length ? Math.max(...chartData.map((p) => p.cost)) : 0;
+  const maxCostRaw = chartData.length ? Math.max(...chartData.map((p) => p.total)) : 0;
   const maxCost = Math.round(maxCostRaw * 100) / 100;
 
   const barWidth = granularity === 'daily' && chartData.length > 60 ? 6 : undefined;
@@ -174,6 +241,7 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   const gridOpacity = 0.18;
   const axisTickColor = '#6b7280';
   const peakBarFill = isDarkMode ? PEAK_BAR_DARK : PEAK_BAR_LIGHT;
+  const infraBarFill = isDarkMode ? INFRA_BAR_FILL_DARK : INFRA_BAR_FILL_LIGHT;
 
   return (
     <div
@@ -201,7 +269,7 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Granularity toggle */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <CalendarDays className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">View by:</span>
             <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 text-sm font-medium">
@@ -226,6 +294,15 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                 Monthly
               </button>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600 dark:text-gray-400">
+              <input
+                type="checkbox"
+                checked={includeInfraSupport}
+                onChange={(e) => setIncludeInfraSupport(e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-600 text-teal-600 focus:ring-teal-500"
+              />
+              <span>Infra support costs (${INFRA_SUPPORT_MONTHLY_USD}/mo, proportional per day)</span>
+            </label>
           </div>
 
           {isLoading && (
@@ -273,6 +350,12 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
                   Total Cost — {granularity === 'daily' ? 'Daily' : 'Monthly'} Breakdown (USD)
+                  {includeInfraSupport && (
+                    <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-1">
+                      Includes ${INFRA_SUPPORT_MONTHLY_USD}/month infra support
+                      {granularity === 'daily' ? ', split evenly across calendar days' : ''}.
+                    </span>
+                  )}
                 </h3>
                 <div className="overflow-x-auto">
                   <div style={{ minWidth: granularity === 'daily' ? Math.max(chartData.length * 14, 600) : 500 }}>
@@ -296,24 +379,48 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                           width={60}
                         />
                         <Tooltip
-                          content={<CustomTooltip maxCost={maxCost} granularity={granularity} />}
+                          content={
+                            <CustomTooltip
+                              maxTotal={maxCost}
+                              granularity={granularity}
+                              includeInfraSupport={includeInfraSupport}
+                            />
+                          }
                         />
                         <Bar
-                          dataKey="cost"
+                          dataKey="cloudCost"
+                          name="Cloud"
+                          stackId="cost"
                           fill={DEFAULT_BAR_FILL}
-                          radius={[3, 3, 0, 0]}
+                          radius={includeInfraSupport ? [0, 0, 0, 0] : [3, 3, 0, 0]}
                           maxBarSize={barWidth ?? 40}
                         >
-                          {chartData.map((entry, index) => {
-                            const isPeak = isPeakCost(entry.cost, maxCost);
-                            return (
-                              <Cell
-                                key={`bar-${entry.label}-${index}`}
-                                fill={isPeak ? peakBarFill : DEFAULT_BAR_FILL}
-                              />
-                            );
-                          })}
+                          {!includeInfraSupport ? (
+                            chartData.map((entry, index) => {
+                              const isPeak = isPeakCost(entry.total, maxCost);
+                              return (
+                                <Cell
+                                  key={`cloud-${entry.label}-${index}`}
+                                  fill={isPeak ? peakBarFill : DEFAULT_BAR_FILL}
+                                />
+                              );
+                            })
+                          ) : (
+                            chartData.map((entry, index) => (
+                              <Cell key={`cloud-${entry.label}-${index}`} fill={DEFAULT_BAR_FILL} />
+                            ))
+                          )}
                         </Bar>
+                        {includeInfraSupport && (
+                          <Bar
+                            dataKey="infraSupport"
+                            name="Infra support"
+                            stackId="cost"
+                            fill={infraBarFill}
+                            radius={[3, 3, 0, 0]}
+                            maxBarSize={barWidth ?? 40}
+                          />
+                        )}
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
