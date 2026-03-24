@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { DollarSign, Database, Sparkles, RefreshCw, AlertCircle, BarChart2, BrainCircuit, TrendingUp, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { DollarSign, Database, Sparkles, RefreshCw, AlertCircle, BarChart2, BrainCircuit, TrendingUp, Search, Play, Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import finopsService, { FinopsAnalysisRun } from '../services/finopsService';
 import userService from '../services/userService';
@@ -28,6 +28,22 @@ function formatRunDateInUserTimezone(runDate: string): string {
   }).format(d);
 }
 
+const ANALYSIS_POLL_MS = 2000;
+const ANALYSIS_MAX_WAIT_MS = 20 * 60 * 1000;
+
+function finopsAsyncErrorMessage(err: unknown): string {
+  const ax = err as {
+    response?: { data?: { message?: string; Message?: string } };
+    message?: string;
+  };
+  const d = ax.response?.data;
+  return d?.message ?? d?.Message ?? ax.message ?? 'Request failed';
+}
+
+type SubscriptionAnalysisJobUi =
+  | { phase: 'running'; label: string }
+  | { phase: 'error'; message: string };
+
 export function FinOpsMetrics() {
   const [runs, setRuns] = useState<FinopsAnalysisRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +56,16 @@ export function FinOpsMetrics() {
   const [aiRun, setAiRun] = useState<FinopsAnalysisRun | null>(null);
   const [historyRun, setHistoryRun] = useState<FinopsAnalysisRun | null>(null);
   const [subscriptionFilter, setSubscriptionFilter] = useState('');
+  /** Per-subscription async analysis (POST start-async + poll jobs/{id}). */
+  const [analysisJobUi, setAnalysisJobUi] = useState<Record<string, SubscriptionAnalysisJobUi>>({});
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const filteredRuns = useMemo(() => {
     const q = subscriptionFilter.trim().toLowerCase();
@@ -88,6 +114,79 @@ export function FinOpsMetrics() {
   useEffect(() => {
     fetchLatestRuns();
   }, []);
+
+  const startBackgroundAnalysis = async (subscriptionId: string) => {
+    setAnalysisJobUi((prev) => ({
+      ...prev,
+      [subscriptionId]: { phase: 'running', label: 'Starting…' },
+    }));
+    const started = Date.now();
+    try {
+      const { jobId } = await finopsService.startAnalysisAsync(subscriptionId);
+      if (!mountedRef.current) return;
+
+      while (Date.now() - started < ANALYSIS_MAX_WAIT_MS) {
+        const job = await finopsService.getAnalysisJobStatus(jobId);
+        if (!mountedRef.current) return;
+
+        const st = (job.status ?? '').toLowerCase();
+        if (st === 'failed') {
+          setAnalysisJobUi((prev) => ({
+            ...prev,
+            [subscriptionId]: {
+              phase: 'error',
+              message: job.message ?? job.errorDetails ?? 'Analysis failed.',
+            },
+          }));
+          return;
+        }
+        if (st === 'completed') {
+          if (job.success === false) {
+            setAnalysisJobUi((prev) => ({
+              ...prev,
+              [subscriptionId]: {
+                phase: 'error',
+                message: job.message ?? job.errorDetails ?? 'Analysis completed with errors.',
+              },
+            }));
+            return;
+          }
+          setAnalysisJobUi((prev) => {
+            const next = { ...prev };
+            delete next[subscriptionId];
+            return next;
+          });
+          await fetchLatestRuns(true);
+          return;
+        }
+
+        const label =
+          st === 'pending' ? 'Queued…' : st === 'running' ? 'Analyzing…' : job.status || 'Working…';
+        setAnalysisJobUi((prev) => ({
+          ...prev,
+          [subscriptionId]: { phase: 'running', label },
+        }));
+
+        await new Promise((r) => setTimeout(r, ANALYSIS_POLL_MS));
+      }
+
+      if (!mountedRef.current) return;
+      setAnalysisJobUi((prev) => ({
+        ...prev,
+        [subscriptionId]: {
+          phase: 'error',
+          message: 'Analysis is still running. Refresh this page in a few minutes.',
+        },
+      }));
+    } catch (err) {
+      console.error('Start analysis failed:', err);
+      if (!mountedRef.current) return;
+      setAnalysisJobUi((prev) => ({
+        ...prev,
+        [subscriptionId]: { phase: 'error', message: finopsAsyncErrorMessage(err) },
+      }));
+    }
+  };
 
   const user = getCurrentUser();
   const hasNoSubscriptionAccess =
@@ -187,7 +286,9 @@ export function FinOpsMetrics() {
 
       {filteredRuns.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredRuns.map((run) => (
+          {filteredRuns.map((run) => {
+            const analysisJob = analysisJobUi[run.subscriptionId];
+            return (
             <div
               key={run.id}
               className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
@@ -218,6 +319,37 @@ export function FinOpsMetrics() {
                 Subscription ID: {run.subscriptionId}
               </div>
 
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => void startBackgroundAnalysis(run.subscriptionId)}
+                  disabled={analysisJob?.phase === 'running'}
+                  className={`relative w-full overflow-hidden rounded-lg border text-sm font-medium transition-colors duration-200 ${
+                    analysisJob?.phase === 'running'
+                      ? 'border-emerald-400/60 dark:border-emerald-500/45 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 cursor-wait pointer-events-none'
+                      : 'border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                  }`}
+                >
+                  {analysisJob?.phase === 'running' && (
+                    <span
+                      className="pointer-events-none absolute inset-0 z-0 bg-emerald-400/20 dark:bg-emerald-400/10 motion-safe:animate-pulse"
+                      aria-hidden
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex w-full items-center justify-center gap-2 px-3 py-2">
+                    {analysisJob?.phase === 'running' ? (
+                      <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <Play className="h-4 w-4 shrink-0" />
+                    )}
+                    {analysisJob?.phase === 'running' ? analysisJob.label : 'Run new analysis'}
+                  </span>
+                </button>
+                {analysisJob?.phase === 'error' && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{analysisJob.message}</p>
+                )}
+              </div>
+
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedRun(run)}
@@ -242,7 +374,8 @@ export function FinOpsMetrics() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
