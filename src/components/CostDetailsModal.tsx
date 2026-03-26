@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Layers, Server, AlertCircle } from 'lucide-react';
+import { X, Layers, Server, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { LoadingSpinner } from './ui';
-import finopsService, { CostDetail } from '../services/finopsService';
+import finopsService, { CostDetail, HistoricalCostDetail } from '../services/finopsService';
 
 const CHART_COLORS = [
   '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
@@ -25,6 +25,149 @@ interface CostDetailsModalProps {
   onClose: () => void;
   analysisRunId: number;
   subscriptionName: string;
+}
+
+type DisplayCostDetail = {
+  id: number;
+  costType: string;
+  name: string | null;
+  resourceGroup: string | null;
+  cost: number;
+  recordedAt: string;
+};
+
+type GroupedResourceGroupDetail = {
+  id: number;
+  costType: 'ResourceGroup';
+  name: string;
+  resourceGroup: string;
+  cost: number;
+  recordedAt: string;
+};
+
+type GroupedServiceDetail = {
+  id: number;
+  costType: 'Service';
+  name: string;
+  resourceGroup: string;
+  cost: number;
+  recordedAt: string;
+};
+
+type MonthOption = {
+  key: string;
+  label: string;
+  isCurrentMonth: boolean;
+};
+
+function getMonthKey(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'unknown';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  if (!year || !month) return 'Unknown period';
+  return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function normalizeCurrentCostDetails(details: CostDetail[]): DisplayCostDetail[] {
+  return details.map((detail) => ({
+    id: detail.id,
+    costType: detail.costType,
+    name: detail.name,
+    resourceGroup: detail.resourceGroup,
+    cost: detail.cost,
+    recordedAt: detail.recordedAt,
+  }));
+}
+
+function normalizeHistoricalCostDetails(details: HistoricalCostDetail[]): Record<string, DisplayCostDetail[]> {
+  return details.reduce<Record<string, DisplayCostDetail[]>>((acc, detail, index) => {
+    const monthKey = getMonthKey(detail.costDate || detail.recordedAt);
+    if (!acc[monthKey]) {
+      acc[monthKey] = [];
+    }
+    acc[monthKey].push({
+      id: detail.id ?? index,
+      costType: detail.costType,
+      name: detail.name,
+      resourceGroup: detail.resourceGroup,
+      cost: detail.cost,
+      recordedAt: detail.costDate || detail.recordedAt,
+    });
+    return acc;
+  }, {});
+}
+
+function getResourceGroupLabel(detail: Pick<DisplayCostDetail, 'name' | 'resourceGroup'>): string {
+  return detail.resourceGroup?.trim() || detail.name?.trim() || 'Unassigned';
+}
+
+function groupResourceGroupDetails(details: DisplayCostDetail[]): GroupedResourceGroupDetail[] {
+  const grouped = new Map<string, GroupedResourceGroupDetail>();
+
+  for (const detail of details) {
+    if (detail.costType !== 'ResourceGroup') continue;
+
+    const resourceGroup = getResourceGroupLabel(detail);
+    const existing = grouped.get(resourceGroup);
+
+    if (existing) {
+      existing.cost += detail.cost;
+      if (new Date(detail.recordedAt).getTime() > new Date(existing.recordedAt).getTime()) {
+        existing.recordedAt = detail.recordedAt;
+      }
+      continue;
+    }
+
+    grouped.set(resourceGroup, {
+      id: detail.id,
+      costType: 'ResourceGroup',
+      name: resourceGroup,
+      resourceGroup,
+      cost: detail.cost,
+      recordedAt: detail.recordedAt,
+    });
+  }
+
+  return [...grouped.values()].sort((a, b) => b.cost - a.cost);
+}
+
+function groupServiceDetails(details: DisplayCostDetail[]): GroupedServiceDetail[] {
+  const grouped = new Map<string, GroupedServiceDetail>();
+
+  for (const detail of details) {
+    if (detail.costType !== 'Service') continue;
+
+    const name = detail.name?.trim() || 'Unnamed service';
+    const resourceGroup = detail.resourceGroup?.trim() || '—';
+    const groupKey = `${name}__${resourceGroup}`;
+    const existing = grouped.get(groupKey);
+
+    if (existing) {
+      existing.cost += detail.cost;
+      if (new Date(detail.recordedAt).getTime() > new Date(existing.recordedAt).getTime()) {
+        existing.recordedAt = detail.recordedAt;
+      }
+      continue;
+    }
+
+    grouped.set(groupKey, {
+      id: detail.id,
+      costType: 'Service',
+      name,
+      resourceGroup,
+      cost: detail.cost,
+      recordedAt: detail.recordedAt,
+    });
+  }
+
+  return [...grouped.values()].sort((a, b) => b.cost - a.cost);
 }
 
 /** Maps Azure resource provider namespaces to product-style labels for the cost-by-service chart. */
@@ -187,12 +330,14 @@ export function CostDetailsModal({
   analysisRunId,
   subscriptionName,
 }: CostDetailsModalProps) {
-  const [details, setDetails] = useState<CostDetail[]>([]);
+  const [currentDetails, setCurrentDetails] = useState<DisplayCostDetail[]>([]);
+  const [historicalDetailsByMonth, setHistoricalDetailsByMonth] = useState<Record<string, DisplayCostDetail[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tableView, setTableView] = useState<'ResourceGroup' | 'Service'>('ResourceGroup');
   const [nameFilter, setNameFilter] = useState('');
   const [resourceGroupFilter, setResourceGroupFilter] = useState('');
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>('current');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -200,10 +345,16 @@ export function CostDetailsModal({
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
-      setDetails([]);
+      setCurrentDetails([]);
+      setHistoricalDetailsByMonth({});
+      setSelectedMonthKey('current');
       try {
-        const data = await finopsService.getCostDetails(analysisRunId);
-        setDetails(data);
+        const [currentData, historicalData] = await Promise.all([
+          finopsService.getCostDetails(analysisRunId),
+          finopsService.getHistoricalCostDetails(analysisRunId),
+        ]);
+        setCurrentDetails(normalizeCurrentCostDetails(currentData));
+        setHistoricalDetailsByMonth(normalizeHistoricalCostDetails(historicalData));
       } catch {
         setError('Failed to load cost details. Please try again.');
       } finally {
@@ -214,13 +365,49 @@ export function CostDetailsModal({
     fetchData();
   }, [isOpen, analysisRunId]);
 
+  const monthOptions = useMemo<MonthOption[]>(() => {
+    const historicalMonths = Object.keys(historicalDetailsByMonth)
+      .sort((a, b) => b.localeCompare(a))
+      .map((monthKey) => ({
+        key: monthKey,
+        label: formatMonthLabel(monthKey),
+        isCurrentMonth: false,
+      }));
+
+    return [
+      { key: 'current', label: 'Current month', isCurrentMonth: true },
+      ...historicalMonths,
+    ];
+  }, [historicalDetailsByMonth]);
+
+  const selectedMonthIndex = useMemo(
+    () => monthOptions.findIndex((month) => month.key === selectedMonthKey),
+    [monthOptions, selectedMonthKey],
+  );
+
+  const details = useMemo(() => {
+    if (selectedMonthKey === 'current') return currentDetails;
+    return historicalDetailsByMonth[selectedMonthKey] ?? [];
+  }, [currentDetails, historicalDetailsByMonth, selectedMonthKey]);
+
+  const groupedResourceGroupDetails = useMemo(
+    () => groupResourceGroupDetails(details),
+    [details],
+  );
+
+  const groupedServiceDetails = useMemo(
+    () => groupServiceDetails(details),
+    [details],
+  );
+
+  const selectedMonth = monthOptions[selectedMonthIndex] ?? monthOptions[0] ?? { key: 'current', label: 'Current month', isCurrentMonth: true };
+
+  const amountSuffix = selectedMonth.isCurrentMonth ? 'MTD' : selectedMonth.label;
+
   const rgData = useMemo(
     () =>
-      details
-        .filter((d) => d.costType === 'ResourceGroup')
-        .sort((a, b) => b.cost - a.cost)
-        .map((d) => ({ name: d.name, value: d.cost })),
-    [details],
+      groupedResourceGroupDetails.map((d) => ({ name: d.resourceGroup, value: d.cost })),
+    [groupedResourceGroupDetails],
   );
 
   const svcData = useMemo(() => {
@@ -236,31 +423,39 @@ export function CostDetailsModal({
   }, [details]);
 
   const tableRowCount = useMemo(
-    () => details.filter((d) => d.costType === tableView).length,
-    [details, tableView],
+    () => {
+      if (tableView === 'ResourceGroup') return groupedResourceGroupDetails.length;
+      return groupedServiceDetails.length;
+    },
+    [groupedResourceGroupDetails, groupedServiceDetails, tableView],
   );
 
   const sortedDetails = useMemo(() => {
     const nameQ = nameFilter.trim().toLowerCase();
     const rgQ = resourceGroupFilter.trim().toLowerCase();
-    let rows = details
-      .filter((d) => d.costType === tableView)
-      .slice()
-      .sort((a, b) => b.cost - a.cost);
-    if (nameQ) {
-      rows = rows.filter((d) => {
-        const displayName = d.costType === 'ResourceGroup' ? (d.resourceGroup ?? '') : (d.name ?? '');
-        return displayName.toLowerCase().includes(nameQ);
-      });
+    if (tableView === 'ResourceGroup') {
+      let rows = groupedResourceGroupDetails.slice();
+      if (nameQ) {
+        rows = rows.filter((d) => d.resourceGroup.toLowerCase().includes(nameQ));
+      }
+      return rows;
     }
-    if (rgQ && tableView === 'Service') {
-      rows = rows.filter((d) => (d.resourceGroup ?? '').toLowerCase().includes(rgQ));
+
+    let rows = groupedServiceDetails.slice();
+    if (nameQ) {
+      rows = rows.filter((d) => d.name.toLowerCase().includes(nameQ));
+    }
+    if (rgQ) {
+      rows = rows.filter((d) => d.resourceGroup.toLowerCase().includes(rgQ));
     }
     return rows;
-  }, [details, tableView, nameFilter, resourceGroupFilter]);
+  }, [groupedResourceGroupDetails, groupedServiceDetails, tableView, nameFilter, resourceGroupFilter]);
 
   const filtersActive =
     nameFilter.trim() !== '' || (tableView === 'Service' && resourceGroupFilter.trim() !== '');
+
+  const canGoPreviousMonth = selectedMonthIndex < monthOptions.length - 1;
+  const canGoNextMonth = selectedMonthIndex > 0;
 
   if (!isOpen) return null;
 
@@ -278,7 +473,9 @@ export function CostDetailsModal({
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cost Details</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{subscriptionName}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              All costs shown are month-to-date (MTD).
+              {selectedMonth.isCurrentMonth
+                ? 'All costs shown are month-to-date (MTD).'
+                : `Showing historical cost data for ${selectedMonth.label}.`}
             </p>
           </div>
           <button
@@ -312,19 +509,52 @@ export function CostDetailsModal({
 
           {!isLoading && !error && details.length > 0 && (
             <>
+              <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 px-4 py-3">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Period</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{selectedMonth.label}</div>
+                </div>
+                <div className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      if (canGoPreviousMonth) {
+                        setSelectedMonthKey(monthOptions[selectedMonthIndex + 1].key);
+                      }
+                    }}
+                    disabled={!canGoPreviousMonth}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous month
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (canGoNextMonth) {
+                        setSelectedMonthKey(monthOptions[selectedMonthIndex - 1].key);
+                      }
+                    }}
+                    disabled={!canGoNextMonth}
+                    className="inline-flex items-center gap-2 px-3 py-2 border-l border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next month
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               {/* Pie charts */}
               <div className="grid md:grid-cols-2 gap-4">
                 <CostPieChart
                   data={rgData}
                   title="Cost by Resource Group"
                   icon={<Layers className="w-4 h-4 text-indigo-500" />}
-                  amountSuffix="MTD"
+                  amountSuffix={amountSuffix}
                 />
                 <CostPieChart
                   data={svcData}
                   title="Cost by Service Type"
                   icon={<Server className="w-4 h-4 text-blue-500" />}
-                  amountSuffix="MTD"
+                  amountSuffix={amountSuffix}
                 />
               </div>
 
@@ -398,7 +628,9 @@ export function CostDetailsModal({
                         <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Resource Group</th>
                       )}
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Type</th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Cost (MTD)</th>
+                      <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">
+                        {selectedMonth.isCurrentMonth ? 'Cost (MTD)' : 'Cost'}
+                      </th>
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Recorded At</th>
                     </tr>
                   </thead>
