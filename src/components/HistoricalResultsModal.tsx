@@ -86,6 +86,7 @@ function buildMonthlyData(records: HistoricalCostDetail[], cutoff: Date): ChartP
 function getSixMonthsCutoff(): Date {
   const d = new Date();
   d.setMonth(d.getMonth() - 6);
+  d.setDate(1);
   d.setHours(0, 0, 0, 0);
   return d;
 }
