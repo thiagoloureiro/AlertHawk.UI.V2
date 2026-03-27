@@ -313,10 +313,23 @@ function CostPieChart({
             formatter={(value) => [`$${Number(value ?? 0).toFixed(2)}`, 'Cost (MTD)']}
           />
           <Legend
-            wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
-            formatter={(value: string) => (
-              <span className="text-gray-700 dark:text-gray-300">{value}</span>
-            )}
+            wrapperStyle={{
+              fontSize: '11px',
+              paddingTop: '8px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+            }}
+            verticalAlign="bottom"
+            formatter={(value: string) => {
+              // Truncate long names and add ellipsis
+              const maxLen = 28;
+              const truncated = value.length > maxLen ? `${value.slice(0, maxLen - 1)}…` : value;
+              return (
+                <span className="text-gray-700 dark:text-gray-300 truncate" title={value}>
+                  {truncated}
+                </span>
+              );
+            }}
           />
         </PieChart>
       </ResponsiveContainer>
@@ -404,9 +417,25 @@ export function CostDetailsModal({
 
   const amountSuffix = selectedMonth.isCurrentMonth ? 'MTD' : selectedMonth.label;
 
+  // Helper function to limit chart items and group small ones as "Other"
+  const limitChartData = (
+    items: { name: string; value: number }[],
+    maxItems: number = 12,
+  ): { name: string; value: number }[] => {
+    if (items.length <= maxItems) return items;
+
+    const top = items.slice(0, maxItems);
+    const others = items.slice(maxItems);
+    const otherValue = others.reduce((sum, item) => sum + item.value, 0);
+
+    return [...top, { name: 'Other', value: otherValue }];
+  };
+
   const rgData = useMemo(
-    () =>
-      groupedResourceGroupDetails.map((d) => ({ name: d.resourceGroup, value: d.cost })),
+    () => {
+      const data = groupedResourceGroupDetails.map((d) => ({ name: d.resourceGroup, value: d.cost }));
+      return limitChartData(data);
+    },
     [groupedResourceGroupDetails],
   );
 
@@ -417,9 +446,10 @@ export function CostDetailsModal({
       const label = deriveServiceTypeLabel(d.name);
       byType.set(label, (byType.get(label) ?? 0) + d.cost);
     }
-    return [...byType.entries()]
+    const data = [...byType.entries()]
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
+    return limitChartData(data);
   }, [details]);
 
   const tableRowCount = useMemo(
