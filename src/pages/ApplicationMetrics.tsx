@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   CartesianGrid, Legend 
@@ -23,7 +23,8 @@ type PodDetailsSortKey =
   | 'podAge'
   | 'cpuUsage'
   | 'cpuLimit'
-  | 'memoryUsage';
+  | 'memoryUsage'
+  | 'memoryLimit';
 
 function comparePodDetailRows(
   a: NamespaceMetric,
@@ -58,6 +59,11 @@ function comparePodDetailRows(
     }
     case 'memoryUsage':
       return mul * (a.memoryUsageBytes - b.memoryUsageBytes);
+    case 'memoryLimit': {
+      const av = a.memoryLimitBytes ?? -1;
+      const bv = b.memoryLimitBytes ?? -1;
+      return mul * (av - bv);
+    }
     default:
       return 0;
   }
@@ -149,7 +155,6 @@ export function ApplicationMetrics() {
   const [selectedPod, setSelectedPod] = useState<{ namespace: string; pod: string; container: string; clusterName?: string } | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<10 | 30 | 60>(30);
-  const [expandedContainers, setExpandedContainers] = useState<Set<string>>(new Set());
   const [detailsContainerFilter, setDetailsContainerFilter] = useState('');
   const [detailsPodStateFilter, setDetailsPodStateFilter] = useState('');
   const [podDetailsSortKey, setPodDetailsSortKey] = useState<PodDetailsSortKey>('pod');
@@ -441,63 +446,13 @@ export function ApplicationMetrics() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [latestPodDetailsMetrics]);
 
-  // Group metrics by container
-  const groupedByContainer = useMemo(() => {
-    const containerMap = new Map<string, NamespaceMetric[]>();
-    
-    filteredPodDetailsForTable.forEach(metric => {
-      if (!containerMap.has(metric.container)) {
-        containerMap.set(metric.container, []);
-      }
-      containerMap.get(metric.container)!.push(metric);
-    });
-    
-    // Sort containers and pods within each container
-    const sortedContainers = Array.from(containerMap.entries()).sort((a, b) => 
-      a[0].localeCompare(b[0])
-    );
-    
-    return sortedContainers;
-  }, [filteredPodDetailsForTable]);
-
-  const sortedGroupedByContainer = useMemo(() => {
-    const withSortedRows = groupedByContainer.map(([container, metrics]) => {
-      const sortedMetrics = [...metrics].sort((a, b) =>
+  const sortedPodDetailsRows = useMemo(
+    () =>
+      [...filteredPodDetailsForTable].sort((a, b) =>
         comparePodDetailRows(a, b, podDetailsSortKey, podDetailsSortDir)
-      );
-      return [container, sortedMetrics] as const;
-    });
-    withSortedRows.sort((a, b) => {
-      const ma = a[1][0];
-      const mb = b[1][0];
-      if (!ma && !mb) return 0;
-      if (!ma) return 1;
-      if (!mb) return -1;
-      return comparePodDetailRows(ma, mb, podDetailsSortKey, podDetailsSortDir);
-    });
-    return withSortedRows;
-  }, [groupedByContainer, podDetailsSortKey, podDetailsSortDir]);
-
-  // Toggle container expansion
-  const toggleContainer = (container: string) => {
-    setExpandedContainers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(container)) {
-        newSet.delete(container);
-      } else {
-        newSet.add(container);
-      }
-      return newSet;
-    });
-  };
-
-  // Expand all containers by default when grouped data changes (not when sort order changes)
-  useEffect(() => {
-    if (groupedByContainer.length > 0) {
-      const allContainers = new Set(groupedByContainer.map(([container]) => container));
-      setExpandedContainers(allContainers);
-    }
-  }, [groupedByContainer]);
+      ),
+    [filteredPodDetailsForTable, podDetailsSortKey, podDetailsSortDir]
+  );
 
   // Prepare chart data
   const chartData = useMemo(() => {
@@ -1243,6 +1198,7 @@ export function ApplicationMetrics() {
                     ['CPU Usage', 'cpuUsage'],
                     ['CPU Limit', 'cpuLimit'],
                     ['Memory Usage', 'memoryUsage'],
+                    ['Memory Limit', 'memoryLimit'],
                   ] as const).map(([label, key]) => (
                     <th
                       key={key}
@@ -1267,81 +1223,30 @@ export function ApplicationMetrics() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {sortedGroupedByContainer.length === 0 ? (
+                {sortedPodDetailsRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                       {selectedCluster && selectedNamespace 
                         ? 'No metrics available for the selected filters'
                         : 'Please select a cluster and namespace to view metrics'}
                     </td>
                   </tr>
                 ) : (
-                  sortedGroupedByContainer.map(([container, metrics]) => {
-                  const isExpanded = expandedContainers.has(container);
-                  // Calculate aggregated stats for the container
-                  const totalCpuUsage = metrics.reduce((sum, m) => sum + m.cpuUsageCores, 0);
-                  const totalMemoryUsage = metrics.reduce((sum, m) => sum + m.memoryUsageBytes, 0);
-                  const totalCpuLimit = metrics.reduce((sum, m) => sum + (m.cpuLimitCores || 0), 0);
-                  const uniquePods = new Set(metrics.map(m => m.pod)).size;
-                  const avgCpuPercent = totalCpuLimit > 0 ? (totalCpuUsage / totalCpuLimit) * 100 : null;
-                  
-                  return (
-                    <Fragment key={container}>
-                      {/* Container Group Header */}
-                      <tr 
-                        className="bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-                        onClick={() => toggleContainer(container)}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap" colSpan={8}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <ChevronDown 
-                                className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                                  isExpanded ? 'rotate-0' : '-rotate-90'
-                                }`}
-                              />
-                              <Activity className="w-5 h-5 text-gray-400" />
-                              <span className="text-sm font-semibold dark:text-white text-gray-900">
-                                {container}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                ({uniquePods} {uniquePods === 1 ? 'pod' : 'pods'})
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-6 text-sm">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500 dark:text-gray-400">Total CPU:</span>
-                                <span className={`font-medium ${avgCpuPercent !== null ? getUsageColor(avgCpuPercent) : 'dark:text-white text-gray-900'}`}>
-                                  {totalCpuUsage.toFixed(4)} cores
-                                </span>
-                                {avgCpuPercent !== null && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    ({avgCpuPercent.toFixed(1)}%)
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500 dark:text-gray-400">Total Memory:</span>
-                                <span className="font-medium dark:text-white text-gray-900">
-                                  {formatBytes(totalMemoryUsage)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                      {/* Pod Rows (shown when expanded) */}
-                      {isExpanded && metrics.map((metric, index) => {
+                  sortedPodDetailsRows.map((metric, index) => {
                         const cpuPercent = metric.cpuLimitCores !== null 
                           ? (metric.cpuUsageCores / metric.cpuLimitCores) * 100 
                           : null;
+                        const memPercent =
+                          metric.memoryLimitBytes != null && metric.memoryLimitBytes > 0
+                            ? (metric.memoryUsageBytes / metric.memoryLimitBytes) * 100
+                            : null;
                         
                         return (
                           <tr 
                             key={`${metric.namespace}-${metric.pod}-${metric.container}-${index}`}
                             className="hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800"
                           >
-                            <td className="px-6 py-4 whitespace-nowrap pl-12">
+                            <td className="px-6 py-4 whitespace-nowrap">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1406,15 +1311,38 @@ export function ApplicationMetrics() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {metric.cpuLimitCores !== null ? `${metric.cpuLimitCores} cores` : 'No limit'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
-                              {formatBytes(metric.memoryUsageBytes)}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <span
+                                  className={`text-sm font-medium ${
+                                    memPercent !== null ? getUsageColor(memPercent) : 'dark:text-white text-gray-900'
+                                  }`}
+                                >
+                                  {formatBytes(metric.memoryUsageBytes)}
+                                </span>
+                                {memPercent !== null && (
+                                  <>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                      ({memPercent.toFixed(1)}%)
+                                    </span>
+                                    <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                      <div
+                                        className={`h-1.5 rounded-full ${getUsageBgColor(memPercent)}`}
+                                        style={{ width: `${Math.min(memPercent, 100)}%` }}
+                                      />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {metric.memoryLimitBytes != null
+                                ? formatBytes(metric.memoryLimitBytes)
+                                : 'No limit'}
                             </td>
                           </tr>
                         );
-                      })}
-                    </Fragment>
-                  );
-                })
+                  })
                 )}
               </tbody>
             </table>

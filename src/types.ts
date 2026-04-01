@@ -226,6 +226,7 @@ export interface NamespaceMetric {
   cpuUsageCores: number;
   cpuLimitCores: number | null;
   memoryUsageBytes: number;
+  memoryLimitBytes?: number | null;
   diskReadBytes?: number;
   diskWriteBytes?: number;
   diskReadOps?: number;
