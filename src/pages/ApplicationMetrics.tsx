@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   Package, Cpu, HardDrive, RefreshCw, 
-  Activity, AlertCircle, Layers, ChevronDown, X, Maximize2, Minimize2, Search
+  Activity, AlertCircle, Layers, ChevronDown, ChevronUp, X, Maximize2, Minimize2, Search, ArrowUpDown
 } from 'lucide-react';
 import { NamespaceMetric } from '../types';
 import metricsService from '../services/metricsService';
@@ -14,6 +14,54 @@ import { LoadingSpinner, Switch } from '../components/ui';
 import { formatCompactDate, getLocalDateFromUTC } from '../utils/dateUtils';
 import { toast } from 'react-hot-toast';
 import { PodLogModal } from '../components/PodLogModal';
+
+type PodDetailsSortKey =
+  | 'pod'
+  | 'container'
+  | 'podState'
+  | 'restartCount'
+  | 'podAge'
+  | 'cpuUsage'
+  | 'cpuLimit'
+  | 'memoryUsage';
+
+function comparePodDetailRows(
+  a: NamespaceMetric,
+  b: NamespaceMetric,
+  key: PodDetailsSortKey,
+  dir: 'asc' | 'desc'
+): number {
+  const mul = dir === 'asc' ? 1 : -1;
+  switch (key) {
+    case 'pod':
+      return mul * a.pod.localeCompare(b.pod, undefined, { sensitivity: 'base' });
+    case 'container':
+      return mul * a.container.localeCompare(b.container, undefined, { sensitivity: 'base' });
+    case 'podState':
+      return mul * (a.podState || '').localeCompare(b.podState || '', undefined, { sensitivity: 'base' });
+    case 'restartCount': {
+      const av = a.restartCount ?? -1;
+      const bv = b.restartCount ?? -1;
+      return mul * (av - bv);
+    }
+    case 'podAge': {
+      const av = a.podAge ?? -1;
+      const bv = b.podAge ?? -1;
+      return mul * (av - bv);
+    }
+    case 'cpuUsage':
+      return mul * (a.cpuUsageCores - b.cpuUsageCores);
+    case 'cpuLimit': {
+      const av = a.cpuLimitCores ?? -1;
+      const bv = b.cpuLimitCores ?? -1;
+      return mul * (av - bv);
+    }
+    case 'memoryUsage':
+      return mul * (a.memoryUsageBytes - b.memoryUsageBytes);
+    default:
+      return 0;
+  }
+}
 
 // Custom tooltip component with proper z-index
 const CustomTooltip = ({ active, payload, label, formatter }: any) => {
@@ -102,6 +150,19 @@ export function ApplicationMetrics() {
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<10 | 30 | 60>(30);
   const [expandedContainers, setExpandedContainers] = useState<Set<string>>(new Set());
+  const [detailsContainerFilter, setDetailsContainerFilter] = useState('');
+  const [detailsPodStateFilter, setDetailsPodStateFilter] = useState('');
+  const [podDetailsSortKey, setPodDetailsSortKey] = useState<PodDetailsSortKey>('pod');
+  const [podDetailsSortDir, setPodDetailsSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const togglePodDetailsSort = (key: PodDetailsSortKey) => {
+    if (podDetailsSortKey === key) {
+      setPodDetailsSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setPodDetailsSortKey(key);
+      setPodDetailsSortDir('asc');
+    }
+  };
 
   // Fetch namespace metrics
   const fetchMetrics = async (showLoading = true) => {
@@ -362,11 +423,29 @@ export function ApplicationMetrics() {
     });
   }, [namespaceMetrics, selectedCluster, selectedNamespace, selectedPods]);
 
+  const filteredPodDetailsForTable = useMemo(() => {
+    let rows = latestPodDetailsMetrics;
+    const q = detailsContainerFilter.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(m => m.container.toLowerCase().includes(q));
+    }
+    if (detailsPodStateFilter) {
+      rows = rows.filter(m => (m.podState || 'N/A') === detailsPodStateFilter);
+    }
+    return rows;
+  }, [latestPodDetailsMetrics, detailsContainerFilter, detailsPodStateFilter]);
+
+  const uniquePodStatesForTable = useMemo(() => {
+    const set = new Set<string>();
+    latestPodDetailsMetrics.forEach(m => set.add(m.podState || 'N/A'));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [latestPodDetailsMetrics]);
+
   // Group metrics by container
   const groupedByContainer = useMemo(() => {
     const containerMap = new Map<string, NamespaceMetric[]>();
     
-    latestPodDetailsMetrics.forEach(metric => {
+    filteredPodDetailsForTable.forEach(metric => {
       if (!containerMap.has(metric.container)) {
         containerMap.set(metric.container, []);
       }
@@ -378,12 +457,26 @@ export function ApplicationMetrics() {
       a[0].localeCompare(b[0])
     );
     
-    sortedContainers.forEach(([_, metrics]) => {
-      metrics.sort((a, b) => a.pod.localeCompare(b.pod));
-    });
-    
     return sortedContainers;
-  }, [latestPodDetailsMetrics]);
+  }, [filteredPodDetailsForTable]);
+
+  const sortedGroupedByContainer = useMemo(() => {
+    const withSortedRows = groupedByContainer.map(([container, metrics]) => {
+      const sortedMetrics = [...metrics].sort((a, b) =>
+        comparePodDetailRows(a, b, podDetailsSortKey, podDetailsSortDir)
+      );
+      return [container, sortedMetrics] as const;
+    });
+    withSortedRows.sort((a, b) => {
+      const ma = a[1][0];
+      const mb = b[1][0];
+      if (!ma && !mb) return 0;
+      if (!ma) return 1;
+      if (!mb) return -1;
+      return comparePodDetailRows(ma, mb, podDetailsSortKey, podDetailsSortDir);
+    });
+    return withSortedRows;
+  }, [groupedByContainer, podDetailsSortKey, podDetailsSortDir]);
 
   // Toggle container expansion
   const toggleContainer = (container: string) => {
@@ -398,7 +491,7 @@ export function ApplicationMetrics() {
     });
   };
 
-  // Expand all containers by default when data changes
+  // Expand all containers by default when grouped data changes (not when sort order changes)
   useEffect(() => {
     if (groupedByContainer.length > 0) {
       const allContainers = new Set(groupedByContainer.map(([container]) => container));
@@ -1091,53 +1184,99 @@ export function ApplicationMetrics() {
               </div>
             </div>
           )}
-          <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
-            <h3 className="text-lg font-semibold dark:text-white text-gray-900">Pod & Container Details</h3>
+          <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <h3 className="text-lg font-semibold dark:text-white text-gray-900 shrink-0">Pod & Container Details</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[180px] max-w-sm">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Filter by container name..."
+                  value={detailsContainerFilter}
+                  onChange={(e) => setDetailsContainerFilter(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 text-sm rounded-lg dark:bg-gray-900 bg-gray-50 border
+                    dark:border-gray-600 border-gray-300 dark:text-white text-gray-900
+                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  aria-label="Filter rows by container name"
+                />
+                {detailsContainerFilter ? (
+                  <button
+                    type="button"
+                    onClick={() => setDetailsContainerFilter('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5"
+                    aria-label="Clear container filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Pod state:</span>
+                <select
+                  value={detailsPodStateFilter}
+                  onChange={(e) => setDetailsPodStateFilter(e.target.value)}
+                  className="px-3 py-2 text-sm rounded-lg dark:bg-gray-900 bg-white border
+                    dark:border-gray-600 border-gray-300 dark:text-white text-gray-900
+                    focus:ring-2 focus:ring-blue-500 min-w-[140px]"
+                  aria-label="Filter by pod state"
+                >
+                  <option value="">All states</option>
+                  {uniquePodStatesForTable.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Pod
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Container
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Pod State
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Restart Count
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Pod Age
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    CPU Usage
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    CPU Limit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Memory Usage
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Last Updated
-                  </th>
+                  {([
+                    ['Pod', 'pod'],
+                    ['Container', 'container'],
+                    ['Pod State', 'podState'],
+                    ['Restart Count', 'restartCount'],
+                    ['Pod Age', 'podAge'],
+                    ['CPU Usage', 'cpuUsage'],
+                    ['CPU Limit', 'cpuLimit'],
+                    ['Memory Usage', 'memoryUsage'],
+                  ] as const).map(([label, key]) => (
+                    <th
+                      key={key}
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      onClick={() => togglePodDetailsSort(key)}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {label}
+                        {podDetailsSortKey === key ? (
+                          podDetailsSortDir === 'asc' ? (
+                            <ChevronUp className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-3.5 h-3.5 shrink-0 opacity-40" aria-hidden />
+                        )}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {groupedByContainer.length === 0 ? (
+                {sortedGroupedByContainer.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                       {selectedCluster && selectedNamespace 
                         ? 'No metrics available for the selected filters'
                         : 'Please select a cluster and namespace to view metrics'}
                     </td>
                   </tr>
                 ) : (
-                  groupedByContainer.map(([container, metrics]) => {
+                  sortedGroupedByContainer.map(([container, metrics]) => {
                   const isExpanded = expandedContainers.has(container);
                   // Calculate aggregated stats for the container
                   const totalCpuUsage = metrics.reduce((sum, m) => sum + m.cpuUsageCores, 0);
@@ -1153,7 +1292,7 @@ export function ApplicationMetrics() {
                         className="bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                         onClick={() => toggleContainer(container)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap" colSpan={9}>
+                        <td className="px-6 py-4 whitespace-nowrap" colSpan={8}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <ChevronDown 
@@ -1196,7 +1335,6 @@ export function ApplicationMetrics() {
                         const cpuPercent = metric.cpuLimitCores !== null 
                           ? (metric.cpuUsageCores / metric.cpuLimitCores) * 100 
                           : null;
-                        const date = getLocalDateFromUTC(metric.timestamp);
                         
                         return (
                           <tr 
@@ -1270,9 +1408,6 @@ export function ApplicationMetrics() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
                               {formatBytes(metric.memoryUsageBytes)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {date ? formatCompactDate(date) : metric.timestamp}
                             </td>
                           </tr>
                         );
