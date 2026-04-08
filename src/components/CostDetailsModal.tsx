@@ -75,6 +75,11 @@ function formatMonthLabel(monthKey: string): string {
   });
 }
 
+function getCurrentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function normalizeCurrentCostDetails(details: CostDetail[]): DisplayCostDetail[] {
   return details.map((detail) => ({
     id: detail.id,
@@ -379,7 +384,9 @@ export function CostDetailsModal({
   }, [isOpen, analysisRunId]);
 
   const monthOptions = useMemo<MonthOption[]>(() => {
+    const currentMonthKey = getCurrentMonthKey();
     const historicalMonths = Object.keys(historicalDetailsByMonth)
+      .filter((monthKey) => monthKey !== currentMonthKey)
       .sort((a, b) => b.localeCompare(a))
       .map((monthKey) => ({
         key: monthKey,

@@ -93,6 +93,8 @@ export interface AnalysisJobStatus {
   errorDetails?: string | null;
 }
 
+export type AnalysisMonthSelection = 'current' | 'previous';
+
 class FinopsService {
   async getSubscriptions(): Promise<SubscriptionSummary[]> {
     try {
@@ -157,11 +159,17 @@ class FinopsService {
   /**
    * Queues background analysis for a subscription. Body must be a JSON string per [FromBody] string.
    */
-  async startAnalysisAsync(subscriptionId: string): Promise<StartAnalysisAsyncResponse> {
+  async startAnalysisAsync(
+    subscriptionId: string,
+    monthSelection?: AnalysisMonthSelection,
+  ): Promise<StartAnalysisAsyncResponse> {
     const response = await finopsHttp.post<StartAnalysisAsyncResponse>(
       `${ANALYSIS_ASYNC_BASE}/start-async`,
       JSON.stringify(subscriptionId),
-      { headers: { 'Content-Type': 'application/json' } }
+      {
+        headers: { 'Content-Type': 'application/json' },
+        params: monthSelection ? { monthSelection } : undefined,
+      }
     );
     return response.data;
   }

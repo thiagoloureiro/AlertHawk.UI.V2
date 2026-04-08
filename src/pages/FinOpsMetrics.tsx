@@ -7,6 +7,13 @@ import { CostDetailsModal } from '../components/CostDetailsModal';
 import { AiRecommendationsModal } from '../components/AiRecommendationsModal';
 import { HistoricalResultsModal } from '../components/HistoricalResultsModal';
 
+type AnalysisMonthSelection = 'current' | 'previous';
+
+type AnalysisMonthPrompt = {
+  subscriptionId: string;
+  subscriptionName: string;
+};
+
 function getCurrentUser(): { id: string; isAdmin?: boolean } | null {
   const stored = localStorage.getItem('userInfo');
   return stored ? JSON.parse(stored) : null;
@@ -61,6 +68,7 @@ export function FinOpsMetrics() {
   const [selectedRun, setSelectedRun] = useState<FinopsAnalysisRun | null>(null);
   const [aiRun, setAiRun] = useState<FinopsAnalysisRun | null>(null);
   const [historyRun, setHistoryRun] = useState<FinopsAnalysisRun | null>(null);
+  const [analysisMonthPrompt, setAnalysisMonthPrompt] = useState<AnalysisMonthPrompt | null>(null);
   const [subscriptionFilter, setSubscriptionFilter] = useState('');
   /** Per-subscription async analysis (POST start-async + poll jobs/{id}). */
   const [analysisJobUi, setAnalysisJobUi] = useState<Record<string, SubscriptionAnalysisJobUi>>({});
@@ -123,14 +131,20 @@ export function FinOpsMetrics() {
     fetchLatestRuns();
   }, []);
 
-  const startBackgroundAnalysis = async (subscriptionId: string) => {
+  const startBackgroundAnalysis = async (
+    subscriptionId: string,
+    monthSelection: AnalysisMonthSelection,
+  ) => {
     setAnalysisJobUi((prev) => ({
       ...prev,
-      [subscriptionId]: { phase: 'running', label: 'Starting…' },
+      [subscriptionId]: {
+        phase: 'running',
+        label: monthSelection === 'previous' ? 'Starting previous month…' : 'Starting current month…',
+      },
     }));
     const started = Date.now();
     try {
-      const { jobId } = await finopsService.startAnalysisAsync(subscriptionId);
+      const { jobId } = await finopsService.startAnalysisAsync(subscriptionId, monthSelection);
       if (!mountedRef.current) return;
 
       while (Date.now() - started < ANALYSIS_MAX_WAIT_MS) {
@@ -460,7 +474,12 @@ export function FinOpsMetrics() {
               <div className="mt-3 space-y-2">
                 <button
                   type="button"
-                  onClick={() => void startBackgroundAnalysis(run.subscriptionId)}
+                  onClick={() =>
+                    setAnalysisMonthPrompt({
+                      subscriptionId: run.subscriptionId,
+                      subscriptionName: run.subscriptionName,
+                    })
+                  }
                   disabled={analysisJob?.phase === 'running'}
                   className={`relative w-full overflow-hidden rounded-lg border text-sm font-medium transition-colors duration-200 ${
                     analysisJob?.phase === 'running'
@@ -542,6 +561,50 @@ export function FinOpsMetrics() {
           analysisRunId={historyRun.id}
           subscriptionName={historyRun.subscriptionName}
         />
+      )}
+
+      {analysisMonthPrompt && (
+        <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl">
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Run New Analysis</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Select which period to analyze for {analysisMonthPrompt.subscriptionName}.
+              </p>
+            </div>
+            <div className="px-5 py-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void startBackgroundAnalysis(analysisMonthPrompt.subscriptionId, 'current');
+                  setAnalysisMonthPrompt(null);
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800/50 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+              >
+                Run For Current Month
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void startBackgroundAnalysis(analysisMonthPrompt.subscriptionId, 'previous');
+                  setAnalysisMonthPrompt(null);
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800/50 text-sm font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              >
+                Run For Previous Month
+              </button>
+            </div>
+            <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setAnalysisMonthPrompt(null)}
+                className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
