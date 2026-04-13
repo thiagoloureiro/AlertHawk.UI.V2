@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DollarSign, Database, Sparkles, RefreshCw, AlertCircle, BarChart2, BrainCircuit, TrendingUp, Search, Play, Loader2, Pencil, Check, X } from 'lucide-react';
+import {
+  DollarSign,
+  Database,
+  Sparkles,
+  RefreshCw,
+  AlertCircle,
+  BarChart2,
+  BrainCircuit,
+  TrendingUp,
+  Search,
+  Play,
+  Loader2,
+  Pencil,
+  Check,
+  X,
+  ChevronRight,
+} from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import finopsService, { FinopsAnalysisRun } from '../services/finopsService';
 import userService from '../services/userService';
@@ -45,13 +61,15 @@ export function FinOpsMetrics() {
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   /** How many subscriptions this user is assigned (0 = none); admins still fetch but UI ignores for access. */
   const [assignedSubscriptionCount, setAssignedSubscriptionCount] = useState(0);
-  const [selectedRun, setSelectedRun] = useState<FinopsAnalysisRun | null>(null);
+  const [costModalRun, setCostModalRun] = useState<FinopsAnalysisRun | null>(null);
   const [aiRun, setAiRun] = useState<FinopsAnalysisRun | null>(null);
   const [historyRun, setHistoryRun] = useState<FinopsAnalysisRun | null>(null);
   const [subscriptionFilter, setSubscriptionFilter] = useState('');
   /** Per-subscription async analysis (POST start-async + poll jobs/{id}). */
   const [analysisJobUi, setAnalysisJobUi] = useState<Record<string, SubscriptionAnalysisJobUi>>({});
   const [descriptionEditing, setDescriptionEditing] = useState<Record<string, DescriptionEditState>>({});
+  /** Master-detail: which subscription row is selected in the side list. */
+  const [activeSubscriptionId, setActiveSubscriptionId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -72,6 +90,45 @@ export function FinOpsMetrics() {
       return name.includes(q) || description.includes(q) || id.includes(qNorm);
     });
   }, [runs, subscriptionFilter]);
+
+  const portfolioStats = useMemo(() => {
+    let totalCost = 0;
+    let totalResources = 0;
+    let latestRunDate: string | null = null;
+    for (const r of filteredRuns) {
+      totalCost += r.totalMonthlyCost;
+      totalResources += r.totalResourcesAnalyzed;
+      if (!latestRunDate || r.runDate > latestRunDate) {
+        latestRunDate = r.runDate;
+      }
+    }
+    return {
+      totalCost,
+      totalResources,
+      subscriptionCount: filteredRuns.length,
+      latestRunDate,
+    };
+  }, [filteredRuns]);
+
+  useEffect(() => {
+    if (filteredRuns.length === 0) {
+      setActiveSubscriptionId(null);
+      return;
+    }
+    setActiveSubscriptionId((current) => {
+      if (current && filteredRuns.some((r) => r.subscriptionId === current)) {
+        return current;
+      }
+      return filteredRuns[0].subscriptionId;
+    });
+  }, [filteredRuns]);
+
+  const activeRun = useMemo(() => {
+    if (!activeSubscriptionId) return null;
+    return filteredRuns.find((r) => r.subscriptionId === activeSubscriptionId) ?? null;
+  }, [filteredRuns, activeSubscriptionId]);
+
+  const detailAnalysisJob = activeRun ? analysisJobUi[activeRun.subscriptionId] : undefined;
 
   const fetchLatestRuns = async (isManualRefresh = false) => {
     try {
@@ -297,225 +354,421 @@ export function FinOpsMetrics() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">FinOps Metrics</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Latest analysis run per subscription
-          </p>
-          {runs.length > 0 && (
-            <div className="mt-4 max-w-md">
-              <label htmlFor="finops-subscription-filter" className="sr-only">
-                Filter by subscription name or ID
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
-                <input
-                  id="finops-subscription-filter"
-                  type="search"
-                  value={subscriptionFilter}
-                  onChange={(e) => setSubscriptionFilter(e.target.value)}
-                  placeholder="Filter by subscription name or ID…"
-                  className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-              </div>
-              {subscriptionFilter.trim() && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                  Showing {filteredRuns.length} of {runs.length} subscription{runs.length === 1 ? '' : 's'}
-                </p>
+    <div className="min-h-full bg-slate-50/90 dark:bg-slate-950">
+      <div className="mx-auto max-w-[1920px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-5">
+        <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between xl:gap-6">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-end gap-3 gap-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+                FinOps Metrics
+              </h1>
+              {runs.length > 0 && (
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  {subscriptionFilter.trim()
+                    ? `${filteredRuns.length} / ${runs.length} shown`
+                    : `${runs.length} subscription${runs.length === 1 ? '' : 's'}`}
+                </span>
               )}
             </div>
-          )}
-        </div>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Latest analysis run per subscription — portfolio view
+            </p>
+          </div>
 
-        <button
-          onClick={() => fetchLatestRuns(true)}
-          disabled={isRefreshing}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-60 shrink-0 self-start lg:self-auto"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
-      {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-4 flex items-center gap-3 text-red-700 dark:text-red-300">
-          <AlertCircle className="w-5 h-5" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {!error && runs.length === 0 && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 text-center text-gray-600 dark:text-gray-400">
-          {user?.isAdmin === true
-            ? 'No FinOps analysis runs found.'
-            : 'No FinOps analysis runs found for the subscriptions you have access to.'}
-        </div>
-      )}
-
-      {!error && runs.length > 0 && filteredRuns.length === 0 && (
-        <div className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-6 text-center text-amber-900 dark:text-amber-200 text-sm">
-          No subscriptions match &quot;{subscriptionFilter.trim()}&quot;. Try a different name or ID.
-        </div>
-      )}
-
-      {filteredRuns.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredRuns.map((run) => {
-            const analysisJob = analysisJobUi[run.subscriptionId];
-            const descriptionEdit = descriptionEditing[run.subscriptionId];
-            const isEditingDescription = !!descriptionEdit;
-            return (
-            <div
-              key={run.id}
-              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center xl:w-auto xl:min-w-[320px] xl:max-w-xl xl:flex-1 xl:justify-end">
+            {runs.length > 0 && (
+              <div className="min-w-0 flex-1 sm:max-w-md xl:max-w-none">
+                <label htmlFor="finops-subscription-filter" className="sr-only">
+                  Filter by subscription name or ID
+                </label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                  <input
+                    id="finops-subscription-filter"
+                    type="search"
+                    value={subscriptionFilter}
+                    onChange={(e) => setSubscriptionFilter(e.target.value)}
+                    placeholder="Search name, description, or ID…"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-400/25"
+                  />
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fetchLatestRuns(true)}
+              disabled={isRefreshing}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="min-w-0">
-                  <h2 className="font-semibold text-gray-900 dark:text-white leading-snug">{run.subscriptionName}</h2>
-                  {!isEditingDescription && (
-                    <div className="mt-1 flex items-start gap-2">
-                      <p className={`text-sm break-words ${run.description?.trim() ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500 italic'}`}>
-                        {run.description?.trim() ? run.description : 'No description yet'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => beginEditDescription(run)}
-                        aria-label="Edit description"
-                        title="Edit description"
-                        className="inline-flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shrink-0"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-                  {isEditingDescription && (
-                    <div className="mt-2 space-y-2">
-                      <input
-                        type="text"
-                        value={descriptionEdit.draft}
-                        onChange={(e) => setDescriptionDraft(run.subscriptionId, e.target.value)}
-                        placeholder="Add subscription description"
-                        maxLength={50}
-                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-3 py-2 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void saveDescription(run.subscriptionId)}
-                          disabled={descriptionEdit.saving}
-                          className="inline-flex items-center gap-1 rounded-md border border-emerald-200 dark:border-emerald-800/50 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-60"
-                        >
-                          {descriptionEdit.saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => cancelEditDescription(run.subscriptionId)}
-                          disabled={descriptionEdit.saving}
-                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-60"
-                        >
-                          <X className="w-3 h-3" />
-                          Cancel
-                        </button>
-                      </div>
-                      {descriptionEdit.error && (
-                        <p className="text-xs text-red-600 dark:text-red-400">{descriptionEdit.error}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs px-2 py-1 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 whitespace-nowrap">
-                  {run.aiModel}
-                </span>
-              </div>
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+        </header>
 
-              <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-600" />
-                  <span>Monthly Cost (MTD): ${run.totalMonthlyCost.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-indigo-600" />
-                  <span>Resources Analyzed: {run.totalResourcesAnalyzed}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span title={run.runDate}>Run Date: {formatApiDateTimeInUserLocale(run.runDate)}</span>
-                </div>
-              </div>
+        {error && (
+          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
-              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 break-all">
-                Subscription ID: {run.subscriptionId}
-              </div>
+        {!error && runs.length === 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+            {user?.isAdmin === true
+              ? 'No FinOps analysis runs found.'
+              : 'No FinOps analysis runs found for the subscriptions you have access to.'}
+          </div>
+        )}
 
-              <div className="mt-3 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => void startBackgroundAnalysis(run.subscriptionId, 'current')}
-                  disabled={analysisJob?.phase === 'running'}
-                  className={`relative w-full overflow-hidden rounded-lg border text-sm font-medium transition-colors duration-200 ${
-                    analysisJob?.phase === 'running'
-                      ? 'border-emerald-400/60 dark:border-emerald-500/45 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 cursor-wait pointer-events-none'
-                      : 'border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                  }`}
-                >
-                  {analysisJob?.phase === 'running' && (
-                    <span
-                      className="pointer-events-none absolute inset-0 z-0 bg-emerald-400/20 dark:bg-emerald-400/10 motion-safe:animate-pulse"
-                      aria-hidden
-                    />
-                  )}
-                  <span className="relative z-10 inline-flex w-full items-center justify-center gap-2 px-3 py-2">
-                    {analysisJob?.phase === 'running' ? (
-                      <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <Play className="h-4 w-4 shrink-0" />
-                    )}
-                    {analysisJob?.phase === 'running' ? analysisJob.label : 'Run new analysis'}
-                  </span>
-                </button>
-                {analysisJob?.phase === 'error' && (
-                  <p className="text-xs text-red-600 dark:text-red-400">{analysisJob.message}</p>
-                )}
-              </div>
+        {!error && runs.length > 0 && filteredRuns.length === 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+            No subscriptions match &quot;{subscriptionFilter.trim()}&quot;. Try a different name or ID.
+          </div>
+        )}
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedRun(run)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800/50 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                >
-                  <BarChart2 className="w-4 h-4" />
-                  Cost Details
-                </button>
-                <button
-                  onClick={() => setAiRun(run)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-purple-200 dark:border-purple-800/50 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                >
-                  <BrainCircuit className="w-4 h-4" />
-                  AI Recommendations
-                </button>
-                <button
-                  onClick={() => setHistoryRun(run)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-teal-200 dark:border-teal-800/50 text-sm font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors"
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  Historical Results
-                </button>
+        {!error && runs.length > 0 && filteredRuns.length > 0 && (
+          <section aria-label="Portfolio summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50">
+                <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Subscriptions
+                </p>
+                <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                  {portfolioStats.subscriptionCount}
+                </p>
               </div>
             </div>
-            );
-          })}
-        </div>
-      )}
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/50">
+                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  MTD cost (sum)
+                </p>
+                <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                  ${portfolioStats.totalCost.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/50">
+                <BarChart2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Resources analyzed
+                </p>
+                <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                  {portfolioStats.totalResources.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:col-span-2 lg:col-span-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/50">
+                <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Newest run in view
+                </p>
+                <p
+                  className="truncate text-sm font-semibold text-slate-900 dark:text-white"
+                  title={portfolioStats.latestRunDate ?? undefined}
+                >
+                  {portfolioStats.latestRunDate
+                    ? formatApiDateTimeInUserLocale(portfolioStats.latestRunDate)
+                    : '—'}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
-      {selectedRun && (
+        {filteredRuns.length > 0 && (
+          <div className="flex min-h-[min(70vh,900px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:max-h-[calc(100vh-13rem)] lg:flex-row">
+            <aside className="flex max-h-[min(40vh,360px)] shrink-0 flex-col border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/40 lg:max-h-none lg:w-80 lg:border-b-0 lg:border-r xl:w-96">
+              <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Subscriptions
+                </h2>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-500">
+                  Select one to view details
+                </p>
+              </div>
+              <nav
+                className="min-h-0 flex-1 overflow-y-auto p-2"
+                aria-label="FinOps subscriptions"
+              >
+                <ul className="space-y-1">
+                  {filteredRuns.map((run) => {
+                    const job = analysisJobUi[run.subscriptionId];
+                    const isActive = run.subscriptionId === activeSubscriptionId;
+                    return (
+                      <li key={run.id}>
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubscriptionId(run.subscriptionId)}
+                          aria-current={isActive ? 'true' : undefined}
+                          className={`flex w-full items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                            isActive
+                              ? 'border-blue-300 bg-blue-50/90 shadow-sm dark:border-blue-700 dark:bg-blue-950/50'
+                              : 'border-transparent bg-transparent hover:border-slate-200 hover:bg-white dark:hover:border-slate-700 dark:hover:bg-slate-900'
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <span className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">
+                              {run.subscriptionName}
+                            </span>
+                            <div className="mt-1 flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 dark:text-slate-400">
+                              <span className="font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
+                                $
+                                {run.totalMonthlyCost.toLocaleString(undefined, {
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 2,
+                                })}{' '}
+                                <span className="font-normal text-slate-500 dark:text-slate-500">MTD</span>
+                              </span>
+                              <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                                {run.totalResourcesAnalyzed.toLocaleString()} resources
+                              </span>
+                            </div>
+                            {job?.phase === 'running' && (
+                              <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                                <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+                                <span className="truncate">{job.label}</span>
+                              </p>
+                            )}
+                          </div>
+                          <ChevronRight
+                            className={`mt-0.5 h-4 w-4 shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-300 dark:text-slate-600'}`}
+                            aria-hidden
+                          />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
+            </aside>
+
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+              {activeRun ? (
+                <div className="p-5 sm:p-6 lg:p-8">
+                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Subscription
+                      </p>
+                      <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
+                        {activeRun.subscriptionName}
+                      </h2>
+                      <p
+                        className="mt-2 break-all font-mono text-xs text-slate-500 dark:text-slate-400"
+                        title={activeRun.subscriptionId}
+                      >
+                        {activeRun.subscriptionId}
+                      </p>
+                    </div>
+                    <span
+                      className="w-fit shrink-0 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
+                      title={activeRun.aiModel}
+                    >
+                      {activeRun.aiModel}
+                    </span>
+                  </div>
+
+                  <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-xs font-medium uppercase tracking-wide">Monthly cost (MTD)</span>
+                      </div>
+                      <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                        $
+                        {activeRun.totalMonthlyCost.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <Database className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        <span className="text-xs font-medium uppercase tracking-wide">Resources analyzed</span>
+                      </div>
+                      <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                        {activeRun.totalResourcesAnalyzed.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs font-medium uppercase tracking-wide">Run date</span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white" title={activeRun.runDate}>
+                        {formatApiDateTimeInUserLocale(activeRun.runDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50/40 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Description
+                      </h3>
+                      {!descriptionEditing[activeRun.subscriptionId] && (
+                        <button
+                          type="button"
+                          onClick={() => beginEditDescription(activeRun)}
+                          aria-label="Edit description"
+                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                    {!descriptionEditing[activeRun.subscriptionId] && (
+                      <p
+                        className={`mt-1.5 line-clamp-2 text-xs leading-snug ${
+                          activeRun.description?.trim()
+                            ? 'text-slate-700 dark:text-slate-300'
+                            : 'italic text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        {activeRun.description?.trim() ? activeRun.description : 'No description yet'}
+                      </p>
+                    )}
+                    {descriptionEditing[activeRun.subscriptionId] && (
+                      <div className="mt-2 space-y-1.5">
+                        <input
+                          type="text"
+                          value={descriptionEditing[activeRun.subscriptionId].draft}
+                          onChange={(e) => setDescriptionDraft(activeRun.subscriptionId, e.target.value)}
+                          placeholder="Max 50 characters"
+                          maxLength={50}
+                          className="w-full max-w-md rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-blue-400"
+                        />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => void saveDescription(activeRun.subscriptionId)}
+                            disabled={descriptionEditing[activeRun.subscriptionId].saving}
+                            className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-white px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 dark:border-emerald-800/50 dark:bg-slate-900 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                          >
+                            {descriptionEditing[activeRun.subscriptionId].saving ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )}
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cancelEditDescription(activeRun.subscriptionId)}
+                            disabled={descriptionEditing[activeRun.subscriptionId].saving}
+                            className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <X className="h-3 w-3" />
+                            Cancel
+                          </button>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                            {descriptionEditing[activeRun.subscriptionId].draft.length}/50
+                          </span>
+                        </div>
+                        {descriptionEditing[activeRun.subscriptionId].error && (
+                          <p className="text-[11px] text-red-600 dark:text-red-400">
+                            {descriptionEditing[activeRun.subscriptionId].error}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => void startBackgroundAnalysis(activeRun.subscriptionId, 'current')}
+                      disabled={detailAnalysisJob?.phase === 'running'}
+                      className={`relative w-full overflow-hidden rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                        detailAnalysisJob?.phase === 'running'
+                          ? 'cursor-wait border-emerald-400/60 bg-emerald-50 text-emerald-900 pointer-events-none dark:border-emerald-500/45 dark:bg-emerald-950/50 dark:text-emerald-200'
+                          : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-800/50 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
+                      }`}
+                    >
+                      {detailAnalysisJob?.phase === 'running' && (
+                        <span
+                          className="pointer-events-none absolute inset-0 z-0 bg-emerald-400/15 motion-safe:animate-pulse dark:bg-emerald-400/10"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="relative z-10 inline-flex w-full items-center justify-center gap-2">
+                        {detailAnalysisJob?.phase === 'running' ? (
+                          <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <Play className="h-4 w-4 shrink-0" />
+                        )}
+                        <span className="truncate">
+                          {detailAnalysisJob?.phase === 'running' ? detailAnalysisJob.label : 'Run new analysis'}
+                        </span>
+                      </span>
+                    </button>
+                    {detailAnalysisJob?.phase === 'error' && (
+                      <p className="text-xs text-red-600 dark:text-red-400">{detailAnalysisJob.message}</p>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => setCostModalRun(activeRun)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-800 shadow-sm hover:bg-blue-50 dark:border-blue-800/50 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                      >
+                        <BarChart2 className="h-4 w-4 shrink-0" />
+                        Cost details
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiRun(activeRun)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-medium text-purple-800 shadow-sm hover:bg-purple-50 dark:border-purple-800/50 dark:bg-slate-900 dark:text-purple-300 dark:hover:bg-purple-950/40"
+                      >
+                        <BrainCircuit className="h-4 w-4 shrink-0" />
+                        AI recommendations
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHistoryRun(activeRun)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-medium text-teal-800 shadow-sm hover:bg-teal-50 dark:border-teal-800/50 dark:bg-slate-900 dark:text-teal-300 dark:hover:bg-teal-950/40"
+                      >
+                        <TrendingUp className="h-4 w-4 shrink-0" />
+                        Historical results
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-slate-500 dark:text-slate-400">
+                  <Database className="h-10 w-10 opacity-40" />
+                  <p className="text-sm">Select a subscription from the list to see details.</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+      {costModalRun && (
         <CostDetailsModal
           isOpen={true}
-          onClose={() => setSelectedRun(null)}
-          analysisRunId={selectedRun.id}
-          subscriptionName={selectedRun.subscriptionName}
+          onClose={() => setCostModalRun(null)}
+          analysisRunId={costModalRun.id}
+          subscriptionName={costModalRun.subscriptionName}
         />
       )}
 
@@ -536,7 +789,7 @@ export function FinOpsMetrics() {
           subscriptionName={historyRun.subscriptionName}
         />
       )}
-
+      </div>
     </div>
   );
 }
