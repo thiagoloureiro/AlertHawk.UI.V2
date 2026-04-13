@@ -447,8 +447,8 @@ export function FinOpsMetrics() {
                 <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  MTD cost (sum)
+                <p className="text-xs font-medium leading-snug text-slate-500 dark:text-slate-400">
+                  Month to Date cost (sum)
                 </p>
                 <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
                   ${portfolioStats.totalCost.toLocaleString(undefined, {
@@ -524,24 +524,43 @@ export function FinOpsMetrics() {
                           }`}
                         >
                           <div className="min-w-0 flex-1">
-                            <span className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">
+                            <span className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 dark:text-white">
                               {run.subscriptionName}
                             </span>
-                            <div className="mt-1 flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 dark:text-slate-400">
-                              <span className="font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
-                                $
-                                {run.totalMonthlyCost.toLocaleString(undefined, {
-                                  minimumFractionDigits: 0,
-                                  maximumFractionDigits: 2,
-                                })}{' '}
-                                <span className="font-normal text-slate-500 dark:text-slate-500">MTD</span>
-                              </span>
-                              <span className="tabular-nums text-slate-600 dark:text-slate-400">
-                                {run.totalResourcesAnalyzed.toLocaleString()} resources
-                              </span>
+                            <p
+                              className={`mt-0.5 line-clamp-2 text-[11px] leading-snug sm:text-xs ${
+                                run.description?.trim()
+                                  ? 'text-slate-600 dark:text-slate-400'
+                                  : 'italic text-slate-400 dark:text-slate-500'
+                              }`}
+                              title={run.description?.trim() ? run.description : undefined}
+                            >
+                              {run.description?.trim() ? run.description : 'No description'}
+                            </p>
+                            <div className="mt-1.5 flex flex-col gap-0.5 border-t border-slate-200/70 pt-1.5 dark:border-slate-700/70">
+                              <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                                <span className="max-w-[55%] text-[10px] font-medium leading-tight text-slate-500 dark:text-slate-400 sm:max-w-none sm:text-[11px]">
+                                  Month to Date
+                                </span>
+                                <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                                  $
+                                  {run.totalMonthlyCost.toLocaleString(undefined, {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  Resources
+                                </span>
+                                <span className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                                  {run.totalResourcesAnalyzed.toLocaleString()}
+                                </span>
+                              </div>
                             </div>
                             {job?.phase === 'running' && (
-                              <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
                                 <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
                                 <span className="truncate">{job.label}</span>
                               </p>
@@ -589,7 +608,7 @@ export function FinOpsMetrics() {
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
                       <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                         <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-xs font-medium uppercase tracking-wide">Monthly cost (MTD)</span>
+                        <span className="text-xs font-medium leading-snug">Monthly cost (Month to Date)</span>
                       </div>
                       <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
                         $
