@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X, Sparkles, AlertCircle, Bot } from 'lucide-react';
 import { LoadingSpinner } from './ui';
 import finopsService, { AiRecommendation } from '../services/finopsService';
+import { formatApiDateTimeInUserLocale } from '../utils/dateUtils';
 
 const md = new MarkdownIt({ html: false, breaks: true, linkify: true });
 
@@ -26,7 +27,7 @@ function RecommendationCard({ rec }: { rec: AiRecommendation }) {
           {rec.model}
         </span>
         <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
-          {new Date(rec.recordedAt).toLocaleString()}
+          {formatApiDateTimeInUserLocale(rec.recordedAt)}
         </span>
       </div>
 

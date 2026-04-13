@@ -1,3 +1,21 @@
+/**
+ * Parse API datetime strings and show in the user's locale and local timezone.
+ * If the value is ISO 8601 without a timezone (common .NET / SQL), treat the instant as UTC.
+ */
+export function formatApiDateTimeInUserLocale(isoOrDateString: string): string {
+  if (!isoOrDateString?.trim()) return '—';
+  const trimmed = isoOrDateString.trim();
+  const isoWithoutTz =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(trimmed) &&
+    !/[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
+  const d = isoWithoutTz ? new Date(`${trimmed}Z`) : new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return isoOrDateString;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(d);
+}
+
 export const convertUTCToLocal = (utcTimestamp: string) => {
   try {
     // Ensure the timestamp ends with 'Z' if no timezone offset is present

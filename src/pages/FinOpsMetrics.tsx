@@ -6,28 +6,13 @@ import userService from '../services/userService';
 import { CostDetailsModal } from '../components/CostDetailsModal';
 import { AiRecommendationsModal } from '../components/AiRecommendationsModal';
 import { HistoricalResultsModal } from '../components/HistoricalResultsModal';
+import { formatApiDateTimeInUserLocale } from '../utils/dateUtils';
 
 type AnalysisMonthSelection = 'current' | 'previous';
 
 function getCurrentUser(): { id: string; isAdmin?: boolean } | null {
   const stored = localStorage.getItem('userInfo');
   return stored ? JSON.parse(stored) : null;
-}
-
-/** Parse API run date and show in the user's locale and local timezone. */
-function formatRunDateInUserTimezone(runDate: string): string {
-  if (!runDate?.trim()) return '—';
-  const trimmed = runDate.trim();
-  // If API sends ISO without timezone, treat instant as UTC (common .NET / SQL pattern)
-  const isoWithoutTz =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(trimmed) &&
-    !/[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
-  const d = isoWithoutTz ? new Date(`${trimmed}Z`) : new Date(trimmed);
-  if (Number.isNaN(d.getTime())) return runDate;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(d);
 }
 
 const ANALYSIS_POLL_MS = 2000;
@@ -457,7 +442,7 @@ export function FinOpsMetrics() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span title={run.runDate}>Run Date: {formatRunDateInUserTimezone(run.runDate)}</span>
+                  <span title={run.runDate}>Run Date: {formatApiDateTimeInUserLocale(run.runDate)}</span>
                 </div>
               </div>
 
