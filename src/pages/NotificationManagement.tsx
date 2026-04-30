@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Bell, Trash2, AlertCircle, Check, Loader2, Mail, MessageSquare, Slack, Smartphone, Webhook, Edit, X } from 'lucide-react';
+import { Plus, Bell, Trash2, AlertCircle, Check, Loader2, Mail, MessageSquare, Smartphone, Webhook, Edit, X } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import notificationService from '../services/notificationService';
 import { NotificationItem, NotificationType } from '../services/notificationService';
@@ -678,7 +678,7 @@ const getNotificationIcon = (typeId: number) => {
     case 3: // Telegram
       return <Smartphone className={baseClass} />;
     case 4: // Slack
-      return <Slack className={baseClass} />;
+      return <MessageSquare className={baseClass} />;
     case 5: // Webhook
       return <Webhook className={baseClass} />;
     case 6: // Push Notification
