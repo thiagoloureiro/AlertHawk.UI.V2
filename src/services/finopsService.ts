@@ -25,6 +25,8 @@ export interface CostDetail {
   resourceGroup: string | null;
   cost: number;
   recordedAt: string;
+  /** Azure-style tags; GAR_ID is used as application / App ID for grouping. */
+  tags?: Record<string, string | null | undefined> | null;
   analysisRun: unknown;
 }
 
@@ -64,6 +66,7 @@ export interface HistoricalCostDetail {
   cost: number;
   currency: string;
   recordedAt: string;
+  tags?: Record<string, string | null | undefined> | null;
   analysisRun: unknown;
 }
 
