@@ -52,6 +52,17 @@ export function DashboardBuilder() {
   const [currentDashboard, setCurrentDashboard] = useState<{ id: string; name: string } | null>(null);
   const [isKioskMode, setIsKioskMode] = useState(false);
 
+  // Let the app shell know when to hide global chrome (TopBar/Sidebar)
+  useEffect(() => {
+    document.documentElement.classList.toggle('ah-kiosk-mode', isKioskMode);
+    window.dispatchEvent(new CustomEvent('ah:kiosk-mode', { detail: { isKioskMode } }));
+
+    return () => {
+      document.documentElement.classList.remove('ah-kiosk-mode');
+      window.dispatchEvent(new CustomEvent('ah:kiosk-mode', { detail: { isKioskMode: false } }));
+    };
+  }, [isKioskMode]);
+
   // Load dashboard from URL parameter
   useEffect(() => {
     if (dashboardId) {
