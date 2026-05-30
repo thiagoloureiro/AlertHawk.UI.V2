@@ -17,6 +17,8 @@ import { Administration } from '../pages/Administration';
 import { Settings } from '../pages/Settings';
 import { StatusDashboard } from '../pages/StatusDashboard';
 import { SSLCertificateMonitor } from '../pages/SSLCertificateMonitor';
+import { AppRegistrationManager } from '../pages/AppRegistrationManager';
+import { AppRegistrationReports } from '../pages/AppRegistrationReports';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { isMetricsEnabled } from '../lib/utils';
 
@@ -47,6 +49,8 @@ export function AppRoutes() {
       )}
       <Route path="/alerts" element={<MonitorAlerts />} />
       <Route path="/ssl-certificates" element={<SSLCertificateMonitor />} />
+      <Route path="/app-registrations" element={<AppRegistrationManager />} />
+      <Route path="/app-registration-reports" element={<AppRegistrationReports />} />
       <Route path="/groups" element={<MonitorGroups />} />
       <Route path="/agents" element={<MonitorAgents />} />
       <Route path="/notifications" element={<NotificationManagement />} />

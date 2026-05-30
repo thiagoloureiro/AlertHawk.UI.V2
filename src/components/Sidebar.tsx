@@ -17,7 +17,9 @@ import {
   Activity,
   DollarSign,
   HardDrive,
-  QrCode
+  QrCode,
+  KeyRound,
+  FileBarChart
 } from 'lucide-react';
 import { MenuItem } from '../types';
 import { NavLink } from 'react-router-dom';
@@ -44,6 +46,8 @@ const baseMenuItems: MenuItem[] = [
   { id: '5', name: 'Monitor Agents', icon: 'Monitor', path: '/agents' },
   { id: '6', name: 'Monitor Alert', icon: 'Bell', path: '/alerts' },
   { id: '7', name: 'SSL Certificate Monitor', icon: 'Shield', path: '/ssl-certificates' },
+  { id: '17', name: 'App Registration Manager', icon: 'KeyRound', path: '/app-registrations' },
+  { id: '18', name: 'App Registration Reports', icon: 'FileBarChart', path: '/app-registration-reports' },
   { id: '8', name: 'Notification Management', icon: 'MessageSquare', path: '/notifications' },
   { id: '9', name: 'Monitor Groups', icon: 'Users', path: '/groups' },
 ];
@@ -75,6 +79,8 @@ const iconMap: Record<string, React.ElementType> = {
   Activity,
   DollarSign,
   QrCode,
+  KeyRound,
+  FileBarChart,
 };
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
