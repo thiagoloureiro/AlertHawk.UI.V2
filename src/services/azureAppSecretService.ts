@@ -38,6 +38,22 @@ export interface AzureSecretsStatus {
   monitorId: number;
   monitorName?: string;
   daysBeforeExpiryToAlert: number;
+  registeredAppsCount: number;
+}
+
+export interface AzureAppRegistrationWatch {
+  id: number;
+  applicationObjectId: string;
+  applicationDisplayName: string;
+  appId: string;
+  isEnabled: boolean;
+  createdAt: string;
+}
+
+export interface RegisterAzureAppRegistrationRequest {
+  applicationObjectId: string;
+  applicationDisplayName?: string;
+  appId?: string;
 }
 
 export interface AzureAppSecretMonitorRequest {
@@ -107,10 +123,6 @@ class AzureAppSecretService {
     return response.data;
   }
 
-  async sync(): Promise<void> {
-    await monitoringHttp.post(`${this.baseUrl}/sync`);
-  }
-
   async getHistory(days: number): Promise<MonitorHistoryEntry[]> {
     const response = await monitoringHttp.get<MonitorHistoryEntry[]>(`${this.baseUrl}/history/${days}`);
     return response.data;
@@ -137,6 +149,20 @@ class AzureAppSecretService {
 
   async updateAnchorMonitor(request: AzureAppSecretMonitorUpdateRequest): Promise<void> {
     await monitoringHttp.put(`${this.baseUrl}/monitor`, request);
+  }
+
+  async getRegistrations(): Promise<AzureAppRegistrationWatch[]> {
+    const response = await monitoringHttp.get<AzureAppRegistrationWatch[]>(`${this.baseUrl}/registrations`);
+    return response.data;
+  }
+
+  async registerApplication(request: RegisterAzureAppRegistrationRequest): Promise<AzureAppRegistrationWatch> {
+    const response = await monitoringHttp.post<AzureAppRegistrationWatch>(`${this.baseUrl}/registrations`, request);
+    return response.data;
+  }
+
+  async unregisterApplication(id: number): Promise<void> {
+    await monitoringHttp.delete(`${this.baseUrl}/registrations/${id}`);
   }
 }
 
