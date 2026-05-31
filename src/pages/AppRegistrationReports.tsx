@@ -90,7 +90,11 @@ export function AppRegistrationReports() {
       )}
 
       {status && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
+            <p className="text-sm text-gray-500">Registered apps</p>
+            <p className="text-2xl font-semibold">{status.registeredAppsCount}</p>
+          </div>
           <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
             <p className="text-sm text-gray-500">Total secrets</p>
             <p className="text-2xl font-semibold">{status.totalSecrets}</p>

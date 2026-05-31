@@ -4,13 +4,17 @@ import {
   CheckCircle,
   Clock,
   KeyRound,
+  Plus,
   RefreshCw,
   Save,
   Settings,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { LoadingSpinner } from '../components/ui';
 import azureAppSecretService, {
+  AzureAppRegistrationSummary,
+  AzureAppRegistrationWatch,
   AzureAppSecret,
   AzureSecretsConfig,
   AzureSecretsStatus,
@@ -22,6 +26,10 @@ type SortField = 'applicationDisplayName' | 'daysUntilExpiry' | 'lastChecked';
 
 export function AppRegistrationManager() {
   const [secrets, setSecrets] = useState<AzureAppSecret[]>([]);
+  const [registrations, setRegistrations] = useState<AzureAppRegistrationWatch[]>([]);
+  const [discoverApps, setDiscoverApps] = useState<AzureAppRegistrationSummary[]>([]);
+  const [selectedAppObjectId, setSelectedAppObjectId] = useState('');
+  const [discovering, setDiscovering] = useState(false);
   const [status, setStatus] = useState<AzureSecretsStatus | null>(null);
   const [config, setConfig] = useState<AzureSecretsConfig | null>(null);
   const [groups, setGroups] = useState<MonitorGroup[]>([]);
@@ -55,13 +63,15 @@ export function AppRegistrationManager() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [secretsData, statusData, configData, groupsData] = await Promise.all([
+      const [secretsData, statusData, configData, groupsData, registrationsData] = await Promise.all([
         azureAppSecretService.getSecrets(showExpiringOnly),
         azureAppSecretService.getStatus(),
         azureAppSecretService.getConfig(),
         monitorService.getMonitorGroupListByUser(),
+        azureAppSecretService.getRegistrations(),
       ]);
       setSecrets(secretsData);
+      setRegistrations(registrationsData);
       setStatus(statusData);
       setConfig(configData);
       setGroups(groupsData);
@@ -149,6 +159,62 @@ export function AppRegistrationManager() {
     }
   };
 
+  const handleDiscover = async () => {
+    if (!config?.hasCredentials) {
+      toast.error('Configure Azure credentials on the server first');
+      return;
+    }
+    try {
+      setDiscovering(true);
+      const apps = await azureAppSecretService.discoverApplications();
+      setDiscoverApps(apps.filter((a) => !a.isRegistered));
+      if (apps.filter((a) => !a.isRegistered).length === 0) {
+        toast.success('All tenant apps are already registered');
+      }
+    } catch {
+      toast.error('Failed to load apps from Azure AD');
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    const app = discoverApps.find((a) => a.applicationObjectId === selectedAppObjectId);
+    if (!app) {
+      toast.error('Select an app registration to monitor');
+      return;
+    }
+    try {
+      setSaving(true);
+      await azureAppSecretService.registerApplication({
+        applicationObjectId: app.applicationObjectId,
+        applicationDisplayName: app.applicationDisplayName,
+        appId: app.appId,
+      });
+      toast.success(`Registered ${app.applicationDisplayName}`);
+      setSelectedAppObjectId('');
+      setDiscoverApps((prev) => prev.filter((a) => a.applicationObjectId !== app.applicationObjectId));
+      await loadData();
+    } catch {
+      toast.error('Failed to register app');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnregister = async (id: number, name: string) => {
+    if (!window.confirm(`Stop monitoring "${name}"?`)) {
+      return;
+    }
+    try {
+      await azureAppSecretService.unregisterApplication(id);
+      toast.success('App unregistered');
+      await loadData();
+    } catch {
+      toast.error('Failed to unregister app');
+    }
+  };
+
   const handleSaveMonitor = async () => {
     if (!monitorForm.name.trim() || !monitorForm.monitorGroup) {
       toast.error('Monitor name and group are required');
@@ -188,7 +254,7 @@ export function AppRegistrationManager() {
             App Registration Manager
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Monitor Azure AD app registration client secret expiry
+            Register app registrations to monitor client secret expiry
           </p>
         </div>
         <div className="flex gap-2">
@@ -213,7 +279,8 @@ export function AppRegistrationManager() {
       </div>
 
       {status && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <StatCard label="Registered apps" value={status.registeredAppsCount} />
           <StatCard label="Total secrets" value={status.totalSecrets} />
           <StatCard label="Expiring soon" value={status.expiringCount} variant={status.expiringCount > 0 ? 'warning' : 'ok'} />
           <StatCard
@@ -327,8 +394,92 @@ export function AppRegistrationManager() {
       </div>
 
       <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Registered for monitoring</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Only registered apps are checked during sync and shown in reports.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              type="button"
+              onClick={handleDiscover}
+              disabled={discovering || !config?.hasCredentials}
+              className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+            >
+              {discovering ? 'Loading from Azure…' : 'Load apps from Azure AD'}
+            </button>
+            {discoverApps.length > 0 && (
+              <>
+                <select
+                  value={selectedAppObjectId}
+                  onChange={(e) => setSelectedAppObjectId(e.target.value)}
+                  className="flex-1 min-w-[200px] px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                >
+                  <option value="">Select app registration…</option>
+                  {discoverApps.map((app) => (
+                    <option key={app.applicationObjectId} value={app.applicationObjectId}>
+                      {app.applicationDisplayName} ({app.appId})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleRegister}
+                  disabled={saving || !selectedAppObjectId}
+                  className="px-3 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Register
+                </button>
+              </>
+            )}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="text-left p-3">Application</th>
+                  <th className="text-left p-3">App ID</th>
+                  <th className="text-left p-3">Registered</th>
+                  <th className="text-right p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {registrations.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-gray-500">
+                      No apps registered yet. Load apps from Azure AD and register the ones you want to monitor.
+                    </td>
+                  </tr>
+                ) : (
+                  registrations.map((reg) => (
+                    <tr key={reg.id} className="border-t border-gray-100 dark:border-gray-800">
+                      <td className="p-3 font-medium">{reg.applicationDisplayName}</td>
+                      <td className="p-3 font-mono text-xs">{reg.appId}</td>
+                      <td className="p-3">{new Date(reg.createdAt).toLocaleDateString()}</td>
+                      <td className="p-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleUnregister(reg.id, reg.applicationDisplayName)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          title="Unregister"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">App registrations</h2>
+          <h2 className="text-lg font-semibold">Secret expiry (registered apps)</h2>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -365,7 +516,9 @@ export function AppRegistrationManager() {
               {sortedSecrets.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
-                    No secrets found. Run sync or check Azure credentials.
+                    {registrations.length === 0
+                      ? 'Register apps above, then run Sync Now.'
+                      : 'No secrets loaded yet. Run Sync Now after registering apps.'}
                   </td>
                 </tr>
               ) : (
