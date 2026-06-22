@@ -10,16 +10,16 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@azure/msal-browser": "^5.13.0",
-    "@azure/msal-react": "^5.4.4",
-    "@sentry/react": "^10.58.0",
+    "@azure/msal-browser": "^5.14.0",
+    "@azure/msal-react": "^5.4.5",
+    "@sentry/react": "^10.59.0",
     "axios": "^1.18.0",
-    "lucide-react": "^1.18.0",
+    "lucide-react": "^1.21.0",
     "markdown-it": "^14.2.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.0",
     "recharts": "^3.8.1"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.6.0",
-    "knip": "^6.16.1",
+    "knip": "^6.17.2",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
