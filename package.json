@@ -15,12 +15,12 @@
     "@sentry/react": "^10.63.0",
     "axios": "^1.18.1",
     "lucide-react": "^1.23.0",
-    "markdown-it": "^14.2.0",
+    "markdown-it": "^14.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.18.1",
-    "recharts": "^3.9.1"
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -34,11 +34,11 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
-    "knip": "^6.23.0",
+    "knip": "^6.25.0",
     "postcss": "^8.5.16",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.1",
-    "vite": "^8.1.2"
+    "typescript-eslint": "^8.63.0",
+    "vite": "^8.1.3"
   }
 }
