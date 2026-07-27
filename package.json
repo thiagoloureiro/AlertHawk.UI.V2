@@ -14,7 +14,7 @@
     "@azure/msal-react": "^5.5.3",
     "@sentry/react": "^10.67.0",
     "axios": "^1.18.1",
-    "lucide-react": "^1.25.0",
+    "lucide-react": "^1.27.0",
     "markdown-it": "^14.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
