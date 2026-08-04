@@ -610,34 +610,34 @@ export function Metrics() {
 
   // Get color based on usage percentage
   const getUsageColor = (percentage: number): string => {
-    if (percentage >= 90) return 'text-red-500';
-    if (percentage >= 70) return 'text-yellow-500';
-    return 'text-green-500';
+    if (percentage >= 90) return 'text-red-600 dark:text-red-400';
+    if (percentage >= 70) return 'text-amber-600 dark:text-amber-400';
+    return 'text-emerald-600 dark:text-emerald-400';
   };
 
   const getUsageBgColor = (percentage: number): string => {
     if (percentage >= 90) return 'bg-red-500';
-    if (percentage >= 70) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (percentage >= 70) return 'bg-amber-500';
+    return 'bg-emerald-500';
   };
 
   const getEnvironmentColor = (environment?: string): string => {
-    if (!environment) return 'bg-gray-500 text-white';
+    if (!environment) return 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-200 dark:ring-gray-800';
     const env = environment.toUpperCase();
     switch (env) {
       case 'PROD':
       case 'PRODUCTION':
-        return 'bg-red-500 text-white';
+        return 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-200/60 dark:ring-red-900/50';
       case 'TEST':
       case 'TESTING':
-        return 'bg-green-500 text-white';
+        return 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-200/60 dark:ring-emerald-900/50';
       case 'DEV':
       case 'DEVELOPMENT':
-        return 'bg-blue-500 text-white';
+        return 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-200/60 dark:ring-blue-900/50';
       case 'QA':
-        return 'bg-purple-500 text-white';
+        return 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 ring-1 ring-inset ring-violet-200/60 dark:ring-violet-900/50';
       default:
-        return 'bg-gray-500 text-white';
+        return 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-200 dark:ring-gray-800';
     }
   };
 
@@ -654,7 +654,7 @@ export function Metrics() {
 
   if (isLoading && !hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner text="Loading metrics..." />
       </div>
     );
@@ -662,14 +662,16 @@ export function Metrics() {
 
   if (hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
-            No Cluster Permissions
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            No cluster permissions
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            You don't have permission to view any clusters. Please contact your administrator to request access to cluster metrics.
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            You don't have access to any clusters. Contact an administrator to request metrics access.
           </p>
         </div>
       </div>
@@ -678,13 +680,15 @@ export function Metrics() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 text-lg">{error}</p>
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{error}</p>
           <button
             onClick={() => fetchMetrics()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="mt-3 px-3 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
             Retry
           </button>
@@ -694,79 +698,75 @@ export function Metrics() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="w-full space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white text-gray-900">Cluster Metrics</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-             CPU and RAM usage across your clusters
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800
+                      bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Metrics
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              Cluster metrics
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              CPU and memory across nodes and namespaces
             </p>
           </div>
-          {/* Filters - Responsive: 2 rows on small screens, 1 row on large screens */}
-          <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
-            {/* Row 1: Filters */}
-            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
-              {/* Cluster Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Cluster:</span>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <select
                 value={selectedCluster || ''}
                 onChange={(e) => {
                   setSelectedCluster(e.target.value);
-                  setSelectedNode(null); // Clear node selection when cluster changes
+                  setSelectedNode(null);
                 }}
-                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                         dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                         focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
+                className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[10rem]"
               >
                 {uniqueClusters.map(cluster => (
                   <option key={cluster} value={cluster}>{cluster}</option>
                 ))}
               </select>
+
+              <select
+                value={minutes}
+                onChange={(e) => setMinutes(Number(e.target.value))}
+                className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              >
+                <option value={5}>5 min</option>
+                <option value={10}>10 min</option>
+                <option value={30}>30 min</option>
+                <option value={60}>1 hour</option>
+                <option value={360}>6 hours</option>
+                <option value={1440}>24 hours</option>
+                <option value={2880}>48 hours</option>
+                <option value={10080}>7 days</option>
+              </select>
+
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md
+                              bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">Auto</span>
+                <Switch
+                  checked={autoRefreshEnabled}
+                  onCheckedChange={setAutoRefreshEnabled}
+                />
+                {autoRefreshEnabled && (
+                  <select
+                    value={autoRefreshInterval}
+                    onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
+                    className="px-1.5 py-0.5 rounded text-xs bg-transparent border-0 text-gray-900 dark:text-white focus:outline-none focus:ring-0"
+                  >
+                    <option value={10}>10s</option>
+                    <option value={30}>30s</option>
+                    <option value={60}>60s</option>
+                  </select>
+                )}
+              </div>
             </div>
-            {/* Time Range Selector */}
-            <select
-              value={minutes}
-              onChange={(e) => setMinutes(Number(e.target.value))}
-              className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                       focus:ring-2 focus:ring-blue-500"
-            >
-              <option value={5}>5 minutes</option>
-              <option value={10}>10 minutes</option>
-              <option value={30}>30 minutes</option>
-              <option value={60}>1 hour</option>
-              <option value={360}>6 hours</option>
-              <option value={1440}>24 hours</option>
-              <option value={2880}>48 hours</option>
-              <option value={10080}>7 days</option>
-            </select>
-            {/* Auto Refresh Controls */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Refresh:</span>
-              <Switch
-                checked={autoRefreshEnabled}
-                onCheckedChange={setAutoRefreshEnabled}
-              />
-              {autoRefreshEnabled && (
-                <select
-                  value={autoRefreshInterval}
-                  onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
-                  className="px-3 py-1.5 rounded-lg dark:bg-gray-800 bg-white border 
-                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 text-sm"
-                >
-                  <option value={10}>10s</option>
-                  <option value={30}>30s</option>
-                  <option value={60}>60s</option>
-                </select>
-              )}
-            </div>
-            </div>
-            {/* Row 2: Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
+
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() => {
                   if (selectedCluster) {
@@ -776,12 +776,12 @@ export function Metrics() {
                   }
                 }}
                 disabled={!selectedCluster}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                         dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                         dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                         transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+                         border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950
+                         text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900
+                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-3.5 h-3.5" />
                 Notifications
               </button>
               <button
@@ -792,180 +792,182 @@ export function Metrics() {
                   }
                   navigate(`/alerts${params.toString() ? `?${params.toString()}` : ''}`);
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                         bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800
-                         text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40
-                         transition-colors duration-200"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+                         border border-amber-200 dark:border-amber-900/50
+                         text-amber-700 dark:text-amber-400
+                         hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-3.5 h-3.5" />
                 Alerts
               </button>
               <button
                 onClick={() => fetchMetrics(false)}
                 disabled={isRefreshing}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
-                         flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                         transition-colors"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+                         bg-blue-600 hover:bg-blue-500 text-white
+                         disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
               </button>
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="p-4 lg:p-6 space-y-4">
         {/* Cluster Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Nodes</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Nodes</h3>
                 {clusterStats.clusterEnvironment && (
-                  <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${getEnvironmentColor(clusterStats.clusterEnvironment)} flex-shrink-0`}>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getEnvironmentColor(clusterStats.clusterEnvironment)} flex-shrink-0`}>
                     {clusterStats.clusterEnvironment.toUpperCase()}
                   </span>
                 )}
               </div>
-              <Server className="w-5 h-5 text-gray-400" />
+              <Server className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
+            <p className="text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
               {clusterStats.totalNodes}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg CPU Usage</h3>
-              <Cpu className="w-5 h-5 text-gray-400" />
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Avg CPU</h3>
+              <Cpu className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className={`text-2xl font-bold ${getUsageColor(clusterStats.avgCpuUsage)}`}>
+            <p className={`text-xl font-semibold tabular-nums ${getUsageColor(clusterStats.avgCpuUsage)}`}>
               {clusterStats.avgCpuUsage.toFixed(1)}%
             </p>
-            <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="mt-2 w-full bg-gray-100 dark:bg-gray-900 rounded-full h-1">
               <div
-                className={`h-2 rounded-full ${getUsageBgColor(clusterStats.avgCpuUsage)}`}
+                className={`h-1 rounded-full ${getUsageBgColor(clusterStats.avgCpuUsage)}`}
                 style={{ width: `${Math.min(clusterStats.avgCpuUsage, 100)}%` }}
               ></div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Memory Usage</h3>
-              <HardDrive className="w-5 h-5 text-gray-400" />
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Avg memory</h3>
+              <HardDrive className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className={`text-2xl font-bold ${getUsageColor(clusterStats.avgMemoryUsage)}`}>
+            <p className={`text-xl font-semibold tabular-nums ${getUsageColor(clusterStats.avgMemoryUsage)}`}>
               {clusterStats.avgMemoryUsage.toFixed(1)}%
             </p>
-            <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="mt-2 w-full bg-gray-100 dark:bg-gray-900 rounded-full h-1">
               <div
-                className={`h-2 rounded-full ${getUsageBgColor(clusterStats.avgMemoryUsage)}`}
+                className={`h-1 rounded-full ${getUsageBgColor(clusterStats.avgMemoryUsage)}`}
                 style={{ width: `${Math.min(clusterStats.avgMemoryUsage, 100)}%` }}
               ></div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total CPU Cores</h3>
-              <Activity className="w-5 h-5 text-gray-400" />
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">CPU cores</h3>
+              <Activity className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
-              {clusterStats.usedCpuCores.toFixed(1)} / {clusterStats.totalCpuCores.toFixed(1)}
+            <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-white">
+              {clusterStats.usedCpuCores.toFixed(1)}
+              <span className="text-sm font-medium text-gray-400"> / {clusterStats.totalCpuCores.toFixed(1)}</span>
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {formatBytes(clusterStats.usedMemoryBytes)} / {formatBytes(clusterStats.totalMemoryBytes)} memory
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
+              {formatBytes(clusterStats.usedMemoryBytes)} / {formatBytes(clusterStats.totalMemoryBytes)} mem
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Cluster Info</h3>
-              <div className="flex items-center gap-2">
-                <Code className="w-4 h-4 text-gray-400" />
-                <Cloud className="w-4 h-4 text-gray-400" />
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Cluster</h3>
+              <div className="flex items-center gap-1">
+                <Code className="w-3.5 h-3.5 text-gray-400" />
+                <Cloud className="w-3.5 h-3.5 text-gray-400" />
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Version</p>
-                <p className="text-lg font-semibold dark:text-white text-gray-900">
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <div>
+                <p className="text-[10px] text-gray-400">Version</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                   {clusterStats.kubernetesVersion || 'N/A'}
                 </p>
               </div>
-              <div className="flex-1">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Provider</p>
-                <p className="text-lg font-semibold dark:text-white text-gray-900">
+              <div>
+                <p className="text-[10px] text-gray-400">Provider</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                   {clusterStats.cloudProvider || 'N/A'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Est. Cost</h3>
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Est. cost</h3>
                 <div className="relative group/tooltip">
-                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                  <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 
-                                w-64 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg 
+                                w-64 p-3 bg-gray-950 text-white text-xs rounded-md 
                                 shadow-xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity 
-                                pointer-events-none z-[100] invisible group-hover/tooltip:visible border border-gray-700">
+                                pointer-events-none z-[100] invisible group-hover/tooltip:visible ring-1 ring-white/10">
                     <div className="space-y-1.5">
-                      <p className="font-semibold mb-1.5">Compute Cost Only</p>
-                      <p>This price reflects only the compute (VM/node) costs for the cluster.</p>
+                      <p className="font-semibold mb-1.5">Compute cost only</p>
+                      <p>Reflects VM/node compute for the cluster.</p>
                       <p className="mt-2 font-semibold">Not included:</p>
                       <ul className="list-disc list-inside space-y-0.5 ml-1">
-                        <li>Load balancer costs</li>
-                        <li>Storage costs</li>
-                        <li>Network egress costs</li>
-                        <li>Other infrastructure services</li>
+                        <li>Load balancer</li>
+                        <li>Storage</li>
+                        <li>Network egress</li>
+                        <li>Other infrastructure</li>
                       </ul>
-                    </div>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0">
-                      <div className="border-4 border-transparent border-b-gray-900 dark:border-b-gray-800"></div>
                     </div>
                   </div>
                 </div>
               </div>
-              <DollarSign className="w-5 h-5 text-gray-400" />
+              <DollarSign className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
+            <p className="text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
               {totalClusterMonthlyCost > 0 
                 ? azurePricingService.formatMonthlyPrice(totalClusterMonthlyCost)
                 : Array.from(loadingPricing.values()).some(loading => loading)
-                  ? 'Loading...'
+                  ? '…'
                   : '-'}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
               {selectedCluster || 'No cluster selected'}
             </p>
           </div>
         </div>
 
         {/* Node Selector */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filter by node:</span>
+            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Nodes</span>
             <button
               onClick={() => setSelectedNode(null)}
-              className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 selectedNode === null
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'
               }`}
             >
-              All Nodes
+              All
             </button>
             {uniqueNodes.map(node => (
               <button
                 key={node}
                 onClick={() => setSelectedNode(node)}
-                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors max-w-[12rem] truncate ${
                   selectedNode === node
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'
                 }`}
+                title={node}
               >
                 {node}
               </button>
@@ -974,25 +976,25 @@ export function Metrics() {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 relative">
           {isRefreshing && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
-              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-950/70 z-10 flex items-center justify-center rounded-lg">
+              <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg px-3 py-2 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                 <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
               </div>
             </div>
           )}
           {/* CPU Usage Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Cpu className="w-5 h-5" />
-                CPU Usage Over Time
+                CPU usage
               </h3>
               <button
                 onClick={() => setExpandedChart('cpu')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                 title="Expand chart"
               >
                 <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1057,15 +1059,15 @@ export function Metrics() {
           </div>
 
           {/* Memory Usage Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <HardDrive className="w-5 h-5" />
-                Memory Usage Over Time
+                Memory usage
               </h3>
               <button
                 onClick={() => setExpandedChart('memory')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                 title="Expand chart"
               >
                 <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1133,19 +1135,19 @@ export function Metrics() {
 
         {/* Namespace Distribution Pie Charts */}
         {namespaceStats.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* CPU Distribution Pie Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Cpu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <h3 className="text-lg font-semibold dark:text-white text-gray-900">
-                    CPU Distribution by Namespace
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    CPU by namespace
                   </h3>
                 </div>
                 <button
                   onClick={() => setExpandedChart('cpu-pie')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                   title="Expand chart"
                 >
                   <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1275,17 +1277,17 @@ export function Metrics() {
             </div>
 
             {/* Memory Distribution Pie Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <HardDrive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <h3 className="text-lg font-semibold dark:text-white text-gray-900">
-                    Memory Distribution by Namespace
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Memory by namespace
                   </h3>
                 </div>
                 <button
                   onClick={() => setExpandedChart('memory-pie')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                   title="Expand chart"
                 >
                   <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1418,32 +1420,32 @@ export function Metrics() {
 
         {/* Namespace Consumption Table */}
         {namespaceStats.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow relative">
-            <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200 relative z-0">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 relative">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 relative z-0">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold dark:text-white text-gray-900">
-                  Namespace Resource Consumption
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Namespace consumption
                 </h3>
               </div>
             </div>
             <div className="overflow-x-auto relative overflow-y-visible">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900 relative z-0">
+                <thead className="bg-gray-50/80 dark:bg-gray-900/50 relative z-0">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                       Namespace
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                       CPU Usage
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                       Memory Usage
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                       Pods
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                       <div className="flex items-center gap-1.5">
                         <span>Est. Monthly Cost</span>
                         <div className="relative group/tooltip">
@@ -1483,7 +1485,7 @@ export function Metrics() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-900">
                   {namespaceStats.map((ns) => {
                     // Calculate total used CPU and Memory across all namespaces
                     const totalUsedCpu = namespaceStats.reduce((sum, n) => sum + n.cpuUsageCores, 0);
@@ -1584,18 +1586,18 @@ export function Metrics() {
                     }
                     
                     return (
-                      <tr key={ns.namespace} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <tr key={ns.namespace} className="hover:bg-gray-50 dark:hover:bg-gray-900/60">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center">
                             <Layers className="w-4 h-4 text-gray-400 mr-2" />
-                            <span className="text-sm font-medium dark:text-white text-gray-900">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {ns.namespace}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center">
-                            <span className="text-sm font-medium dark:text-white text-gray-900">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {ns.cpuUsageCores.toFixed(4)} cores
                             </span>
                             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
@@ -1609,9 +1611,9 @@ export function Metrics() {
                             ></div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center">
-                            <span className="text-sm font-medium dark:text-white text-gray-900">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {formatBytes(ns.memoryUsageBytes)}
                             </span>
                             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
@@ -1625,10 +1627,10 @@ export function Metrics() {
                             ></div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {ns.podCount}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {estimatedMonthlyCost !== null ? (
                             <span className="font-medium dark:text-white text-gray-900">
                               {azurePricingService.formatMonthlyPrice(estimatedMonthlyCost)}
@@ -1648,65 +1650,65 @@ export function Metrics() {
           </div>
         )}
 
-        {/* Node Details Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden relative">
+        {/* Node details Table */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden relative">
           {isRefreshing && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
-              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-950/70 z-10 flex items-center justify-center rounded-lg">
+              <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg px-3 py-2 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                 <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
               </div>
             </div>
           )}
-          <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200">
-            <h3 className="text-lg font-semibold dark:text-white text-gray-900">Node Details</h3>
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Node details</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900">
+              <thead className="bg-gray-50/80 dark:bg-gray-900/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Node Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     CPU Usage
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     CPU Capacity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Memory Usage
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Memory Capacity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     OS
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Architecture
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Region
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Instance Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Price/Hour
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Price/Month
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Last Updated
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-900">
                 {latestNodeDetailsMetrics.map((metric) => {
                   const cpuPercent = (metric.cpuUsageCores / metric.cpuCapacityCores) * 100;
                   const memoryPercent = (metric.memoryUsageBytes / metric.memoryCapacityBytes) * 100;
@@ -1718,7 +1720,7 @@ export function Metrics() {
                   return (
                     <React.Fragment key={metric.nodeName}>
                     <tr 
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-900/60 cursor-pointer"
                       onClick={() => {
                         setSelectedNode(metric.nodeName);
                         const newExpanded = new Set(expandedNodes);
@@ -1730,7 +1732,7 @@ export function Metrics() {
                         setExpandedNodes(newExpanded);
                       }}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-gray-400 mr-1" />
@@ -1738,7 +1740,7 @@ export function Metrics() {
                             <ChevronRight className="w-4 h-4 text-gray-400 mr-1" />
                           )}
                           <Server className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm font-medium dark:text-white text-gray-900">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
                             {metric.nodeName}
                           </span>
                           {nodeNamespaceStats.length > 0 && (
@@ -1748,7 +1750,7 @@ export function Metrics() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {(() => {
                           const hasIssues = 
                             metric.isReady === false || 
@@ -1759,8 +1761,8 @@ export function Metrics() {
                           if (!hasIssues && metric.isReady !== undefined) {
                             return (
                               <div className="flex items-center gap-1">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span className="text-xs text-green-600 dark:text-green-400">Ready</span>
+                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400">Ready</span>
                               </div>
                             );
                           }
@@ -1805,7 +1807,7 @@ export function Metrics() {
                           return <span className="text-xs text-gray-400">-</span>;
                         })()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <span className={`text-sm font-medium ${getUsageColor(cpuPercent)}`}>
                             {cpuPercent.toFixed(1)}%
@@ -1821,10 +1823,10 @@ export function Metrics() {
                           ></div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {metric.cpuCapacityCores} cores
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <span className={`text-sm font-medium ${getUsageColor(memoryPercent)}`}>
                             {memoryPercent.toFixed(1)}%
@@ -1840,10 +1842,10 @@ export function Metrics() {
                           ></div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatBytes(metric.memoryCapacityBytes)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {metric.operatingSystem?.toLowerCase() === 'linux' ? (
                             <img 
@@ -1864,16 +1866,16 @@ export function Metrics() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {metric.architecture || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {metric.region || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {metric.instanceType || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {(() => {
                           if (!metric.instanceType || !metric.region || metric.cloudProvider?.toLowerCase() !== 'aks') {
                             return '-';
@@ -1889,7 +1891,7 @@ export function Metrics() {
                           return azurePricingService.formatPrice(price ?? null);
                         })()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {(() => {
                           if (!metric.instanceType || !metric.region || metric.cloudProvider?.toLowerCase() !== 'aks') {
                             return '-';
@@ -1906,13 +1908,13 @@ export function Metrics() {
                           return azurePricingService.formatMonthlyPrice(monthlyPrice);
                         })()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {date ? formatCompactDate(date) : metric.timestamp}
                       </td>
                     </tr>
                     {isExpanded && nodeNamespaceStats.length > 0 && (
-                      <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={13} className="px-6 py-4">
+                      <tr className="bg-gray-50/80 dark:bg-gray-900/50">
+                        <td colSpan={13} className="px-4 py-3">
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-2">
                               <Layers className="w-4 h-4 text-gray-500 dark:text-gray-400" />
@@ -1923,14 +1925,14 @@ export function Metrics() {
                             <div className="overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead>
-                                  <tr className="border-b dark:border-gray-700 border-gray-200">
+                                  <tr className="border-b border-gray-200 dark:border-gray-800">
                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Namespace</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">CPU Usage</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Memory Usage</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Pods</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-900">
                                   {nodeNamespaceStats.map((ns) => {
                                     const nodeCpuPercent = metric.cpuCapacityCores > 0 
                                       ? (ns.cpuUsageCores / metric.cpuCapacityCores) * 100 
@@ -1983,8 +1985,8 @@ export function Metrics() {
                       </tr>
                     )}
                     {isExpanded && nodeNamespaceStats.length === 0 && (
-                      <tr className="bg-gray-50 dark:bg-gray-900">
-                        <td colSpan={13} className="px-6 py-4">
+                      <tr className="bg-gray-50/80 dark:bg-gray-900/50">
+                        <td colSpan={13} className="px-4 py-3">
                           <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
                             No namespace metrics available for this node
                           </div>
@@ -2003,40 +2005,40 @@ export function Metrics() {
       {/* Fullscreen Chart Modal */}
       {expandedChart && (
         <div 
-          className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
           onClick={() => setExpandedChart(null)}
         >
           <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col p-6"
+            className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col p-4 md:p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 {expandedChart === 'cpu' ? (
                   <>
                     <Cpu className="w-6 h-6" />
-                    CPU Usage Over Time
+                    CPU usage
                   </>
                 ) : expandedChart === 'memory' ? (
                   <>
                     <HardDrive className="w-6 h-6" />
-                    Memory Usage Over Time
+                    Memory usage
                   </>
                 ) : expandedChart === 'cpu-pie' ? (
                   <>
                     <Cpu className="w-6 h-6" />
-                    CPU Distribution by Namespace
+                    CPU by namespace
                   </>
                 ) : (
                   <>
                     <HardDrive className="w-6 h-6" />
-                    Memory Distribution by Namespace
+                    Memory by namespace
                   </>
                 )}
               </h3>
               <button
                 onClick={() => setExpandedChart(null)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                 title="Close"
               >
                 <Minimize2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />

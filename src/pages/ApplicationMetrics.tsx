@@ -620,7 +620,7 @@ export function ApplicationMetrics() {
   const getUsageColor = (percentage: number): string => {
     if (percentage >= 90) return 'text-red-500';
     if (percentage >= 70) return 'text-yellow-500';
-    return 'text-green-500';
+    return 'text-emerald-500';
   };
 
   const getUsageBgColor = (percentage: number): string => {
@@ -642,7 +642,7 @@ export function ApplicationMetrics() {
 
   if (isLoading && !hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner text="Loading application metrics..." />
       </div>
     );
@@ -650,14 +650,16 @@ export function ApplicationMetrics() {
 
   if (hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
-            No Cluster Permissions
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            No cluster permissions
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            You don't have permission to view any clusters. Please contact your administrator to request access to application metrics.
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            You don't have access to any clusters. Contact an administrator to request access to application metrics.
           </p>
         </div>
       </div>
@@ -666,13 +668,15 @@ export function ApplicationMetrics() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 text-lg">{error}</p>
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{error}</p>
           <button
             onClick={() => fetchMetrics()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="mt-3 px-3 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
             Retry
           </button>
@@ -682,68 +686,57 @@ export function ApplicationMetrics() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="w-full space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white text-gray-900">Application Metrics</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Monitor pod and container CPU and memory usage across namespaces
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Metrics
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              Application metrics
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Pod and container CPU and memory by namespace
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Cluster Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Cluster:</span>
-              <select
-                value={selectedCluster || ''}
-                onChange={(e) => {
-                  setSelectedCluster(e.target.value);
-                  setSelectedNamespace(null); // Clear namespace selection when cluster changes
-                  setSelectedPods([]); // Clear pod selection when cluster changes
-                  setIsPodDropdownOpen(false);
-                }}
-                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                         dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                         focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
-              >
-                {uniqueClusters.map(cluster => (
-                  <option key={cluster} value={cluster}>{cluster}</option>
-                ))}
-              </select>
-            </div>
-            {/* Time Range Selector */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedCluster || ''}
+              onChange={(e) => {
+                setSelectedCluster(e.target.value);
+                setSelectedNamespace(null);
+                setSelectedPods([]);
+                setIsPodDropdownOpen(false);
+              }}
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[10rem]"
+            >
+              {uniqueClusters.map(cluster => (
+                <option key={cluster} value={cluster}>{cluster}</option>
+              ))}
+            </select>
             <select
               value={minutes}
               onChange={(e) => setMinutes(Number(e.target.value))}
-              className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                       focus:ring-2 focus:ring-blue-500"
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
-              <option value={5}>Last 5 minutes</option>
-              <option value={10}>Last 10 minutes</option>
-              <option value={30}>Last 30 minutes</option>
-              <option value={60}>Last 1 hour</option>
-              <option value={360}>Last 6 hours</option>
-              <option value={1440}>Last 24 hours</option>
-              <option value={2880}>Last 48 hours</option>
-              <option value={10080}>Last 7 days</option>
+              <option value={5}>5 min</option>
+              <option value={10}>10 min</option>
+              <option value={30}>30 min</option>
+              <option value={60}>1 hour</option>
+              <option value={360}>6 hours</option>
+              <option value={1440}>24 hours</option>
+              <option value={2880}>48 hours</option>
+              <option value={10080}>7 days</option>
             </select>
-            {/* Auto Refresh Controls */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Auto refresh:</span>
-              <Switch
-                checked={autoRefreshEnabled}
-                onCheckedChange={setAutoRefreshEnabled}
-              />
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">Auto</span>
+              <Switch checked={autoRefreshEnabled} onCheckedChange={setAutoRefreshEnabled} />
               {autoRefreshEnabled && (
                 <select
                   value={autoRefreshInterval}
                   onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
-                  className="px-3 py-1.5 rounded-lg dark:bg-gray-800 bg-white border 
-                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="px-1.5 py-0.5 rounded text-xs bg-transparent border-0 text-gray-900 dark:text-white focus:outline-none"
                 >
                   <option value={10}>10s</option>
                   <option value={30}>30s</option>
@@ -754,63 +747,63 @@ export function ApplicationMetrics() {
             <button
               onClick={() => fetchMetrics(false)}
               disabled={isRefreshing}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
-                       flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </button>
           </div>
         </div>
+      </div>
 
+      <div className="p-4 lg:p-6 space-y-4">
         {/* Namespace Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Namespaces</h3>
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Total Namespaces</h3>
               <Layers className="w-5 h-5 text-gray-400" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
+            <p className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
               {uniqueNamespaces.length}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Pods</h3>
-              <Package className="w-5 h-5 text-gray-400" />
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Pods</h3>
+              <Package className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
+            <p className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
               {uniquePods.length}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Containers</h3>
-              <Activity className="w-5 h-5 text-gray-400" />
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">Containers</h3>
+              <Activity className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
+            <p className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
               {latestPodMetrics.length}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total CPU Usage</h3>
-              <Cpu className="w-5 h-5 text-gray-400" />
+              <h3 className="text-[11px] text-gray-500 dark:text-gray-400">CPU usage</h3>
+              <Cpu className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            <p className="text-2xl font-bold dark:text-white text-gray-900">
+            <p className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
               {namespaceStats.reduce((sum, ns) => sum + ns.totalCpuUsage, 0).toFixed(3)} cores
             </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
           <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filters:</span>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">Filters:</span>
             
             {/* Namespace Filter */}
             {selectedCluster && (
@@ -823,9 +816,7 @@ export function ApplicationMetrics() {
                     setSelectedPods([]);
                     setIsPodDropdownOpen(false);
                   }}
-                  className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 flex items-center gap-2 min-w-[200px]"
+                  className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="">Select Namespace</option>
                   {uniqueNamespaces.map(ns => (
@@ -871,7 +862,7 @@ export function ApplicationMetrics() {
                       <div className="absolute z-20 mt-1 w-full max-w-[300px] dark:bg-gray-800 bg-white border 
                                     dark:border-gray-700 border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden
                                     flex flex-col">
-                        <div className="p-2 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between gap-2">
+                        <div className="p-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-2">
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -898,7 +889,7 @@ export function ApplicationMetrics() {
                             </button>
                           )}
                         </div>
-                        <div className="p-2 border-b dark:border-gray-700 border-gray-200">
+                        <div className="p-2 border-b border-gray-200 dark:border-gray-800">
                           <div className="relative">
                             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
@@ -936,7 +927,7 @@ export function ApplicationMetrics() {
                             filteredPods.map(pod => (
                             <label
                               key={pod}
-                              className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                              className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-900 rounded cursor-pointer"
                             >
                               <input
                                 type="checkbox"
@@ -970,23 +961,23 @@ export function ApplicationMetrics() {
         {selectedCluster && selectedNamespace && chartData.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
             {isRefreshing && (
-              <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
-                <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+              <div className="absolute inset-0 bg-white/70 dark:bg-gray-950/70 z-10 flex items-center justify-center rounded-lg">
+                <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg px-3 py-2 flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                   <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
                 </div>
               </div>
             )}
             {/* CPU Usage Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Cpu className="w-5 h-5" />
                   CPU Usage Over Time
                 </h3>
                 <button
                   onClick={() => setExpandedChart('cpu')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
                   title="Expand chart"
                 >
                   <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1053,15 +1044,15 @@ export function ApplicationMetrics() {
           </div>
 
           {/* Memory Usage Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <HardDrive className="w-5 h-5" />
                 Memory Usage Over Time
               </h3>
               <button
                 onClick={() => setExpandedChart('memory')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
                 title="Expand chart"
               >
                 <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1130,17 +1121,17 @@ export function ApplicationMetrics() {
         )}
 
         {/* Pod Details Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden relative">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden relative">
           {isRefreshing && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
-              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-950/70 z-10 flex items-center justify-center rounded-lg">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg px-3 py-2 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                 <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
               </div>
             </div>
           )}
-          <div className="px-6 py-4 border-b dark:border-gray-700 border-gray-200 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h3 className="text-lg font-semibold dark:text-white text-gray-900 shrink-0">Pod & Container Details</h3>
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">Pod & Container Details</h3>
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[180px] max-w-sm">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -1203,7 +1194,7 @@ export function ApplicationMetrics() {
                     <th
                       key={key}
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                       onClick={() => togglePodDetailsSort(key)}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -1222,7 +1213,7 @@ export function ApplicationMetrics() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-900">
                 {sortedPodDetailsRows.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
@@ -1244,9 +1235,9 @@ export function ApplicationMetrics() {
                         return (
                           <tr 
                             key={`${metric.namespace}-${metric.pod}-${metric.container}-${index}`}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800"
+                            className="hover:bg-gray-50 dark:hover:bg-gray-900/60 bg-white dark:bg-gray-800"
                           >
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1266,13 +1257,13 @@ export function ApplicationMetrics() {
                                 </span>
                               </button>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm dark:text-white text-gray-900">
                               {metric.container}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <span className={`text-sm font-medium ${
                                 metric.podState === 'Running' 
-                                  ? 'text-green-600 dark:text-green-400' 
+                                  ? 'text-emerald-600 dark:text-emerald-400' 
                                   : metric.podState === 'Pending' 
                                   ? 'text-yellow-600 dark:text-yellow-400'
                                   : metric.podState === 'Failed' || metric.podState === 'CrashLoopBackOff'
@@ -1282,13 +1273,13 @@ export function ApplicationMetrics() {
                                 {metric.podState || 'N/A'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm dark:text-white text-gray-900">
                               {metric.restartCount !== undefined ? metric.restartCount : 'N/A'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-white text-gray-900">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm dark:text-white text-gray-900">
                               {metric.podAge !== undefined ? formatPodAge(metric.podAge) : 'N/A'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center">
                                 <span className={`text-sm font-medium ${cpuPercent !== null ? getUsageColor(cpuPercent) : 'dark:text-white text-gray-900'}`}>
                                   {metric.cpuUsageCores.toFixed(4)} cores
@@ -1308,10 +1299,10 @@ export function ApplicationMetrics() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {metric.cpuLimitCores !== null ? `${metric.cpuLimitCores} cores` : 'No limit'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center">
                                 <span
                                   className={`text-sm font-medium ${
@@ -1335,7 +1326,7 @@ export function ApplicationMetrics() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {metric.memoryLimitBytes != null
                                 ? formatBytes(metric.memoryLimitBytes)
                                 : 'No limit'}
@@ -1353,15 +1344,15 @@ export function ApplicationMetrics() {
       {/* Fullscreen Chart Modal */}
       {expandedChart && (
         <div 
-          className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
           onClick={() => setExpandedChart(null)}
         >
           <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col p-6"
+            className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col p-4 md:p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 {expandedChart === 'cpu' ? (
                   <>
                     <Cpu className="w-6 h-6" />
@@ -1376,7 +1367,7 @@ export function ApplicationMetrics() {
               </h3>
               <button
                 onClick={() => setExpandedChart(null)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
                 title="Close"
               >
                 <Minimize2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />

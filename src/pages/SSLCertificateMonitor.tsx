@@ -168,7 +168,7 @@ export function SSLCertificateMonitor() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner size="lg" text="Loading SSL certificates..." />
       </div>
     );
@@ -176,13 +176,18 @@ export function SSLCertificateMonitor() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            Failed to load certificates
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{error}</p>
           <button
             onClick={fetchSSLCertificates}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
             Retry
           </button>
@@ -192,146 +197,163 @@ export function SSLCertificateMonitor() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Shield className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SSL Certificate Monitor</h1>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <label htmlFor="environment" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Environment:
-          </label>
-          <select
-            id="environment"
-            value={environment}
-            onChange={(e) => setEnvironment(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value={1}>Development</option>
-            <option value={2}>Staging</option>
-            <option value={3}>QA</option>
-            <option value={4}>Testing</option>
-            <option value={5}>PreProd</option>
-            <option value={6}>Production</option>
-          </select>
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Monitoring
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              SSL certificate monitor
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Active HTTP monitors with certificate expiry checks
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+              Environment
+            </span>
+            <select
+              id="environment"
+              value={environment}
+              onChange={(e) => setEnvironment(Number(e.target.value))}
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[10rem]"
+            >
+              <option value={1}>Development</option>
+              <option value={2}>Staging</option>
+              <option value={3}>QA</option>
+              <option value={4}>Testing</option>
+              <option value={5}>PreProd</option>
+              <option value={6}>Production</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {monitors.length === 0 ? (
-        <div className="text-center py-12">
-          <Shield className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Active SSL Monitors Found</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            No active HTTP monitors with SSL certificate monitoring enabled found for the selected environment.
-          </p>
-          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            <p>Only monitors with:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Certificate monitoring enabled (checkCertExpiry = true)</li>
-              <li>Monitor not paused</li>
-              <li>HTTP monitor type</li>
-            </ul>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Active SSL Certificate Status ({monitors.length} monitors)
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Showing only active HTTP monitors with certificate monitoring enabled
+      <div className="p-4 lg:p-6">
+        {monitors.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-8 text-center">
+            <Shield className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+              No active SSL monitors found
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+              No active HTTP monitors with SSL certificate monitoring enabled for this environment
+              (certificate check on, not paused, HTTP type).
             </p>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
-                    onClick={() => handleSort('status')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Status
-                      {getSortIcon('status')}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
-                    onClick={() => handleSort('name')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Monitor Name
-                      {getSortIcon('name')}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
-                    onClick={() => handleSort('url')}
-                  >
-                    <div className="flex items-center gap-1">
-                      URL
-                      {getSortIcon('url')}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
-                    onClick={() => handleSort('daysToExpire')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Days to Expire
-                      {getSortIcon('daysToExpire')}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {getSortedMonitors().map((monitor) => {
-                  const status = getCertificateStatus(monitor.daysToExpireCert);
-                  return (
-                    <tr key={monitor.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(status)}
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(status)}`}>
-                            {getStatusText(status)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{monitor.name}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 dark:text-white break-all">{monitor.urlToCheck}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {formatDaysToExpire(monitor.daysToExpireCert)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => openUrl(monitor.urlToCheck)}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Open URL
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        ) : (
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                Certificate status
+                <span className="ml-1.5 font-normal text-gray-400 dark:text-gray-500">
+                  · {monitors.length} monitor{monitors.length === 1 ? '' : 's'}
+                </span>
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Sorted cert expiry for active SSL-enabled HTTP monitors
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                    <th
+                      className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        {getSortIcon('status')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Monitor name
+                        {getSortIcon('name')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none"
+                      onClick={() => handleSort('url')}
+                    >
+                      <div className="flex items-center gap-1">
+                        URL
+                        {getSortIcon('url')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none"
+                      onClick={() => handleSort('daysToExpire')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Days to expire
+                        {getSortIcon('daysToExpire')}
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-900">
+                  {getSortedMonitors().map((monitor) => {
+                    const status = getCertificateStatus(monitor.daysToExpireCert);
+                    return (
+                      <tr
+                        key={monitor.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-900/60"
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(status)}
+                            <span
+                              className={`px-2 py-0.5 text-xs font-medium rounded-md border ${getStatusColor(status)}`}
+                            >
+                              {getStatusText(status)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {monitor.name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-gray-600 dark:text-gray-300 break-all font-mono text-xs">
+                            {monitor.urlToCheck}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="font-medium tabular-nums text-gray-900 dark:text-white">
+                            {formatDaysToExpire(monitor.daysToExpireCert)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <button
+                            onClick={() => openUrl(monitor.urlToCheck)}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Open URL
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

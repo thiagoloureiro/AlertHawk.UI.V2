@@ -224,15 +224,14 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
       case 2: // MS Teams
         return (
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Webhook URL
             </label>
             <input
               type="text"
               value={formData.teams.webHookUrl}
               onChange={(e) => handleFormDataChange('teams', 'webHookUrl', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               placeholder="Enter Teams webhook URL"
             />
           </div>
@@ -242,28 +241,26 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
         return (
           <>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Webhook URL
               </label>
               <input
                 type="text"
                 value={formData.slack.webHookUrl}
                 onChange={(e) => handleFormDataChange('slack', 'webHookUrl', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter Slack webhook URL"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Channel Name
               </label>
               <input
                 type="text"
                 value={formData.slack.channel}
                 onChange={(e) => handleFormDataChange('slack', 'channel', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter channel name"
               />
             </div>
@@ -274,7 +271,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
         return (
           <>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Chat ID
               </label>
               <input
@@ -285,8 +282,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
                   const value = parseInt(e.target.value);
                   handleFormDataChange('telegram', 'chatId', isNaN(value) ? '' : value.toString());
                 }}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter chat ID (numbers only)"
                 step="1" // Only allow whole numbers
                 onKeyDown={(e) => {
@@ -298,15 +294,14 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
               />
             </div>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Telegram Bot Token
               </label>
               <input
                 type="text"
                 value={formData.telegram.telegramBotToken}
                 onChange={(e) => handleFormDataChange('telegram', 'telegramBotToken', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter bot token"
               />
             </div>
@@ -317,53 +312,49 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
         return (
           <>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Message
               </label>
               <input
                 type="text"
                 value={formData.webhook.message}
                 onChange={(e) => handleFormDataChange('webhook', 'message', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter message"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Webhook URL
               </label>
               <input
                 type="text"
                 value={formData.webhook.webHookUrl}
                 onChange={(e) => handleFormDataChange('webhook', 'webHookUrl', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter webhook URL"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Body
               </label>
               <textarea
                 value={formData.webhook.body}
                 onChange={(e) => handleFormDataChange('webhook', 'body', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter body"
                 rows={4}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Headers (JSON)
               </label>
               <textarea
                 value={formData.webhook.headers}
                 onChange={(e) => handleFormDataChange('webhook', 'headers', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter headers in JSON format"
                 rows={4}
               />
@@ -376,28 +367,26 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
           <>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   From Email
                 </label>
                 <input
                   type="email"
                   value={formData.email.fromEmail}
                   onChange={(e) => handleFormDataChange('email', 'fromEmail', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="Enter from email"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   SMTP Server (Hostname)
                 </label>
                 <input
                   type="text"
                   value={formData.email.hostname}
                   onChange={(e) => handleFormDataChange('email', 'hostname', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="Enter SMTP server hostname"
                 />
               </div>
@@ -405,43 +394,40 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Port
                 </label>
                 <input
                   type="number"
                   value={formData.email.port}
                   onChange={(e) => handleFormDataChange('email', 'port', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="Enter port"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Username
                 </label>
                 <input
                   type="text"
                   value={formData.email.username}
                   onChange={(e) => handleFormDataChange('email', 'username', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="Enter username"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Password
               </label>
               <input
                 type="password"
                 value={formData.email.password}
                 onChange={(e) => handleFormDataChange('email', 'password', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter password"
                 required
               />
@@ -449,41 +435,38 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   To Email
                 </label>
                 <input
                   type="email"
                   value={formData.email.toEmail}
                   onChange={(e) => handleFormDataChange('email', 'toEmail', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="To email"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   CC Email
                 </label>
                 <input
                   type="email"
                   value={formData.email.toCCEmail}
                   onChange={(e) => handleFormDataChange('email', 'toCCEmail', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="CC email"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                   BCC Email
                 </label>
                 <input
                   type="email"
                   value={formData.email.toBCCEmail}
                   onChange={(e) => handleFormDataChange('email', 'toBCCEmail', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                         dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   placeholder="BCC email"
                 />
               </div>
@@ -515,28 +498,26 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
             </div>
 
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Subject
               </label>
               <input
                 type="text"
                 value={formData.email.subject}
                 onChange={(e) => handleFormDataChange('email', 'subject', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter subject"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Body
               </label>
               <textarea
                 value={formData.email.body}
                 onChange={(e) => handleFormDataChange('email', 'body', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Enter email body"
                 rows={4}
               />
@@ -551,7 +532,7 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-[70%] dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative">
+      <div className="w-full max-w-[70%] rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
@@ -561,49 +542,46 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
           {notification ? 'Edit Notification' : 'Create Notification'}
         </h3>
         
         <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto px-4">
           {/* Common fields */}
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                     dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               placeholder="Enter notification name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Description
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                     dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               placeholder="Enter description"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Notification Type
               </label>
               <select
                 value={type}
               onChange={(e) => setType(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                     dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               {notificationTypes.map(type => (
                 <option key={type.id} value={type.id}>
@@ -614,14 +592,13 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
             </div>
 
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Monitor Group
             </label>
             <select
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               {monitorGroups.map(group => (
                 <option key={group.id} value={group.id}>
@@ -637,16 +614,14 @@ function NotificationForm({ onClose, onSave, notification, monitorGroups }: Noti
           <div className="flex justify-end gap-3 mt-6">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                     dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+              className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                       disabled:opacity-50 flex items-center gap-2"
+              className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 inline-flex items-center gap-1.5 transition-colors"
             >
               {isSaving ? (
                 <>
@@ -699,7 +674,7 @@ interface DeleteConfirmationProps {
 function DeleteConfirmation({ notification, onConfirm, onCancel, isDeleting }: DeleteConfirmationProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative">
+      <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl relative">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
@@ -709,25 +684,23 @@ function DeleteConfirmation({ notification, onConfirm, onCancel, isDeleting }: D
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
           Delete Notification
         </h3>
-        <p className="dark:text-gray-300 text-gray-600 mb-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Are you sure you want to delete the notification "{notification.name}"? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                     dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
-                     disabled:opacity-50 flex items-center gap-2"
+            className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 inline-flex items-center gap-1.5 transition-colors"
           >
             {isDeleting ? (
               <LoadingSpinner size="sm" />
@@ -861,109 +834,123 @@ export function NotificationManagement() {
 
   if (isLoading) {
     return (
-      <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner text="Loading notifications..." />
       </div>
     );
   }
 
   return (
-    <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen transition-colors duration-200">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">Notification Management</h1>
-            <p className="dark:text-gray-400 text-gray-600">Configure and manage notification channels</p>
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Monitoring
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              Notification management
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Configure and manage notification channels
+            </p>
           </div>
           <button
             onClick={() => {
               setSelectedNotification(null);
               setShowForm(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
-                     text-white transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors self-start sm:self-auto"
           >
-            <Plus className="w-5 h-5" />
-            Add Notification
+            <Plus className="w-3.5 h-3.5" />
+            Add notification
           </button>
         </div>
+      </div>
 
-        {/* Notification */}
+      <div className="p-4 lg:p-6 space-y-4">
         {notification && (
-          <div className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
-            notification.type === 'success' 
-              ? 'dark:bg-green-900/20 bg-green-50 dark:text-green-200 text-green-800'
-              : 'dark:bg-red-900/20 bg-red-50 dark:text-red-200 text-red-800'
-          }`}>
-            {notification.type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          <div
+            className={`rounded-lg border px-3 py-2.5 text-sm flex items-center gap-2 ${
+              notification.type === 'success'
+                ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200'
+                : 'border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300'
+            }`}
+          >
+            {notification.type === 'success' ? (
+              <Check className="w-4 h-4 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0" />
+            )}
             {notification.message}
           </div>
         )}
 
-        {/* Notifications List */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="dark:bg-gray-700 bg-gray-50">
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Description</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Type</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Group</th>
-                  <th className="w-10 px-4 py-3"></th>
+                <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Name
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Description
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Type
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Group
+                  </th>
+                  <th className="w-24 px-4 py-2.5" />
                 </tr>
               </thead>
-              <tbody>
-                {notifications.map(item => (
-                  <tr key={item.id} className="dark:hover:bg-gray-700 hover:bg-gray-50 border-t 
-                                             dark:border-gray-700 border-gray-200 transition-colors duration-200">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-900">
+                {notifications.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-900/60"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {getNotificationIcon(item.notificationTypeId)}
-                        <span className="dark:text-white text-gray-900 font-medium">
-                          {item.name}
-                        </span>
+                        <span className="text-gray-900 dark:text-white font-medium">{item.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 dark:text-gray-300 text-gray-700">
-                      {item.description}
-                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{item.description}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                     bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                         {getTypeLabel(item.notificationTypeId)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                     bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                         {getGroupName(item.monitorGroupId)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-end gap-0.5">
                         <button
                           onClick={() => {
                             setSelectedNotification(item);
                             setShowForm(true);
                           }}
-                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                   transition-colors duration-200 text-blue-500 dark:text-blue-400"
-                          title="Edit Notification"
+                          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                          title="Edit notification"
                         >
-                          <Edit className="w-5 h-5" />
+                          <Edit className="w-4 h-4" />
                         </button>
-                      <button
+                        <button
                           onClick={() => {
                             setNotificationToDelete(item);
                             setShowDeleteConfirmation(true);
                           }}
-                        className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                 transition-colors duration-200 text-red-500 dark:text-red-400"
-                          title="Delete Notification"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                          title="Delete notification"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -974,7 +961,6 @@ export function NotificationManagement() {
         </div>
       </div>
 
-      {/* Create Notification Form */}
       {showForm && (
         <NotificationForm
           onClose={() => {
@@ -987,7 +973,6 @@ export function NotificationManagement() {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       {showDeleteConfirmation && notificationToDelete && (
         <DeleteConfirmation
           notification={notificationToDelete}
@@ -1004,7 +989,7 @@ export function NotificationManagement() {
               } else {
                 toast.error('Failed to delete notification', { position: 'bottom-right' });
               }
-            } catch (error) {
+            } catch {
               toast.error('Failed to delete notification', { position: 'bottom-right' });
             } finally {
               setIsDeletingNotification(false);

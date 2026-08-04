@@ -265,7 +265,7 @@ export function ClustersDiagram() {
   const getUsageColor = (percentage: number): string => {
     if (percentage >= 90) return 'text-red-500';
     if (percentage >= 70) return 'text-yellow-500';
-    return 'text-green-500';
+    return 'text-emerald-500';
   };
 
   const getUsageBgColor = (percentage: number): string => {
@@ -317,8 +317,8 @@ export function ClustersDiagram() {
   const getClusterStatusColor = (cluster: typeof clusterMetrics[0]): string => {
     if (cluster.isOffline) return 'border-gray-400 bg-gray-100 dark:bg-gray-800/50';
     if (cluster.nodesWithIssues > 0) return 'border-red-500 bg-red-50 dark:bg-red-900/20';
-    if (cluster.avgCpuUsage >= 90 || cluster.avgMemoryUsage >= 90) return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
-    return 'border-green-500 bg-green-50 dark:bg-green-900/20';
+    if (cluster.avgCpuUsage >= 90 || cluster.avgMemoryUsage >= 90) return 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20';
+    return 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20';
   };
 
   // Check if user has no cluster permissions
@@ -327,7 +327,7 @@ export function ClustersDiagram() {
 
   if (isLoading && !hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner text="Loading clusters..." />
       </div>
     );
@@ -335,14 +335,16 @@ export function ClustersDiagram() {
 
   if (hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
-            No Cluster Permissions
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            No cluster permissions
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            You don't have permission to view any clusters. Please contact your administrator to request access.
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            You don't have access to any clusters. Contact an administrator to request access.
           </p>
         </div>
       </div>
@@ -351,13 +353,15 @@ export function ClustersDiagram() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 text-lg">{error}</p>
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{error}</p>
           <button
             onClick={() => fetchMetrics()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="mt-3 px-3 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
             Retry
           </button>
@@ -367,21 +371,25 @@ export function ClustersDiagram() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
-      <div className="w-full space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold dark:text-white text-gray-900">Clusters Diagram</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-              Supervisory view of all clusters and their status
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Metrics
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              Clusters diagram
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Supervisory view of cluster and node status
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Environment Filter */}
             {availableEnvironments.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Environment:</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">Environment:</span>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {availableEnvironments.map(env => {
                     const isSelected = selectedEnvironments.has(env);
@@ -420,7 +428,7 @@ export function ClustersDiagram() {
             )}
             {/* Auto Refresh Controls */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Auto refresh:</span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">Auto</span>
               <Switch
                 checked={autoRefreshEnabled}
                 onCheckedChange={setAutoRefreshEnabled}
@@ -429,9 +437,7 @@ export function ClustersDiagram() {
                 <select
                   value={autoRefreshInterval}
                   onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
-                  className="px-3 py-1.5 rounded-lg dark:bg-gray-800 bg-white border 
-                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="px-2 py-1 rounded-md text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value={10}>10s</option>
                   <option value={30}>30s</option>
@@ -442,27 +448,29 @@ export function ClustersDiagram() {
             <button
               onClick={() => fetchMetrics(false)}
               disabled={isRefreshing}
-              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
-                       flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors text-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="p-4 lg:p-6 space-y-4">
+
 
         {/* Clusters Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {clusterMetrics.map((cluster) => (
             <div
               key={cluster.clusterName}
-              className={`rounded-lg shadow-md border-2 p-3 transition-all hover:shadow-lg ${getClusterStatusColor(cluster)}`}
+              className={`rounded-lg border p-3 transition-colors hover:border-gray-300 dark:hover:border-gray-700 ${getClusterStatusColor(cluster)}`}
             >
               {/* Cluster Header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                  <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center flex-shrink-0">
                     <Server className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -486,8 +494,8 @@ export function ClustersDiagram() {
                         </>
                       ) : cluster.nodesWithIssues === 0 ? (
                         <>
-                          <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
-                          <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                          <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                             OK
                           </span>
                         </>
@@ -529,7 +537,7 @@ export function ClustersDiagram() {
               {/* Statistics Cards - Horizontal Layout */}
               <div className="grid grid-cols-3 gap-1.5 mb-2">
                 {/* Nodes */}
-                <div className="bg-white dark:bg-gray-800 rounded p-1.5">
+                <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Nodes</span>
                     <Server className="w-3 h-3 text-gray-400" />
@@ -545,7 +553,7 @@ export function ClustersDiagram() {
                 </div>
 
                 {/* CPU Usage */}
-                <div className="bg-white dark:bg-gray-800 rounded p-1.5">
+                <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">CPU</span>
                     <Cpu className="w-3 h-3 text-gray-400" />
@@ -564,7 +572,7 @@ export function ClustersDiagram() {
                 </div>
 
                 {/* Memory Usage */}
-                <div className="bg-white dark:bg-gray-800 rounded p-1.5">
+                <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">RAM</span>
                     <HardDrive className="w-3 h-3 text-gray-400" />
@@ -591,7 +599,7 @@ export function ClustersDiagram() {
                       const nodeCpuPercent = (node.cpuUsageCores / node.cpuCapacityCores) * 100;
                       const nodeMemoryPercent = (node.memoryUsageBytes / node.memoryCapacityBytes) * 100;
                       return (
-                        <div key={node.nodeName} className="bg-white dark:bg-gray-800 rounded p-1">
+                        <div key={node.nodeName} className="rounded border border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950 p-1">
                           <div className="flex items-center justify-between mb-0.5">
                             <span className="text-xs font-medium dark:text-white text-gray-900 truncate flex-1">
                               {node.nodeName.split('-').pop() || node.nodeName}
@@ -599,7 +607,7 @@ export function ClustersDiagram() {
                             {node.isReady === false || node.hasMemoryPressure || node.hasDiskPressure || node.hasPidPressure ? (
                               <XCircle className="w-2.5 h-2.5 text-red-500 flex-shrink-0 ml-1" />
                             ) : (
-                              <CheckCircle className="w-2.5 h-2.5 text-green-500 flex-shrink-0 ml-1" />
+                              <CheckCircle className="w-2.5 h-2.5 text-emerald-500 flex-shrink-0 ml-1" />
                             )}
                           </div>
                           <div className="grid grid-cols-2 gap-1.5">

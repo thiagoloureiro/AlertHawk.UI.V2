@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, AlertCircle, Check, Loader2, Trash2, X, Users, Server, CreditCard } from 'lucide-react';
+import { Search, AlertCircle, Check, Trash2, X, Users, Server, CreditCard } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import userService, { UserListItem, UserGroup, UserCluster } from '../services/userService';
 import finopsService, { SubscriptionSummary } from '../services/finopsService';
@@ -202,188 +202,207 @@ export function UserManagement() {
     return [...allGroups].sort((a, b) => a.name.localeCompare(b.name));
   }, [allGroups]);
 
-  if (isLoading) return (
-    <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
-      <LoadingSpinner text="Loading users..." />
-    </div>
-  );
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <LoadingSpinner text="Loading users..." />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">User Management</h1>
-        <p className="dark:text-gray-400 text-gray-600">Manage users and their permissions</p>
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Admin
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              User management
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Manage users, roles, groups, clusters, and FinOps access
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-56">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search users…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              />
+            </div>
+            <select
+              value={adminFilter}
+              onChange={(e) => setAdminFilter(e.target.value as 'all' | 'admin' | 'user')}
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <option value="all">All roles</option>
+              <option value="admin">Admins only</option>
+              <option value="user">Users only</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 w-5 h-5 dark:text-gray-400 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 
-                     border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 
-                     dark:focus:ring-blue-400 transition-colors duration-200"
-          />
-        </div>
-
-        <div>
-          <select
-            value={adminFilter}
-            onChange={(e) => setAdminFilter(e.target.value as 'all' | 'admin' | 'user')}
-            className="w-full rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 
-                     dark:text-white text-gray-900 p-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                     transition-colors duration-200"
+      <div className="p-4 lg:p-6 space-y-4">
+        {notification && (
+          <div
+            className={`rounded-lg border px-3 py-2.5 text-sm flex items-center gap-2 ${
+              notification.type === 'success'
+                ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200'
+                : 'border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300'
+            }`}
           >
-            <option value="all">All Roles</option>
-            <option value="admin">Admins Only</option>
-            <option value="user">Users Only</option>
-          </select>
-        </div>
-      </div>
+            {notification.type === 'success' ? (
+              <Check className="w-4 h-4 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0" />
+            )}
+            {notification.message}
+          </div>
+        )}
 
-      {/* Notification */}
-      {notification && (
-        <div className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
-          notification.type === 'success' 
-            ? 'dark:bg-green-900/20 bg-green-50 dark:text-green-200 text-green-800'
-            : 'dark:bg-red-900/20 bg-red-50 dark:text-red-200 text-red-800'
-        }`}>
-          {notification.type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          {notification.message}
-        </div>
-      )}
-
-      <div className="flex flex-col h-[calc(100vh-280px)]"> {/* Fixed height container */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs overflow-hidden flex-1">
-          <div className="overflow-y-auto h-full">
-            <table className="w-full">
-              <thead className="sticky top-0 z-10">
-                <tr className="dark:bg-gray-700 bg-gray-50 border-b dark:border-gray-600">
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">User</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Email</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium dark:text-gray-300 text-gray-700">Role</th>
-                  <th className="w-20 px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedUsers.map(user => (
-                  <tr key={user.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3 dark:text-white text-gray-900">{user.username}</td>
-                    <td className="px-4 py-3 dark:text-gray-300 text-gray-700">{user.email}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={user.isAdmin}
-                          onCheckedChange={async (checked) => {
-                            setIsUpdatingRole(user.id);
-                            try {
-                              const success = await userService.updateUser({
-                                ...user,
-                                isAdmin: checked
-                              });
-                              
-                              if (success) {
-                                toast.success('User role updated successfully', { position: 'bottom-right' });
-                                // Refresh user list
-                                const data = await userService.getAllUsers();
-                                setUsers(data);
-                              } else {
-                                toast.error('Failed to update user role', { position: 'bottom-right' });
-                              }
-                            } catch (error) {
-                              toast.error('Failed to update user role', { position: 'bottom-right' });
-                            } finally {
-                              setIsUpdatingRole(null);
-                            }
-                          }}
-                          disabled={isUpdatingRole === user.id}
-                        />
-                        <span className="flex items-center gap-2">
-                          {isUpdatingRole === user.id ? (
-                            <LoadingSpinner size="sm" />
-                          ) : null}
-                          <span className={`text-sm font-medium ${
-                            user.isAdmin 
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : 'text-gray-600 dark:text-gray-400'
-                          }`}>
-                            {user.isAdmin ? 'Admin' : 'User'}
-                          </span>
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                   transition-colors duration-200 text-blue-500 dark:text-blue-400"
-                          title="Edit User Groups"
-                        >
-                          <Users className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEditClusters(user)}
-                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                   transition-colors duration-200 text-purple-500 dark:text-purple-400"
-                          title="Edit User Clusters"
-                        >
-                          <Server className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEditSubscriptions(user)}
-                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                   transition-colors duration-200 text-emerald-500 dark:text-emerald-400"
-                          title="Edit User Subscriptions (FinOps)"
-                        >
-                          <CreditCard className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="p-2 rounded-lg dark:hover:bg-gray-600 hover:bg-gray-100
-                                   transition-colors duration-200 text-red-500 dark:text-red-400"
-                          title="Delete User"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
+        <div className="flex flex-col min-h-[calc(100vh-14rem)]">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden flex-1">
+            <div className="overflow-y-auto h-full">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      User
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      Email
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      Role
+                    </th>
+                    <th className="w-28 px-4 py-2.5" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-900">
+                  {paginatedUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-900/60"
+                    >
+                      <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">
+                        {user.username}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{user.email}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.isAdmin}
+                            onCheckedChange={async (checked) => {
+                              setIsUpdatingRole(user.id);
+                              try {
+                                const success = await userService.updateUser({
+                                  ...user,
+                                  isAdmin: checked,
+                                });
 
-        {/* Pagination */}
-        <div className="mt-4 flex items-center justify-between px-4">
-          <div className="text-sm dark:text-gray-400 text-gray-500">
-            Showing {Math.min(itemsPerPage * (currentPage - 1) + 1, sortedUsers.length)} to{' '}
-            {Math.min(itemsPerPage * currentPage, sortedUsers.length)} of {sortedUsers.length} users
+                                if (success) {
+                                  toast.success('User role updated successfully', {
+                                    position: 'bottom-right',
+                                  });
+                                  const data = await userService.getAllUsers();
+                                  setUsers(data);
+                                } else {
+                                  toast.error('Failed to update user role', {
+                                    position: 'bottom-right',
+                                  });
+                                }
+                              } catch {
+                                toast.error('Failed to update user role', {
+                                  position: 'bottom-right',
+                                });
+                              } finally {
+                                setIsUpdatingRole(null);
+                              }
+                            }}
+                            disabled={isUpdatingRole === user.id}
+                          />
+                          <span className="flex items-center gap-2">
+                            {isUpdatingRole === user.id ? <LoadingSpinner size="sm" /> : null}
+                            <span
+                              className={`text-xs font-medium ${
+                                user.isAdmin
+                                  ? 'text-blue-600 dark:text-blue-400'
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }`}
+                            >
+                              {user.isAdmin ? 'Admin' : 'User'}
+                            </span>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                            title="Edit user groups"
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditClusters(user)}
+                            className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                            title="Edit user clusters"
+                          >
+                            <Server className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditSubscriptions(user)}
+                            className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                            title="Edit user subscriptions (FinOps)"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                            title="Delete user"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 
-                       border-gray-300 dark:text-gray-300 text-gray-700 disabled:opacity-50
-                       hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 
-                       border-gray-300 dark:text-gray-300 text-gray-700 disabled:opacity-50
-                       hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              Next
-            </button>
+
+          <div className="mt-3 flex items-center justify-between">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Showing {Math.min(itemsPerPage * (currentPage - 1) + 1, sortedUsers.length)} to{' '}
+              {Math.min(itemsPerPage * currentPage, sortedUsers.length)} of {sortedUsers.length} users
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 transition-colors"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -391,7 +410,7 @@ export function UserManagement() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && userToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative">
+          <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl relative">
             <button
               onClick={() => {
                 setShowDeleteConfirmation(false);
@@ -404,7 +423,7 @@ export function UserManagement() {
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Delete User
             </h3>
             <p className="dark:text-gray-300 text-gray-600 mb-6">
@@ -416,8 +435,7 @@ export function UserManagement() {
                   setShowDeleteConfirmation(false);
                   setUserToDelete(null);
                 }}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 Cancel
               </button>
@@ -445,8 +463,7 @@ export function UserManagement() {
                   }
                 }}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
-                         disabled:opacity-50 flex items-center gap-2"
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 flex items-center gap-1.5 transition-colors"
               >
                 {isDeleting ? (
                   <>
@@ -468,7 +485,7 @@ export function UserManagement() {
       {/* Edit Modal */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-2xl dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6 relative max-h-[80vh] flex flex-col">
+          <div className="w-full max-w-2xl rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl relative max-h-[80vh] flex flex-col">
             <button
               onClick={() => {
                 setShowEditModal(false);
@@ -481,7 +498,7 @@ export function UserManagement() {
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Edit User Groups - {selectedUser.username}
             </h3>
 
@@ -496,16 +513,14 @@ export function UserManagement() {
                     <button
                       type="button"
                       onClick={handleSelectAll}
-                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600
-                               transition-colors duration-200 flex items-center gap-2"
+                      className="px-2.5 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors flex items-center gap-1.5"
                     >
                       Select All
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveAll}
-                      className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600
-                               transition-colors duration-200 flex items-center gap-2"
+                      className="px-2.5 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-1.5"
                     >
                       Remove All
                     </button>
@@ -530,9 +545,7 @@ export function UserManagement() {
                         <div
                           key={group.id}
                           onClick={toggleGroup}
-                          className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 
-                                   bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
-                                   transition-colors duration-200"
+                          className="flex items-center justify-between p-3 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 hover:bg-white dark:hover:bg-gray-900 cursor-pointer transition-colors"
                         >
                           <div>
                             <h4 className="font-medium dark:text-white text-gray-900">{group.name}</h4>
@@ -557,7 +570,7 @@ export function UserManagement() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                   {/* Show validation error if present */}
                   {validationError && (
                     <div className="text-sm text-red-500 dark:text-red-400 mb-2">
@@ -572,8 +585,7 @@ export function UserManagement() {
                         setSelectedUser(null);
                         setValidationError(null);
                       }}
-                      className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                               dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                     >
                       Cancel
                     </button>
@@ -612,8 +624,7 @@ export function UserManagement() {
                         }
                       }}
                       disabled={isSaving || selectedGroups.size === 0}
-                      className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
                     >
                       {isSaving ? (
                         <>
@@ -638,7 +649,7 @@ export function UserManagement() {
       {/* Cluster Management Modal */}
       {showClusterModal && selectedUserForClusters && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-2xl dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative max-h-[80vh] flex flex-col">
+          <div className="w-full max-w-2xl rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl relative max-h-[80vh] flex flex-col">
             <button
               onClick={() => {
                 setShowClusterModal(false);
@@ -652,7 +663,7 @@ export function UserManagement() {
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Edit User Clusters - {selectedUserForClusters.username}
             </h3>
 
@@ -667,16 +678,14 @@ export function UserManagement() {
                     <button
                       type="button"
                       onClick={handleSelectAllClusters}
-                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600
-                               transition-colors duration-200 flex items-center gap-2"
+                      className="px-2.5 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors flex items-center gap-1.5"
                     >
                       Select All
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveAllClusters}
-                      className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600
-                               transition-colors duration-200 flex items-center gap-2"
+                      className="px-2.5 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-1.5"
                     >
                       Remove All
                     </button>
@@ -701,9 +710,7 @@ export function UserManagement() {
                         <div
                           key={cluster}
                           onClick={toggleCluster}
-                          className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50 
-                                   bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
-                                   transition-colors duration-200"
+                          className="flex items-center justify-between p-3 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 hover:bg-white dark:hover:bg-gray-900 cursor-pointer transition-colors"
                         >
                           <div>
                             <h4 className="font-medium dark:text-white text-gray-900">{cluster}</h4>
@@ -727,7 +734,7 @@ export function UserManagement() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                   {/* Show validation error if present */}
                   {clusterValidationError && (
                     <div className="text-sm text-red-500 dark:text-red-400 mb-2">
@@ -742,8 +749,7 @@ export function UserManagement() {
                         setSelectedUserForClusters(null);
                         setClusterValidationError(null);
                       }}
-                      className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                               dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                     >
                       Cancel
                     </button>
@@ -776,8 +782,7 @@ export function UserManagement() {
                         }
                       }}
                       disabled={isSavingClusters}
-                      className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
                     >
                       {isSavingClusters ? (
                         <>
@@ -802,7 +807,7 @@ export function UserManagement() {
       {/* Subscription Management Modal (FinOps) */}
       {showSubscriptionModal && selectedUserForSubscriptions && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-2xl dark:bg-gray-900 bg-gray-50 rounded-lg shadow-lg p-6 relative max-h-[80vh] flex flex-col">
+          <div className="w-full max-w-2xl rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl relative max-h-[80vh] flex flex-col">
             <button
               onClick={() => {
                 setShowSubscriptionModal(false);
@@ -816,7 +821,7 @@ export function UserManagement() {
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Edit User Subscriptions — {selectedUserForSubscriptions.username}
             </h3>
             <p className="text-sm dark:text-gray-400 text-gray-600 mb-4">
@@ -834,16 +839,14 @@ export function UserManagement() {
                     <button
                       type="button"
                       onClick={handleSelectAllSubscriptions}
-                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600
-                               transition-colors duration-200 flex items-center gap-2"
+                      className="px-2.5 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors flex items-center gap-1.5"
                     >
                       Select All
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveAllSubscriptions}
-                      className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600
-                               transition-colors duration-200 flex items-center gap-2"
+                      className="px-2.5 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-1.5"
                     >
                       Remove All
                     </button>
@@ -870,9 +873,7 @@ export function UserManagement() {
                           <div
                             key={sub.subscriptionId}
                             onClick={toggleSub}
-                            className="flex items-center justify-between p-4 rounded-lg dark:bg-gray-700/50
-                                     bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
-                                     transition-colors duration-200"
+                            className="flex items-center justify-between p-3 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 hover:bg-white dark:hover:bg-gray-900 cursor-pointer transition-colors"
                           >
                             <div className="min-w-0 pr-3">
                               <h4 className="font-medium dark:text-white text-gray-900 truncate">
@@ -902,7 +903,7 @@ export function UserManagement() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                   {subscriptionValidationError && (
                     <div className="text-sm text-red-500 dark:text-red-400 mb-2">
                       {subscriptionValidationError}
@@ -916,8 +917,7 @@ export function UserManagement() {
                         setSelectedUserForSubscriptions(null);
                         setSubscriptionValidationError(null);
                       }}
-                      className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                               dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                     >
                       Cancel
                     </button>
@@ -950,8 +950,7 @@ export function UserManagement() {
                         }
                       }}
                       disabled={isSavingSubscriptions}
-                      className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
                     >
                       {isSavingSubscriptions ? (
                         <>
