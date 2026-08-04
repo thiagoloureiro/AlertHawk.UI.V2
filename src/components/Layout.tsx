@@ -28,12 +28,24 @@ export function Layout({ children, theme, onThemeChange }: LayoutProps) {
     return () => window.removeEventListener('ah:kiosk-mode', handleKioskMode);
   }, []);
 
+  const toggleSidebar = React.useCallback(() => {
+    setIsSidebarCollapsed((prev: boolean) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       {!isKioskMode && (
         <Sidebar 
           isCollapsed={isSidebarCollapsed} 
-          toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          toggleSidebar={toggleSidebar}
           currentPage=""
           onNavigate={() => {}}
         />
