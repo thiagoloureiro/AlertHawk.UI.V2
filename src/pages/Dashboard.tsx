@@ -72,21 +72,21 @@ export function Dashboard() {
   };
 
   return (
-    <div className="flex h-full">
-      <div className="w-[30%] border-r dark:border-gray-700 border-gray-200">
+    <div className="flex h-full min-h-0 bg-gray-50 dark:bg-gray-950">
+      <div className="w-[34%] max-w-[420px] min-w-[300px] border-r border-gray-200 dark:border-gray-800 shrink-0">
         <MetricsList
           selectedMetric={selectedMetric}
           onSelectMetric={handleMetricSelect}
           refreshTrigger={refreshTrigger}
           updatedMonitor={updatedMonitor}
-          onEnvironmentChange={(environmentId) => {
+          onEnvironmentChange={() => {
             // Clear selected metric and group when environment changes
             setSelectedMetric(null);
             setSelectedGroup(undefined);
           }}
         />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-0 min-h-0">
         <MetricDetails 
           metric={selectedMetric} 
           group={selectedGroup}

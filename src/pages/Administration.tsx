@@ -520,33 +520,42 @@ export function Administration() {
 
   if (isLoading) {
     return (
-      <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner text="Loading settings..." />
       </div>
     );
   }
 
   return (
-    <div className="p-6 dark:bg-gray-900 bg-gray-50 min-h-screen transition-colors duration-200">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">Administration</h1>
-        <p className="dark:text-gray-400 text-gray-600">System backup and maintenance settings</p>
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3">
+          <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            Admin
+          </div>
+          <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+            Administration
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            System backup, retention, and maintenance settings
+          </p>
+        </div>
       </div>
 
+      <div className="p-4 lg:p-6 space-y-4">
       {/* Backup Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Backup</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Backup</h2>
         
         <div className="space-y-6">
           <div>
-            <p className="dark:text-gray-300 text-gray-700 mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               You can backup all monitors into a JSON file.
             </p>
             <button
               onClick={handleExportBackup}
               disabled={isExporting}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
-                       text-white transition-colors duration-200 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 transition-colors"
             >
               {isExporting ? (
                 <LoadingSpinner size="sm" />
@@ -558,11 +567,10 @@ export function Administration() {
           </div>
 
           <div>
-            <p className="dark:text-gray-300 text-gray-700 mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               You can import your JSON backup file - ALL EXISTING DATA WILL BE LOST!
             </p>
-            <label className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
-                            text-white transition-colors duration-200 cursor-pointer w-fit">
+            <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer w-fit">
               <Upload className="w-5 h-5" />
               Import Backup
               <input
@@ -577,12 +585,12 @@ export function Administration() {
       </div>
 
       {/* Monitor History Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Monitor History</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Monitor History</h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Retention Period (Days)
             </label>
             <input
@@ -590,8 +598,7 @@ export function Administration() {
               min="1"
               value={retentionDays}
               onChange={(e) => setRetentionDays(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full max-w-xs px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             />
           </div>
 
@@ -599,8 +606,7 @@ export function Administration() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? (
                 <>
@@ -617,8 +623,7 @@ export function Administration() {
         <div>
           <button
             onClick={() => setShowClearStatsModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 
-                     text-white transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-500 text-white transition-colors"
           >
             <AlertTriangle className="w-4 h-4" />
             Clear All Statistics
@@ -627,11 +632,11 @@ export function Administration() {
       </div>
 
       {/* Monitor Execution Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Monitor Execution</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Monitor Execution</h2>
         
         <div className="space-y-4">
-          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
             <p className="dark:text-blue-200 text-blue-800 text-sm mb-3">
               {isMonitorExecutionDisabled ? (
                 <>
@@ -651,11 +656,10 @@ export function Administration() {
             <button
               onClick={() => setShowExecutionConfirmationModal(true)}
               disabled={isTogglingExecution}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors duration-200
-                       disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                          isMonitorExecutionDisabled
-                           ? 'bg-green-500 hover:bg-green-600'
-                           : 'bg-red-500 hover:bg-red-600'
+                           ? 'bg-emerald-600 hover:bg-emerald-500'
+                           : 'bg-red-600 hover:bg-red-500'
                        }`}
             >
               <AlertTriangle className="w-4 h-4" />
@@ -666,8 +670,8 @@ export function Administration() {
       </div>
 
       {/* Maintenance Window Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Maintenance Window</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Maintenance Window</h2>
         
         <div className="space-y-4">
           {isLoadingMaintenanceWindow ? (
@@ -688,7 +692,7 @@ export function Administration() {
                     ? 'dark:text-yellow-200 text-yellow-800'
                     : maintenanceWindow.startUtc && maintenanceWindow.endUtc
                     ? 'dark:text-blue-200 text-blue-800'
-                    : 'dark:text-gray-300 text-gray-600'
+                    : 'text-sm text-gray-600 dark:text-gray-400'
                 }`}>
                   {maintenanceWindow.isInMaintenanceWindow ? (
                     <>
@@ -719,8 +723,7 @@ export function Administration() {
                 <button
                   onClick={handleOpenMaintenanceWindowModal}
                   disabled={isSavingMaintenanceWindow}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 
-                           text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Calendar className="w-4 h-4" />
                   {maintenanceWindow.startUtc && maintenanceWindow.endUtc ? 'Edit Maintenance Window' : 'Set Maintenance Window'}
@@ -730,8 +733,7 @@ export function Administration() {
                   <button
                     onClick={handleClearMaintenanceWindow}
                     disabled={isSavingMaintenanceWindow}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 
-                             text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <X className="w-4 h-4" />
                     Clear Maintenance Window
@@ -744,19 +746,18 @@ export function Administration() {
       </div>
 
       {/* FinOps Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">FinOps</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">FinOps</h2>
 
         <div className="space-y-4">
-          <p className="dark:text-gray-300 text-gray-700 text-sm">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Onboard a new Azure subscription for FinOps cost analysis. This queues the same background analysis used on
             the FinOps Metrics page.
           </p>
           <button
             type="button"
             onClick={openFinOpsOnboardModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700
-                     text-white transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
             Add FinOps subscription
@@ -765,12 +766,12 @@ export function Administration() {
       </div>
 
       {/* Metrics Section */}
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-4">Metrics</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Metrics</h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Cleanup Days
             </label>
             <input
@@ -778,8 +779,7 @@ export function Administration() {
               min="0"
               value={metricsCleanupDays}
               onChange={(e) => setMetricsCleanupDays(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 border dark:border-gray-600
-                       dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="w-full max-w-xs px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               placeholder="Enter number of days (0 to truncate all)"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -792,8 +792,7 @@ export function Administration() {
           <div>
             <button
               onClick={() => setShowClearMetricsModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 
-                       text-white transition-colors duration-200"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-500 text-white transition-colors"
             >
               <AlertTriangle className="w-4 h-4" />
               {metricsCleanupDays === 0 ? 'Truncate All Metrics' : `Clear Metrics Older Than ${metricsCleanupDays} Days`}
@@ -801,12 +800,13 @@ export function Administration() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* Confirmation Modal */}
       {showConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+          <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Confirm Import
             </h3>
             
@@ -827,9 +827,7 @@ export function Administration() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowConfirmation(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
-                         transition-colors duration-200"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 Cancel
               </button>
@@ -851,9 +849,7 @@ export function Administration() {
                   }
                 }}
                 disabled={isImporting}
-                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white
-                         transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed 
-                         flex items-center gap-2"
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 transition-colors"
               >
                 {isImporting ? (
                   <LoadingSpinner size="sm" />
@@ -870,11 +866,11 @@ export function Administration() {
       {/* Clear Statistics Modal */}
       {showClearStatsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+          <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Clear All Statistics
             </h3>
-            <p className="dark:text-gray-300 text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Are you sure you want to delete all statistics?
               <br />
               <span className="text-red-500 font-medium">
@@ -884,16 +880,14 @@ export function Administration() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowClearStatsModal(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleClearStatistics}
                 disabled={isClearing}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
-                         disabled:opacity-50 flex items-center gap-2"
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 inline-flex items-center gap-1.5 transition-colors"
               >
                 {isClearing ? (
                   <LoadingSpinner size="sm" />
@@ -910,11 +904,11 @@ export function Administration() {
       {/* Clear Metrics Modal */}
       {showClearMetricsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+          <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               {metricsCleanupDays === 0 ? 'Truncate All Metrics' : 'Clear Metrics Data'}
             </h3>
-            <p className="dark:text-gray-300 text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {metricsCleanupDays === 0 ? (
                 <>
                   Are you sure you want to <span className="text-red-500 font-medium">truncate all metrics tables</span>?
@@ -936,16 +930,14 @@ export function Administration() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowClearMetricsModal(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleClearMetrics}
                 disabled={isClearingMetrics}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
-                         disabled:opacity-50 flex items-center gap-2"
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 inline-flex items-center gap-1.5 transition-colors"
               >
                 {isClearingMetrics ? (
                   <LoadingSpinner size="sm" />
@@ -962,15 +954,15 @@ export function Administration() {
       {/* Monitor Execution Confirmation Modal */}
       {showExecutionConfirmationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+          <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               {isMonitorExecutionDisabled ? 'Enable Monitor Execution' : 'Disable Monitor Execution'}
             </h3>
             
             <div className="mb-6">
               {isMonitorExecutionDisabled ? (
-                <p className="dark:text-gray-300 text-gray-600">
-                  Are you sure you want to <span className="font-medium text-green-600 dark:text-green-400">enable</span> monitor execution?
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Are you sure you want to <span className="font-medium text-emerald-600 dark:text-emerald-400">enable</span> monitor execution?
                   <br />
                   <br />
                   This will resume all monitor runners (HTTP, TCP, K8s) and monitoring will continue normally.
@@ -993,9 +985,7 @@ export function Administration() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowExecutionConfirmationModal(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
-                         transition-colors duration-200"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 Cancel
               </button>
@@ -1008,8 +998,8 @@ export function Administration() {
                 className={`px-4 py-2 rounded-lg text-white transition-colors duration-200
                          disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                            isMonitorExecutionDisabled
-                             ? 'bg-green-500 hover:bg-green-600'
-                             : 'bg-red-500 hover:bg-red-600'
+                             ? 'bg-emerald-600 hover:bg-emerald-500'
+                             : 'bg-red-600 hover:bg-red-500'
                          }`}
               >
                 {isTogglingExecution ? (
@@ -1033,7 +1023,7 @@ export function Administration() {
       {showFinOpsOnboardModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div
-            className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6"
+            className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl"
             role="dialog"
             aria-labelledby="finops-onboard-title"
             aria-modal="true"
@@ -1121,9 +1111,7 @@ export function Administration() {
                   }
                 }}
                 disabled={finOpsOnboarding.busy}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900
-                         dark:hover:bg-gray-600 hover:bg-gray-200 transition-colors duration-200
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -1131,8 +1119,7 @@ export function Administration() {
                 type="button"
                 onClick={() => void handleFinOpsOnboardSubmit()}
                 disabled={finOpsOnboarding.busy}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors
-                         duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 transition-colors"
               >
                 {finOpsOnboarding.busy ? (
                   'Working…'
@@ -1151,8 +1138,8 @@ export function Administration() {
       {/* Maintenance Window Modal */}
       {showMaintenanceWindowModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
+          <div className="w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
               Set Maintenance Window
             </h3>
             
@@ -1216,9 +1203,7 @@ export function Administration() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowMaintenanceWindowModal(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 dark:hover:bg-gray-600 hover:bg-gray-200
-                         transition-colors duration-200"
+                className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 Cancel
               </button>
@@ -1231,9 +1216,7 @@ export function Administration() {
                   !maintenanceEndDate || 
                   !maintenanceEndTime
                 }
-                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white
-                         transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed 
-                         flex items-center gap-2"
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 transition-colors"
               >
                 {isSavingMaintenanceWindow ? (
                   <>

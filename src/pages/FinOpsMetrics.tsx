@@ -330,23 +330,25 @@ export function FinOpsMetrics() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <LoadingSpinner size="lg" text="Loading FinOps metrics..." />
       </div>
     );
   }
 
   if (hasNoSubscriptionAccess) {
     return (
-      <div className="p-6 min-h-[400px] flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
             No subscription access
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            You don&apos;t have permission to view any FinOps subscriptions. Ask an administrator to assign
-            subscriptions to your account in User Management.
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            You don&apos;t have permission to view any FinOps subscriptions. Ask an administrator to
+            assign subscriptions to your account in User Management.
           </p>
         </div>
       </div>
@@ -354,67 +356,69 @@ export function FinOpsMetrics() {
   }
 
   return (
-    <div className="min-h-full bg-slate-50/90 dark:bg-slate-950">
-      <div className="mx-auto max-w-[1920px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-5">
-        <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between xl:gap-6">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-end gap-3 gap-y-1">
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-                FinOps Metrics
-              </h1>
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Metrics
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              FinOps metrics
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Latest analysis run per subscription
               {runs.length > 0 && (
-                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                <span className="text-gray-400 dark:text-gray-500">
+                  {' · '}
                   {subscriptionFilter.trim()
                     ? `${filteredRuns.length} / ${runs.length} shown`
                     : `${runs.length} subscription${runs.length === 1 ? '' : 's'}`}
                 </span>
               )}
-            </div>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Latest analysis run per subscription — portfolio view
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center xl:w-auto xl:min-w-[320px] xl:max-w-xl xl:flex-1 xl:justify-end">
+          <div className="flex flex-wrap items-center gap-2">
             {runs.length > 0 && (
-              <div className="min-w-0 flex-1 sm:max-w-md xl:max-w-none">
+              <div className="relative w-full sm:w-64">
                 <label htmlFor="finops-subscription-filter" className="sr-only">
                   Filter by subscription name or ID
                 </label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-                  <input
-                    id="finops-subscription-filter"
-                    type="search"
-                    value={subscriptionFilter}
-                    onChange={(e) => setSubscriptionFilter(e.target.value)}
-                    placeholder="Search name, description, or ID…"
-                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-400/25"
-                  />
-                </div>
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="finops-subscription-filter"
+                  type="search"
+                  value={subscriptionFilter}
+                  onChange={(e) => setSubscriptionFilter(e.target.value)}
+                  placeholder="Search name, description, or ID…"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
               </div>
             )}
             <button
               type="button"
               onClick={() => fetchLatestRuns(true)}
               disabled={isRefreshing}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
-        </header>
+        </div>
+      </div>
 
+      <div className="p-4 lg:p-6 space-y-4">
         {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
-            <AlertCircle className="h-5 w-5 shrink-0" />
+          <div className="flex items-center gap-2.5 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {!error && runs.length === 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
             {user?.isAdmin === true
               ? 'No FinOps analysis runs found.'
               : 'No FinOps analysis runs found for the subscriptions you have access to.'}
@@ -422,92 +426,81 @@ export function FinOpsMetrics() {
         )}
 
         {!error && runs.length > 0 && filteredRuns.length === 0 && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+          <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-6 text-center text-sm text-amber-900 dark:text-amber-200">
             No subscriptions match &quot;{subscriptionFilter.trim()}&quot;. Try a different name or ID.
           </div>
         )}
 
         {!error && runs.length > 0 && filteredRuns.length > 0 && (
-          <section aria-label="Portfolio summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50">
-                <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Subscriptions
-                </p>
-                <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+          <section aria-label="Portfolio summary" className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Subscriptions</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
                   {portfolioStats.subscriptionCount}
-                </p>
+                </span>
+                <Database className="w-3.5 h-3.5 text-gray-400" />
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/50">
-                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                Month to date cost (sum)
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium leading-snug text-slate-500 dark:text-slate-400">
-                  Month to Date cost (sum)
-                </p>
-                <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
-                  ${portfolioStats.totalCost.toLocaleString(undefined, {
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
+                  $
+                  {portfolioStats.totalCost.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
-                </p>
+                </span>
+                <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/50">
-                <BarChart2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                Resources analyzed
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Resources analyzed
-                </p>
-                <p className="truncate text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
                   {portfolioStats.totalResources.toLocaleString()}
-                </p>
+                </span>
+                <BarChart2 className="w-3.5 h-3.5 text-gray-400" />
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:col-span-2 lg:col-span-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/50">
-                <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Newest run in view
-                </p>
-                <p
-                  className="truncate text-sm font-semibold text-slate-900 dark:text-white"
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Newest run in view</div>
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white truncate"
                   title={portfolioStats.latestRunDate ?? undefined}
                 >
                   {portfolioStats.latestRunDate
                     ? formatApiDateTimeInUserLocale(portfolioStats.latestRunDate)
                     : '—'}
-                </p>
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               </div>
             </div>
           </section>
         )}
 
         {filteredRuns.length > 0 && (
-          <div className="flex min-h-[min(70vh,900px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:max-h-[calc(100vh-13rem)] lg:flex-row">
-            <aside className="flex max-h-[min(40vh,360px)] shrink-0 flex-col border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/40 lg:max-h-none lg:w-80 lg:border-b-0 lg:border-r xl:w-96">
-              <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <div className="flex min-h-[min(70vh,900px)] flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 lg:max-h-[calc(100vh-13rem)] lg:flex-row">
+            <aside className="flex max-h-[min(40vh,360px)] shrink-0 flex-col border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/80 lg:max-h-none lg:w-80 lg:border-b-0 lg:border-r xl:w-96">
+              <div className="border-b border-gray-200 dark:border-gray-800 px-3 py-2.5">
+                <h2 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
                   Subscriptions
                 </h2>
-                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-500">
+                <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-500">
                   Select one to view details
                 </p>
               </div>
               <nav
-                className="min-h-0 flex-1 overflow-y-auto p-2"
+                className="min-h-0 flex-1 overflow-y-auto p-1.5"
                 aria-label="FinOps subscriptions"
               >
-                <ul className="space-y-1">
+                <ul className="space-y-0.5">
                   {filteredRuns.map((run) => {
                     const job = analysisJobUi[run.subscriptionId];
                     const isActive = run.subscriptionId === activeSubscriptionId;
@@ -517,32 +510,32 @@ export function FinOpsMetrics() {
                           type="button"
                           onClick={() => setActiveSubscriptionId(run.subscriptionId)}
                           aria-current={isActive ? 'true' : undefined}
-                          className={`flex w-full items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                          className={`flex w-full items-start gap-2 rounded-md border px-2.5 py-2 text-left transition-colors ${
                             isActive
-                              ? 'border-blue-300 bg-blue-50/90 shadow-sm dark:border-blue-700 dark:bg-blue-950/50'
-                              : 'border-transparent bg-transparent hover:border-slate-200 hover:bg-white dark:hover:border-slate-700 dark:hover:bg-slate-900'
+                              ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40'
+                              : 'border-transparent hover:bg-white dark:hover:bg-gray-900'
                           }`}
                         >
                           <div className="min-w-0 flex-1">
-                            <span className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 dark:text-white">
+                            <span className="line-clamp-2 text-sm font-medium leading-snug text-gray-900 dark:text-white">
                               {run.subscriptionName}
                             </span>
                             <p
-                              className={`mt-0.5 line-clamp-2 text-[11px] leading-snug sm:text-xs ${
+                              className={`mt-0.5 line-clamp-2 text-[11px] leading-snug ${
                                 run.description?.trim()
-                                  ? 'text-slate-600 dark:text-slate-400'
-                                  : 'italic text-slate-400 dark:text-slate-500'
+                                  ? 'text-gray-500 dark:text-gray-400'
+                                  : 'italic text-gray-400 dark:text-gray-500'
                               }`}
                               title={run.description?.trim() ? run.description : undefined}
                             >
                               {run.description?.trim() ? run.description : 'No description'}
                             </p>
-                            <div className="mt-1.5 flex flex-col gap-0.5 border-t border-slate-200/70 pt-1.5 dark:border-slate-700/70">
+                            <div className="mt-1.5 flex flex-col gap-0.5 border-t border-gray-100 dark:border-gray-800/80 pt-1.5">
                               <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                                <span className="max-w-[55%] text-[10px] font-medium leading-tight text-slate-500 dark:text-slate-400 sm:max-w-none sm:text-[11px]">
-                                  Month to Date
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                  Month to date
                                 </span>
-                                <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                                <span className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                                   $
                                   {run.totalMonthlyCost.toLocaleString(undefined, {
                                     minimumFractionDigits: 0,
@@ -551,23 +544,23 @@ export function FinOpsMetrics() {
                                 </span>
                               </div>
                               <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
                                   Resources
                                 </span>
-                                <span className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                                <span className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-100">
                                   {run.totalResourcesAnalyzed.toLocaleString()}
                                 </span>
                               </div>
                             </div>
                             {job?.phase === 'running' && (
-                              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
                                 <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
                                 <span className="truncate">{job.label}</span>
                               </p>
                             )}
                           </div>
                           <ChevronRight
-                            className={`mt-0.5 h-4 w-4 shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-300 dark:text-slate-600'}`}
+                            className={`mt-0.5 h-4 w-4 shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-gray-600'}`}
                             aria-hidden
                           />
                         </button>
@@ -580,37 +573,37 @@ export function FinOpsMetrics() {
 
             <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
               {activeRun ? (
-                <div className="p-5 sm:p-6 lg:p-8">
-                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="p-4 sm:p-5 lg:p-6">
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
                         Subscription
                       </p>
-                      <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
+                      <h2 className="mt-0.5 text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                         {activeRun.subscriptionName}
                       </h2>
                       <p
-                        className="mt-2 break-all font-mono text-xs text-slate-500 dark:text-slate-400"
+                        className="mt-1 break-all font-mono text-xs text-gray-500 dark:text-gray-400"
                         title={activeRun.subscriptionId}
                       >
                         {activeRun.subscriptionId}
                       </p>
                     </div>
                     <span
-                      className="w-fit shrink-0 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
+                      className="w-fit shrink-0 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300"
                       title={activeRun.aiModel}
                     >
                       {activeRun.aiModel}
                     </span>
                   </div>
 
-                  <div className="mb-6 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                        <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-xs font-medium leading-snug">Monthly cost (Month to Date)</span>
+                  <div className="mb-4 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                      <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                        <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                        <span className="text-[11px]">Monthly cost (month to date)</span>
                       </div>
-                      <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                      <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
                         $
                         {activeRun.totalMonthlyCost.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
@@ -618,29 +611,32 @@ export function FinOpsMetrics() {
                         })}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                        <Database className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                        <span className="text-xs font-medium uppercase tracking-wide">Resources analyzed</span>
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                      <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                        <Database className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-[11px]">Resources analyzed</span>
                       </div>
-                      <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
+                      <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
                         {activeRun.totalResourcesAnalyzed.toLocaleString()}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                        <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        <span className="text-xs font-medium uppercase tracking-wide">Run date</span>
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                      <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        <span className="text-[11px]">Run date</span>
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white" title={activeRun.runDate}>
+                      <p
+                        className="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white"
+                        title={activeRun.runDate}
+                      >
                         {formatApiDateTimeInUserLocale(activeRun.runDate)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50/40 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/30">
+                  <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 px-3 py-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      <h3 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
                         Description
                       </h3>
                       {!descriptionEditing[activeRun.subscriptionId] && (
@@ -648,7 +644,7 @@ export function FinOpsMetrics() {
                           type="button"
                           onClick={() => beginEditDescription(activeRun)}
                           aria-label="Edit description"
-                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                         >
                           <Pencil className="h-3 w-3" />
                           Edit
@@ -659,8 +655,8 @@ export function FinOpsMetrics() {
                       <p
                         className={`mt-1.5 line-clamp-2 text-xs leading-snug ${
                           activeRun.description?.trim()
-                            ? 'text-slate-700 dark:text-slate-300'
-                            : 'italic text-slate-400 dark:text-slate-500'
+                            ? 'text-gray-700 dark:text-gray-300'
+                            : 'italic text-gray-400 dark:text-gray-500'
                         }`}
                       >
                         {activeRun.description?.trim() ? activeRun.description : 'No description yet'}
@@ -674,14 +670,14 @@ export function FinOpsMetrics() {
                           onChange={(e) => setDescriptionDraft(activeRun.subscriptionId, e.target.value)}
                           placeholder="Max 50 characters"
                           maxLength={50}
-                          className="w-full max-w-md rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-blue-400"
+                          className="w-full max-w-md rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         />
                         <div className="flex flex-wrap items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => void saveDescription(activeRun.subscriptionId)}
                             disabled={descriptionEditing[activeRun.subscriptionId].saving}
-                            className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-white px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 dark:border-emerald-800/50 dark:bg-slate-900 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                            className="inline-flex items-center gap-1 rounded-md border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-60 transition-colors"
                           >
                             {descriptionEditing[activeRun.subscriptionId].saving ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -694,12 +690,12 @@ export function FinOpsMetrics() {
                             type="button"
                             onClick={() => cancelEditDescription(activeRun.subscriptionId)}
                             disabled={descriptionEditing[activeRun.subscriptionId].saving}
-                            className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-60 transition-colors"
                           >
                             <X className="h-3 w-3" />
                             Cancel
                           </button>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
                             {descriptionEditing[activeRun.subscriptionId].draft.length}/50
                           </span>
                         </div>
@@ -712,20 +708,20 @@ export function FinOpsMetrics() {
                     )}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <button
                       type="button"
                       onClick={() => void startBackgroundAnalysis(activeRun.subscriptionId, 'current')}
                       disabled={detailAnalysisJob?.phase === 'running'}
-                      className={`relative w-full overflow-hidden rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                      className={`relative w-full overflow-hidden rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                         detailAnalysisJob?.phase === 'running'
-                          ? 'cursor-wait border-emerald-400/60 bg-emerald-50 text-emerald-900 pointer-events-none dark:border-emerald-500/45 dark:bg-emerald-950/50 dark:text-emerald-200'
-                          : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-800/50 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
+                          ? 'cursor-wait border-emerald-300 bg-emerald-50 text-emerald-900 pointer-events-none dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200'
+                          : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-800/50 dark:text-emerald-400 dark:hover:bg-emerald-950/30'
                       }`}
                     >
                       {detailAnalysisJob?.phase === 'running' && (
                         <span
-                          className="pointer-events-none absolute inset-0 z-0 bg-emerald-400/15 motion-safe:animate-pulse dark:bg-emerald-400/10"
+                          className="pointer-events-none absolute inset-0 z-0 bg-emerald-400/10 motion-safe:animate-pulse"
                           aria-hidden
                         />
                       )}
@@ -736,7 +732,9 @@ export function FinOpsMetrics() {
                           <Play className="h-4 w-4 shrink-0" />
                         )}
                         <span className="truncate">
-                          {detailAnalysisJob?.phase === 'running' ? detailAnalysisJob.label : 'Run new analysis'}
+                          {detailAnalysisJob?.phase === 'running'
+                            ? detailAnalysisJob.label
+                            : 'Run new analysis'}
                         </span>
                       </span>
                     </button>
@@ -748,39 +746,40 @@ export function FinOpsMetrics() {
                       <button
                         type="button"
                         onClick={() => setCostModalRun(activeRun)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-800 shadow-sm hover:bg-blue-50 dark:border-blue-800/50 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                       >
-                        <BarChart2 className="h-4 w-4 shrink-0" />
+                        <BarChart2 className="h-3.5 w-3.5 shrink-0 text-blue-500" />
                         Cost details
                       </button>
                       <button
                         type="button"
                         onClick={() => setAiRun(activeRun)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-medium text-purple-800 shadow-sm hover:bg-purple-50 dark:border-purple-800/50 dark:bg-slate-900 dark:text-purple-300 dark:hover:bg-purple-950/40"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                       >
-                        <BrainCircuit className="h-4 w-4 shrink-0" />
+                        <BrainCircuit className="h-3.5 w-3.5 shrink-0 text-blue-500" />
                         AI recommendations
                       </button>
                       <button
                         type="button"
                         onClick={() => setHistoryRun(activeRun)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-medium text-teal-800 shadow-sm hover:bg-teal-50 dark:border-teal-800/50 dark:bg-slate-900 dark:text-teal-300 dark:hover:bg-teal-950/40"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                       >
-                        <TrendingUp className="h-4 w-4 shrink-0" />
+                        <TrendingUp className="h-3.5 w-3.5 shrink-0 text-blue-500" />
                         Historical results
                       </button>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-slate-500 dark:text-slate-400">
-                  <Database className="h-10 w-10 opacity-40" />
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-gray-500 dark:text-gray-400">
+                  <Database className="h-8 w-8 opacity-40" />
                   <p className="text-sm">Select a subscription from the list to see details.</p>
                 </div>
               )}
             </section>
           </div>
         )}
+      </div>
 
       {costModalRun && (
         <CostDetailsModal
@@ -808,7 +807,6 @@ export function FinOpsMetrics() {
           subscriptionName={historyRun.subscriptionName}
         />
       )}
-      </div>
     </div>
   );
 }

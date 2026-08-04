@@ -250,7 +250,7 @@ export function ClusterEvents() {
 
   if (isLoading && !hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner text="Loading events..." />
       </div>
     );
@@ -258,14 +258,16 @@ export function ClusterEvents() {
 
   if (hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
-            No Cluster Permissions
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            No cluster permissions
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            You don't have permission to view any clusters. Please contact your administrator to request access to cluster events.
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            You don't have access to any clusters. Contact an administrator to request access to cluster events.
           </p>
         </div>
       </div>
@@ -274,13 +276,15 @@ export function ClusterEvents() {
 
   if (error && !selectedCluster) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 text-lg">{error}</p>
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{error}</p>
           <button
             onClick={() => fetchEvents()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="mt-3 px-3 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
             Retry
           </button>
@@ -290,110 +294,88 @@ export function ClusterEvents() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="w-full space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white text-gray-900">Cluster Events</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Metrics
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              Cluster events
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Kubernetes events across your clusters
             </p>
           </div>
-          {/* Filters - Responsive */}
-          <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
-            {/* Row 1: Filters */}
-            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
-              {/* Cluster Selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Cluster:</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedCluster || ''}
+              onChange={(e) => {
+                setSelectedCluster(e.target.value);
+                setSelectedNamespace(null);
+              }}
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[10rem]"
+            >
+              {uniqueClusters.map(cluster => (
+                <option key={cluster} value={cluster}>{cluster}</option>
+              ))}
+            </select>
+            <select
+              value={minutes}
+              onChange={(e) => setMinutes(Number(e.target.value))}
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <option value={60}>1 hour</option>
+              <option value={240}>4 hours</option>
+              <option value={480}>8 hours</option>
+              <option value={1440}>24 hours</option>
+              <option value={2880}>48 hours</option>
+              <option value={10080}>7 days</option>
+            </select>
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">Auto</span>
+              <Switch checked={autoRefreshEnabled} onCheckedChange={setAutoRefreshEnabled} />
+              {autoRefreshEnabled && (
                 <select
-                  value={selectedCluster || ''}
-                  onChange={(e) => {
-                    setSelectedCluster(e.target.value);
-                    setSelectedNamespace(null); // Clear namespace when cluster changes
-                  }}
-                  className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                           dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500"
+                  value={autoRefreshInterval}
+                  onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
+                  className="px-1.5 py-0.5 rounded text-xs bg-transparent border-0 text-gray-900 dark:text-white focus:outline-none"
                 >
-                  {uniqueClusters.map(cluster => (
-                    <option key={cluster} value={cluster}>{cluster}</option>
-                  ))}
+                  <option value={10}>10s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>60s</option>
                 </select>
-              </div>
-              {/* Time Range Selector */}
-              <select
-                value={minutes}
-                onChange={(e) => setMinutes(Number(e.target.value))}
-                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border 
-                         dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                         focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={60}>1 hour</option>
-                <option value={240}>4 hours</option>
-                <option value={480}>8 hours</option>
-                <option value={1440}>24 hours</option>
-                <option value={2880}>48 hours</option>
-                <option value={10080}>7 days</option>
-              </select>
-              {/* Auto Refresh Controls */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Refresh:</span>
-                <Switch
-                  checked={autoRefreshEnabled}
-                  onCheckedChange={setAutoRefreshEnabled}
-                />
-                {autoRefreshEnabled && (
-                  <select
-                    value={autoRefreshInterval}
-                    onChange={(e) => setAutoRefreshInterval(Number(e.target.value) as 10 | 30 | 60)}
-                    className="px-3 py-1.5 rounded-lg dark:bg-gray-800 bg-white border 
-                             dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                             focus:ring-2 focus:ring-blue-500 text-sm"
-                  >
-                    <option value={10}>10s</option>
-                    <option value={30}>30s</option>
-                    <option value={60}>60s</option>
-                  </select>
-                )}
-              </div>
+              )}
             </div>
-            {/* Row 2: Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                         dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                         dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                         transition-colors duration-200"
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-                {showFilters ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </button>
-              <button
-                onClick={() => fetchEvents(false)}
-                disabled={isRefreshing}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
-                         flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                         transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              Filters
+              {showFilters ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => fetchEvents(false)}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Advanced Filters */}
+      <div className="p-4 lg:p-6 space-y-4">
+
+
+        {/* Filters */}
         {showFilters && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-4">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 space-y-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold dark:text-white text-gray-900">Advanced Filters</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Filters</h3>
               <button
                 onClick={() => {
                   setSelectedNamespace(null);
@@ -406,7 +388,7 @@ export function ClusterEvents() {
                 Clear all
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
               {/* Namespace Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -415,9 +397,7 @@ export function ClusterEvents() {
                 <select
                   value={selectedNamespace || ''}
                   onChange={(e) => setSelectedNamespace(e.target.value || null)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 bg-white border 
-                           dark:border-gray-600 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="">All Namespaces</option>
                   {namespaces.map(ns => (
@@ -433,9 +413,7 @@ export function ClusterEvents() {
                 <select
                   value={selectedEventType}
                   onChange={(e) => setSelectedEventType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 bg-white border 
-                           dark:border-gray-600 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="all">All Types</option>
                   <option value="Normal">Normal</option>
@@ -450,9 +428,7 @@ export function ClusterEvents() {
                 <select
                   value={selectedInvolvedObjectKind}
                   onChange={(e) => setSelectedInvolvedObjectKind(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg dark:bg-gray-700 bg-white border 
-                           dark:border-gray-600 border-gray-300 dark:text-white text-gray-900
-                           focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="all">All Kinds</option>
                   {uniqueInvolvedObjectKinds.map(kind => (
@@ -512,16 +488,16 @@ export function ClusterEvents() {
         )}
 
         {/* Events Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden relative">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden relative">
           {isRefreshing && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
-              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 flex items-center gap-2">
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-950/70 z-10 flex items-center justify-center rounded-lg">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg px-3 py-2 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                 <span className="text-xs font-medium dark:text-white text-gray-900">Updating...</span>
               </div>
             </div>
           )}
-          <div className="px-4 py-3 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
             <h3 className="text-base font-semibold dark:text-white text-gray-900 flex items-center gap-2">
               <Activity className="w-4 h-4" />
               Events ({filteredEvents.length})
@@ -564,7 +540,7 @@ export function ClusterEvents() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-900">
                     {filteredEvents.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-3 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
@@ -575,7 +551,7 @@ export function ClusterEvents() {
                       paginatedEvents.map((event) => {
                         const date = getLocalDateFromUTC(event.timestamp);
                         return (
-                          <tr key={event.eventUid} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <tr key={event.eventUid} className="hover:bg-gray-50 dark:hover:bg-gray-900/60">
                             <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
                               {date ? formatDateToLocale(date, {
                                 month: 'short',

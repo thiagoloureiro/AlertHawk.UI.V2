@@ -277,7 +277,7 @@ export function VolumeMetrics() {
 
   if (!clustersLoaded || (isInitialLoad && !selectedCluster)) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -285,15 +285,16 @@ export function VolumeMetrics() {
 
   if (hasNoPermissions) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
-            No Cluster Permissions
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            No cluster permissions
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            You don&apos;t have permission to view any clusters. Please contact your administrator
-            to request access to volume metrics.
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            You don't have access to any clusters. Contact an administrator to request access to volume metrics.
           </p>
         </div>
       </div>
@@ -302,13 +303,15 @@ export function VolumeMetrics() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 text-lg">{error}</p>
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-sm text-center">
+          <div className="mx-auto w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{error}</p>
           <button
             onClick={() => fetchMetrics()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="mt-3 px-3 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
             Retry
           </button>
@@ -318,22 +321,24 @@ export function VolumeMetrics() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="w-full space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white text-gray-900 flex items-center gap-2">
-              <HardDrive className="w-8 h-8 text-indigo-500" />
-              Volume Metrics
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-6 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Metrics
+            </div>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+              Volume metrics
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              PVC disk usage and capacity across clusters and namespaces
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              PVC disk usage and capacity
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 Cluster:
               </span>
               <select
@@ -344,7 +349,7 @@ export function VolumeMetrics() {
                   setSelectedPods([]);
                   setIsPodDropdownOpen(false);
                 }}
-                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               >
                 {uniqueClusters.map((c) => (
                   <option key={c} value={c}>
@@ -354,7 +359,7 @@ export function VolumeMetrics() {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 Namespace:
               </span>
               <select
@@ -364,7 +369,7 @@ export function VolumeMetrics() {
                   setSelectedPods([]);
                   setIsPodDropdownOpen(false);
                 }}
-                className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+                className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               >
                 <option value="">All namespaces</option>
                 {uniqueNamespaces.map((ns) => (
@@ -377,7 +382,7 @@ export function VolumeMetrics() {
             {/* Pod filter */}
             {selectedCluster && (
               <div className="flex items-center gap-2 relative">
-                <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
                   Pod:
                 </span>
                 <div className="relative">
@@ -387,7 +392,7 @@ export function VolumeMetrics() {
                       setIsPodDropdownOpen(!isPodDropdownOpen);
                       if (!isPodDropdownOpen) setPodSearchFilter('');
                     }}
-                    className="px-3 py-2 rounded-lg text-sm dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 min-w-[200px] text-left flex items-center justify-between gap-2"
+                    className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[12rem] text-left flex items-center justify-between gap-2"
                   >
                     <span className="truncate">
                       {selectedPods.length === 0
@@ -406,7 +411,7 @@ export function VolumeMetrics() {
                         aria-hidden
                       />
                       <div className="absolute z-20 mt-1 w-full max-w-[300px] dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden flex flex-col">
-                        <div className="p-2 border-b dark:border-gray-700 border-gray-200 flex items-center justify-between gap-2">
+                        <div className="p-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-2">
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -433,7 +438,7 @@ export function VolumeMetrics() {
                             </button>
                           )}
                         </div>
-                        <div className="p-2 border-b dark:border-gray-700 border-gray-200">
+                        <div className="p-2 border-b border-gray-200 dark:border-gray-800">
                           <div className="relative">
                             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
@@ -467,7 +472,7 @@ export function VolumeMetrics() {
                             filteredPods.map((pod) => (
                               <label
                                 key={pod}
-                                className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-900 rounded cursor-pointer"
                               >
                                 <input
                                   type="checkbox"
@@ -495,7 +500,7 @@ export function VolumeMetrics() {
             <select
               value={minutes}
               onChange={(e) => setMinutes(Number(e.target.value))}
-              className="px-4 py-2 rounded-lg dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-300 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="px-2.5 py-1.5 rounded-md text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               <option value={5}>Last 5 minutes</option>
               <option value={10}>Last 10 minutes</option>
@@ -509,37 +514,40 @@ export function VolumeMetrics() {
             <button
               onClick={() => fetchMetrics(false)}
               disabled={isRefreshing}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
         </div>
+        </div>
+      </div>
 
+      <div className="p-4 lg:p-6 space-y-4">
         {selectedCluster && (
           <>
             {/* Table */}
-            <div className="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-              <h2 className="text-lg font-semibold dark:text-white text-gray-900 p-4 pb-0">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white p-4 pb-0">
                 PVC details (latest)
               </h2>
               <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-900 text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     <tr>
-                      <th className="px-4 py-3">Namespace</th>
-                      <th className="px-4 py-3">Pod</th>
-                      <th className="px-4 py-3">Volume</th>
-                      <th className="px-4 py-3">PVC name</th>
-                      <th className="px-4 py-3 text-right">Used</th>
-                      <th className="px-4 py-3 text-right">Available</th>
-                      <th className="px-4 py-3 text-right">Capacity</th>
-                      <th className="px-4 py-3 text-right">Usage %</th>
-                      <th className="px-4 py-3">Last updated</th>
+                      <th className="px-4 py-2.5">Namespace</th>
+                      <th className="px-4 py-2.5">Pod</th>
+                      <th className="px-4 py-2.5">Volume</th>
+                      <th className="px-4 py-2.5">PVC name</th>
+                      <th className="px-4 py-2.5 text-right">Used</th>
+                      <th className="px-4 py-2.5 text-right">Available</th>
+                      <th className="px-4 py-2.5 text-right">Capacity</th>
+                      <th className="px-4 py-2.5 text-right">Usage %</th>
+                      <th className="px-4 py-2.5">Last updated</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-900">
                     {latestByPvc.map((m) => {
                       const pct =
                         m.capacityBytes > 0
@@ -550,7 +558,7 @@ export function VolumeMetrics() {
                       return (
                         <tr
                           key={`${m.clusterName}-${m.pvcName}-${m.pod}`}
-                          className="bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          className="hover:bg-gray-50 dark:hover:bg-gray-900/60"
                         >
                           <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                             {m.namespace}
@@ -596,7 +604,7 @@ export function VolumeMetrics() {
                 </table>
               </div>
               {latestByPvc.length === 0 && !isLoading && (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
                   No PVC metrics found for the selected cluster and namespace.
                 </div>
               )}
@@ -604,8 +612,8 @@ export function VolumeMetrics() {
 
             {/* Chart: Disk used over time per volume */}
             {chartData.length > 0 && uniqueSeriesKeys.length > 0 && (
-              <div className="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
                   Disk usage over time
                 </h2>
                 <div className="h-[360px]">
