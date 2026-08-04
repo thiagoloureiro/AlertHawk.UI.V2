@@ -1,7 +1,7 @@
 // @ts-expect-error - No type definitions for markdown-it
 import MarkdownIt from 'markdown-it';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { Monitor, MonitorGroup, MonitorHistoryData, MonitorK8sNode } from '../types';
 import { 
@@ -51,6 +51,111 @@ const TIME_PERIODS: TimePeriod[] = [
   { label: '3 Months', days: 90 },
   { label: '6 Months', days: 180 }
 ];
+
+const panelClass =
+  'rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950';
+
+const actionBtnClass =
+  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ' +
+  'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 ' +
+  'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900';
+
+function uptimeTone(value?: number | null) {
+  if (value == null || value === -1) return 'text-gray-400 dark:text-gray-500';
+  if (value >= 99.5) return 'text-emerald-600 dark:text-emerald-400';
+  if (value >= 95) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
+}
+
+function uptimeStatusLabel(value?: number | null) {
+  if (value == null || value === -1) return 'N/A';
+  if (value >= 99.5) return 'Excellent';
+  if (value >= 95) return 'Good';
+  if (value >= 90) return 'Fair';
+  return 'Poor';
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  actions,
+  children,
+  className,
+}: {
+  title?: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn(panelClass, 'p-4 mb-4', className)}>
+      {(title || actions) && (
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0">
+            {title && (
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
+                {title}
+              </h3>
+            )}
+            {subtitle && (
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>
+            )}
+          </div>
+          {actions}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  confirmTone = 'danger',
+  loading,
+  onCancel,
+  onConfirm,
+  icon,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  confirmTone?: 'danger' | 'primary';
+  loading?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className={cn(panelClass, 'w-full max-w-md p-5 shadow-xl')}>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">{message}</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={onCancel} className={actionBtnClass} disabled={loading}>
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white transition-colors disabled:opacity-50',
+              confirmTone === 'danger'
+                ? 'bg-red-600 hover:bg-red-500'
+                : 'bg-blue-600 hover:bg-blue-500'
+            )}
+          >
+            {loading ? <LoadingSpinner size="sm" /> : icon}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Add MonitorAlert interface
 interface MonitorAlert {
@@ -115,145 +220,112 @@ const StatusTimeline = ({ historyData, uptimeFromTiles }: {
   const uptimePercentage = uptimeFromTiles != null && uptimeFromTiles !== -1 ? uptimeFromTiles : uptimeFromHistory;
 
   return (
-    <div className="dark:bg-gray-800 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-            <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold dark:text-white text-gray-900">Status Timeline</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{userTimeZone}</p>
-          </div>
+    <SectionCard
+      title="Status timeline"
+      subtitle={userTimeZone}
+      actions={
+        <div className="flex flex-wrap items-center gap-3 text-[11px]">
+          <span className="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            {onlineChecks} online
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            {offlineChecks} offline
+          </span>
+          <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium tabular-nums">
+            {uptimePercentage.toFixed(1)}% uptime
+          </span>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600 dark:text-gray-400">{onlineChecks} online</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span className="text-gray-600 dark:text-gray-400">{offlineChecks} offline</span>
-          </div>
-          <div className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
-            <span className="font-medium text-gray-700 dark:text-gray-300">
-              {uptimePercentage.toFixed(1)}% uptime
-            </span>
-          </div>
+      }
+    >
+      {timelineData.length === 0 ? (
+        <div className="h-10 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+          No history points for this period
         </div>
-      </div>
-      
-      <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex gap-px p-px">
-        {timelineData.map((point, index) => {
-          try {
-            return (
-              <div
-                key={index}
-                className="group relative flex-1 min-w-[2px]"
-              >
+      ) : (
+        <div className="h-5 bg-gray-100 dark:bg-gray-900 rounded-md flex gap-px p-px overflow-hidden">
+          {timelineData.map((point, index) => {
+            try {
+              return (
                 <div
-                  className={cn(
-                    "w-full h-full rounded-sm transition-all duration-200 hover:scale-y-110",
-                    point.status
-                      ? "bg-green-500 dark:bg-green-400 hover:bg-green-600 dark:hover:bg-green-300"
-                      : "bg-red-500 dark:bg-red-400 hover:bg-red-600 dark:hover:bg-red-300"
-                  )}
-                />
-                
-                {/* Enhanced Tooltip with Details */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[9999] pointer-events-none">
-                  <div className="bg-gray-900 text-white text-xs rounded-lg py-3 px-4 whitespace-nowrap shadow-lg border border-gray-700 min-w-[200px]">
-                    <div className="font-medium mb-2 text-center border-b border-gray-700 pb-2">
-                      {(() => {
-                        try {
-                          const date = getLocalDateFromUTC(point.timeStamp);
-                          return formatCompactDate(date);
-                        } catch (error) {
-                          console.error('Error formatting date:', error);
-                          return 'Invalid Date';
-                        }
-                      })()}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {/* Status */}
-                      <div className={`flex items-center justify-between ${
-                        point.status ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        <span className="font-medium">Status:</span>
-                        <div className="flex items-center gap-2">
-                          {point.status ? (
-                            <CheckCircle className="w-3 h-3" />
-                          ) : (
-                            <X className="w-3 h-3" />
-                          )}
-                          <span>{point.status ? 'Online' : 'Offline'}</span>
+                  key={index}
+                  className="group relative flex-1 min-w-[2px]"
+                >
+                  <div
+                    className={cn(
+                      'w-full h-full transition-opacity hover:opacity-80',
+                      point.status
+                        ? 'bg-emerald-500 dark:bg-emerald-400'
+                        : 'bg-red-500 dark:bg-red-400'
+                    )}
+                  />
+                  
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-[9999] pointer-events-none">
+                    <div className="bg-gray-950 text-white text-[11px] rounded-md py-2.5 px-3 whitespace-nowrap shadow-lg ring-1 ring-white/10 min-w-[180px]">
+                      <div className="font-medium mb-1.5 text-center border-b border-white/10 pb-1.5">
+                        {(() => {
+                          try {
+                            const date = getLocalDateFromUTC(point.timeStamp);
+                            return formatCompactDate(date);
+                          } catch {
+                            return 'Invalid Date';
+                          }
+                        })()}
+                      </div>
+                      <div className="space-y-1">
+                        <div className={cn(
+                          'flex items-center justify-between',
+                          point.status ? 'text-emerald-400' : 'text-red-400'
+                        )}>
+                          <span>Status</span>
+                          <span className="inline-flex items-center gap-1 font-medium">
+                            {point.status ? <CheckCircle className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            {point.status ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-gray-400">
+                          <span>Type</span>
+                          <span className="text-gray-200">Heartbeat</span>
+                        </div>
+                        <div className="flex items-center justify-between text-gray-400">
+                          <span>When</span>
+                          <span className="text-gray-200">
+                            {(() => {
+                              try {
+                                const now = new Date();
+                                const checkTime = getLocalDateFromUTC(point.timeStamp);
+                                if (!checkTime) return 'Unknown';
+                                const diffMs = now.getTime() - checkTime.getTime();
+                                const diffMins = Math.floor(diffMs / (1000 * 60));
+                                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                                if (diffMins < 60) return `${diffMins}m ago`;
+                                return `${diffHours}h ago`;
+                              } catch {
+                                return 'Unknown';
+                              }
+                            })()}
+                          </span>
                         </div>
                       </div>
-                      
-                      {/* Response Time */}
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>Response Time:</span>
-                        <span className="font-medium">
-                          {point.status ? 'Available' : 'N/A'}
-                        </span>
-                      </div>
-                      
-                      {/* Check Type */}
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>Check Type:</span>
-                        <span className="font-medium">Heartbeat</span>
-                      </div>
-                      
-                      {/* Time Ago */}
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>Time Ago:</span>
-                        <span className="font-medium">
-                          {(() => {
-                            try {
-                              const now = new Date();
-                              const checkTime = getLocalDateFromUTC(point.timeStamp);
-                              if (!checkTime) return 'Unknown';
-                              
-                              const diffMs = now.getTime() - checkTime.getTime();
-                              const diffMins = Math.floor(diffMs / (1000 * 60));
-                              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                              
-                              if (diffMins < 60) {
-                                return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
-                              } else {
-                                return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-                              }
-                            } catch (error) {
-                              return 'Unknown';
-                            }
-                          })()}
-                        </span>
-                      </div>
                     </div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-950" />
                   </div>
-                  {/* Arrow */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
                 </div>
-              </div>
-            );
-          } catch (error) {
-            console.error('Error rendering timeline point:', {
-              error,
-              point,
-              index
-            });
-            return null;
-          }
-        })}
-      </div>
+              );
+            } catch (error) {
+              console.error('Error rendering timeline point:', { error, point, index });
+              return null;
+            }
+          })}
+        </div>
+      )}
       
-      {/* Timeline labels */}
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">
-        <span>1 hour ago</span>
+      <div className="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 mt-2">
+        <span>Older</span>
         <span>Now</span>
       </div>
-    </div>
+    </SectionCard>
   );
 };
 
@@ -262,28 +334,28 @@ const getMonitorTypeInfo = (typeId: number, isOnline: boolean, isPaused: boolean
   const statusColor = isPaused 
     ? 'text-gray-400 dark:text-gray-500'
     : isOnline 
-      ? 'text-green-500 dark:text-green-400' 
+      ? 'text-emerald-500 dark:text-emerald-400' 
       : 'text-red-500 dark:text-red-400';
   
   switch (typeId) {
     case 1:
       return {
-        icon: <Globe className={`w-5 h-5 ${statusColor}`} />,
+        icon: <Globe className={`w-4 h-4 ${statusColor}`} />,
         label: 'HTTP(S)'
       };
     case 3:
       return {
-        icon: <Network className={`w-5 h-5 ${statusColor}`} />,
+        icon: <Network className={`w-4 h-4 ${statusColor}`} />,
         label: 'TCP'
       };
     case 4:
       return {
-        icon: <Server className={`w-5 h-5 ${statusColor}`} />,
+        icon: <Server className={`w-4 h-4 ${statusColor}`} />,
         label: 'Kubernetes'
       };
     default:
       return {
-        icon: <Globe className={`w-5 h-5 ${statusColor}`} />,
+        icon: <Globe className={`w-4 h-4 ${statusColor}`} />,
         label: 'Unknown'
       };
   }
@@ -442,42 +514,36 @@ Please provide a concise analysis of the monitor's performance and alert history
 
   if (isLoading || isAnalyzing) {
     return (
-      <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
-        <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
-          AI Analysis - Powered by Abby
-        </h2>
-        <div className="flex items-center gap-3 text-sm dark:text-gray-400 text-gray-600">
+      <SectionCard title="AI analysis" subtitle="Powered by Abby">
+        <div className="flex items-center gap-2.5 text-xs text-gray-500 dark:text-gray-400 py-4">
           <LoadingSpinner size="sm" />
-          {isAnalyzing ? 'Analyzing metrics...' : 'Initializing...'}
+          {isAnalyzing ? 'Analyzing metrics…' : 'Initializing…'}
         </div>
-      </div>
+      </SectionCard>
     );
   }
 
   return (
-    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold dark:text-white text-gray-900">
-          AI Analysis - Powered by Abby
-        </h2>
-        
-        {/* AI Model Selection - Only show for groups */}
-        {group && (
+    <SectionCard
+      title="AI analysis"
+      subtitle="Powered by Abby"
+      actions={
+        group ? (
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium dark:text-gray-300 text-gray-700">
-              Model:
-            </label>
+            <label className="text-[11px] text-gray-500 dark:text-gray-400">Model</label>
             <select
               value={selectedModel}
               onChange={(e) => onModelChange?.(e.target.value)}
               disabled={isLoadingModels}
-              className="px-3 py-1 rounded-lg text-sm dark:bg-gray-800 bg-white border 
-                       dark:border-gray-700 border-gray-300 dark:text-white text-gray-900
-                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                       transition-colors duration-200 disabled:opacity-50"
+              className="px-2 py-1 rounded-md text-xs
+                       bg-gray-50 dark:bg-gray-900
+                       border border-gray-200 dark:border-gray-800
+                       text-gray-900 dark:text-white
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/30
+                       disabled:opacity-50"
             >
               {isLoadingModels ? (
-                <option value="">Loading models...</option>
+                <option value="">Loading…</option>
               ) : (
                 availableModels?.map(model => (
                   <option key={model} value={model}>
@@ -487,38 +553,45 @@ Please provide a concise analysis of the monitor's performance and alert history
               )}
             </select>
           </div>
-        )}
-      </div>
+        ) : undefined
+      }
+    >
       {error ? (
-        <div className="text-center dark:text-gray-400 text-gray-600">
-          {error}
-        </div>
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : hasAnalyzed ? (
         <div>
           <div 
-            className="prose prose-sm dark:prose-invert max-w-none p-4 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900 [&>ul]:mb-4 [&>ul]:mt-2 [&>ul>li]:mb-1 [&>p]:mb-4 [&>h3]:mb-2 [&>h4]:mb-2"
+            className="prose prose-sm dark:prose-invert max-w-none p-3 rounded-md
+                       bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                       ring-1 ring-inset ring-gray-200 dark:ring-gray-800
+                       [&>ul]:mb-3 [&>ul]:mt-1 [&>ul>li]:mb-1 [&>p]:mb-3 [&>h3]:mb-2 [&>h4]:mb-2"
             dangerouslySetInnerHTML={{ __html: md.render(messages) }}
           />
           <button
             onClick={startAnalysis}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
+            className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+                     bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
-            <Loader2 className="w-4 h-4" />
-            Analyze Again
+            <Loader2 className="w-3.5 h-3.5" />
+            Analyze again
           </button>
         </div>
       ) : (
-        <div className="text-center">
+        <div className="flex flex-col items-start gap-2 py-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Run an AI analysis on uptime trends, failures, and reliability recommendations.
+          </p>
           <button
             onClick={startAnalysis}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+                     bg-red-600 hover:bg-red-500 text-white transition-colors"
           >
-            <Bot className="w-4 h-4" />
+            <Bot className="w-3.5 h-3.5" />
             Analyze with Abby
           </button>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 };
 
@@ -561,36 +634,33 @@ const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
   ];
 
   return (
-    <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-      <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
-        Node: {node.nodeName}
+    <div className={cn(panelClass, 'p-4 mb-3')}>
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 truncate">
+        {node.nodeName}
       </h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statusGroups.map((group) => (
-          <div key={group.title} className="space-y-3">
-            <h4 className="text-md font-medium dark:text-gray-300 text-gray-700">
-              {group.title}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statusGroups.map((statusGroup) => (
+          <div key={statusGroup.title}>
+            <h4 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+              {statusGroup.title}
             </h4>
-            <div className="space-y-2">
-              {group.items.map((item) => {
+            <div className="space-y-1.5">
+              {statusGroup.items.map((item) => {
                 const isPositive = item.positive ? item.status : !item.status;
                 return (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-sm dark:text-gray-400 text-gray-600">
+                  <div key={item.label} className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                       {item.label}
                     </span>
-                    <div className={`flex items-center ${
-                      isPositive 
-                        ? 'text-green-500 dark:text-green-400' 
+                    <span className={cn(
+                      'shrink-0',
+                      isPositive
+                        ? 'text-emerald-500 dark:text-emerald-400'
                         : 'text-red-500 dark:text-red-400'
-                    }`}>
-                      {isPositive ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <X className="w-4 h-4" />
-                      )}
-                    </div>
+                    )}>
+                      {isPositive ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                    </span>
                   </div>
                 );
               })}
@@ -799,77 +869,70 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
 
   // Early return for group view
   if (!metric && group) {
+    const online = group.monitors.filter(m => m.status && !m.paused).length;
+    const offline = group.monitors.filter(m => !m.status && !m.paused).length;
+    const paused = group.monitors.filter(m => m.paused).length;
+
     return (
-      <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
-        {/* Group Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <h1 className="text-2xl font-bold dark:text-white text-gray-900">{group.name}</h1>
+      <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+        <div className="sticky top-0 z-10 px-4 lg:px-5 py-3 border-b border-gray-200 dark:border-gray-800
+                        bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+          <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            Monitor group
           </div>
+          <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+            {group.name}
+          </h1>
         </div>
 
-        {/* Group Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          {[
-            { label: '1 Hour', value: group.avgUptime1Hr },
-            { label: '24 Hours', value: group.avgUptime24Hrs },
-            { label: '7 Days', value: group.avgUptime7Days },
-            { label: '30 Days', value: group.avgUptime30Days },
-            { label: '3 Months', value: group.avgUptime3Months },
-            { label: '6 Months', value: group.avgUptime6Months }
-          ].map((period) => (
-            <div
-              key={period.label}
-              className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4"
-            >
-              <div className="text-sm font-medium mb-1 dark:text-gray-300 text-gray-700">
-                {period.label}
-              </div>
-              <div className={`text-2xl font-bold ${
-                !period.value || period.value === -1 
-                  ? 'dark:text-gray-500 text-gray-400' 
-                  : period.value >= 99
-                    ? 'dark:text-green-400 text-green-500'
-                    : period.value >= 95
-                      ? 'dark:text-yellow-400 text-yellow-500'
-                      : 'dark:text-red-400 text-red-500'
-              }`}>
-                {!period.value || period.value === -1 ? 'N/A' : `${period.value.toFixed(2)}%`}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Group Status Summary */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-          <h2 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
-            Group Status Summary
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 lg:p-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
             {[
-              { label: 'Total Monitors', value: group.monitors.length },
-              { label: 'Online Monitors', value: group.monitors.filter(m => m.status).length },
-              { label: 'Offline Monitors', value: group.monitors.filter(m => !m.status).length }
-            ].map((stat) => (
-              <div key={stat.label} className="flex flex-col">
-                <span className="text-sm dark:text-gray-400 text-gray-600">{stat.label}</span>
-                <span className="text-2xl font-bold dark:text-white text-gray-900">{stat.value}</span>
+              { label: '1 Hour', value: group.avgUptime1Hr },
+              { label: '24 Hours', value: group.avgUptime24Hrs },
+              { label: '7 Days', value: group.avgUptime7Days },
+              { label: '30 Days', value: group.avgUptime30Days },
+              { label: '3 Months', value: group.avgUptime3Months },
+              { label: '6 Months', value: group.avgUptime6Months }
+            ].map((period) => (
+              <div key={period.label} className={cn(panelClass, 'p-3')}>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                  {period.label}
+                </div>
+                <div className={cn('text-lg font-semibold tabular-nums', uptimeTone(period.value))}>
+                  {!period.value || period.value === -1 ? 'N/A' : `${period.value.toFixed(2)}%`}
+                </div>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* AI Response Component - Only show if enabled */}
-        {import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
-          <AiResponse 
-            group={group} 
-            metric={null} 
-            selectedModel={selectedModel} 
-            availableModels={availableModels}
-            isLoadingModels={isLoadingModels}
-            onModelChange={setSelectedModel}
-          />
-        )}
+          <SectionCard title="Group summary">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total', value: group.monitors.length, tone: 'text-gray-900 dark:text-white' },
+                { label: 'Online', value: online, tone: 'text-emerald-600 dark:text-emerald-400' },
+                { label: 'Offline', value: offline, tone: 'text-red-600 dark:text-red-400' },
+                { label: 'Paused', value: paused, tone: 'text-gray-500 dark:text-gray-400' },
+              ].map((stat) => (
+                <div key={stat.label} className="min-w-0">
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400">{stat.label}</div>
+                  <div className={cn('text-xl font-semibold tabular-nums', stat.tone)}>{stat.value}</div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
+            <AiResponse 
+              group={group} 
+              metric={null} 
+              selectedModel={selectedModel} 
+              availableModels={availableModels}
+              isLoadingModels={isLoadingModels}
+              onModelChange={setSelectedModel}
+            />
+          )}
+        </div>
       </div>
     );
   }
@@ -877,9 +940,20 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
   // Return early if no metric and no group
   if (!currentMetric) {
     return (
-      <div className="h-full flex items-center justify-center dark:bg-gray-900 bg-gray-50">
-        <div className="text-center dark:text-gray-400 text-gray-600">
-          Select a monitor or group to view details
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-6">
+        <div className="max-w-xs text-center">
+          <div className="mx-auto mb-3 w-12 h-12 rounded-full
+                          bg-gray-100 dark:bg-gray-900
+                          ring-1 ring-inset ring-gray-200 dark:ring-gray-800
+                          flex items-center justify-center">
+            <Activity className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white">
+            Select a monitor
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+            Choose a group or monitor from the list to inspect uptime, history, and health.
+          </p>
         </div>
       </div>
     );
@@ -1074,19 +1148,22 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
   const renderK8sNodes = () => {
     if (!k8sDetails || !k8sDetails.monitorK8sNodes || k8sDetails.monitorK8sNodes.length === 0) {
       return (
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mb-6">
-          <div className="flex items-center justify-center p-4">
-            <span className="text-gray-500 dark:text-gray-400">No Kubernetes nodes found</span>
-          </div>
-        </div>
+        <SectionCard title="Kubernetes nodes">
+          <p className="text-xs text-gray-500 dark:text-gray-400 py-2">No Kubernetes nodes found</p>
+        </SectionCard>
       );
     }
 
     return (
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
-          Kubernetes Nodes for {k8sDetails.clusterName}
-        </h2>
+      <div className="mb-4">
+        <div className="flex items-baseline justify-between gap-2 mb-2 px-0.5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Kubernetes nodes
+          </h2>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+            {k8sDetails.clusterName}
+          </span>
+        </div>
         {k8sDetails.monitorK8sNodes.map((node: MonitorK8sNode, index: number) => (
           <KubernetesNodeInfo key={index} node={node} />
         ))}
@@ -1094,473 +1171,402 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
     );
   };
 
+  const typeInfo = getMonitorTypeInfo(
+    currentMetric.monitorTypeId,
+    currentMetric.status,
+    currentMetric.paused
+  );
+
+  const statusLabel = currentMetric.paused
+    ? 'Paused'
+    : currentMetric.status
+      ? 'Online'
+      : 'Offline';
+
+  const statusTone = currentMetric.paused
+    ? 'text-gray-500 dark:text-gray-400'
+    : currentMetric.status
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-red-600 dark:text-red-400';
+
+  const statusDot = currentMetric.paused
+    ? 'bg-gray-400'
+    : currentMetric.status
+      ? 'bg-emerald-500'
+      : 'bg-red-500';
+
+  const targetLabel =
+    currentMetric.monitorTypeId === 3
+      ? `${currentMetric.monitorTcp?.IP}:${currentMetric.monitorTcp?.port}`
+      : currentMetric.monitorTypeId === 4
+        ? (k8sDetails?.clusterName || currentMetric.monitorK8s?.clusterName || 'No cluster specified')
+        : (currentMetric.urlToCheck || 'No URL specified');
+
+  const TargetIcon =
+    currentMetric.monitorTypeId === 3
+      ? Network
+      : currentMetric.monitorTypeId === 4
+        ? Server
+        : Globe;
+
   return (
-    <div className="h-full p-6 overflow-y-auto dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <h1 className="text-2xl font-bold dark:text-white text-gray-900">{currentMetric?.name || group?.name}</h1>
-          {currentMetric?.monitorTypeId === 3 ? (
-            <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <Network className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
-              <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {`${currentMetric.monitorTcp?.IP}:${currentMetric.monitorTcp?.port}`}
-              </span>
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800
+                      bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
+        <div className="px-4 lg:px-5 pt-3 pb-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 text-[11px] font-medium',
+                  statusTone
+                )}>
+                  <span className={cn('w-1.5 h-1.5 rounded-full', statusDot, currentMetric.status && !currentMetric.paused && 'animate-pulse')} />
+                  {statusLabel}
+                </span>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {typeInfo.label}
+                </span>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                  every {currentMetric.heartBeatInterval}m
+                </span>
+              </div>
+              <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight truncate">
+                {currentMetric.name}
+              </h1>
+              <div className="mt-1 flex items-center gap-1.5 min-w-0 text-xs text-gray-500 dark:text-gray-400">
+                <TargetIcon className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{targetLabel}</span>
+              </div>
             </div>
-          ) : currentMetric?.monitorTypeId === 4 ? (
-            <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <Server className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
-              <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {k8sDetails?.clusterName || currentMetric.monitorK8s?.clusterName || 'No cluster specified'}
-              </span>
-            </div>
-          ) : currentMetric && (
-            <div className="flex items-center px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <Globe className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
-              <span className="text-sm dark:text-gray-400 text-gray-600 truncate">
-                {currentMetric.urlToCheck || 'No URL specified'}
-              </span>
-            </div>
-          )}
+          </div>
         </div>
-        
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={handlePauseToggle}
-            disabled={isPauseLoading}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                     transition-colors duration-200"
-          >
+
+        <div className="px-4 lg:px-5 pb-3 flex flex-wrap gap-1.5">
+          <button onClick={handlePauseToggle} disabled={isPauseLoading} className={actionBtnClass}>
             {isPauseLoading ? (
               <LoadingSpinner size="sm" />
             ) : currentMetric.paused ? (
-              <Play className="w-4 h-4" />
+              <Play className="w-3.5 h-3.5" />
             ) : (
-              <Pause className="w-4 h-4" />
+              <Pause className="w-3.5 h-3.5" />
             )}
-            {isPauseLoading ? 'Processing...' : (currentMetric.paused ? 'Resume' : 'Pause')}
+            {isPauseLoading ? 'Working…' : currentMetric.paused ? 'Resume' : 'Pause'}
           </button>
 
-          <button
-            onClick={handleEditClick}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                     transition-colors duration-200"
-          >
-            <Edit className="w-4 h-4" />
+          <button onClick={handleEditClick} className={actionBtnClass}>
+            <Edit className="w-3.5 h-3.5" />
             Edit
           </button>
 
-          <Link 
+          <Link
             to={`/monitor/${currentMetric.id}/alerts`}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800
-                     text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40
-                     transition-colors duration-200"
+            className={cn(
+              actionBtnClass,
+              'border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-400',
+              'hover:bg-amber-50 dark:hover:bg-amber-950/30'
+            )}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-3.5 h-3.5" />
             Alerts
           </Link>
 
-          <button
-            onClick={() => setShowNotifications(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                     transition-colors duration-200"
-          >
-            <MessageSquare className="w-4 h-4" />
+          <button onClick={() => setShowNotifications(true)} className={actionBtnClass}>
+            <MessageSquare className="w-3.5 h-3.5" />
             Notifications
           </button>
 
-          {currentMetric?.monitorTypeId === 1 && (
-            <button
-              onClick={() => setShowSecurityHeaders(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                       dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                       dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                       transition-colors duration-200 relative"
-            >
-              <Shield className="w-4 h-4" />
-              Security Headers
-              <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 
-                            text-yellow-800 dark:text-yellow-500 text-xs rounded-full border border-yellow-300 
-                            dark:border-yellow-700/50">
+          {currentMetric.monitorTypeId === 1 && (
+            <button onClick={() => setShowSecurityHeaders(true)} className={cn(actionBtnClass, 'relative')}>
+              <Shield className="w-3.5 h-3.5" />
+              Headers
+              <span className="ml-0.5 px-1 py-px text-[9px] font-semibold uppercase tracking-wide
+                              bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 rounded">
                 Beta
               </span>
             </button>
           )}
 
-          <button
-            onClick={() => setShowCloneConfirm(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                     transition-colors duration-200"
-          >
-            <Copy className="w-4 h-4" />
+          <button onClick={() => setShowCloneConfirm(true)} className={actionBtnClass}>
+            <Copy className="w-3.5 h-3.5" />
             Clone
           </button>
 
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800
-                     text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40
-                     transition-colors duration-200"
+            className={cn(
+              actionBtnClass,
+              'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400',
+              'hover:bg-red-50 dark:hover:bg-red-950/30'
+            )}
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
             Delete
           </button>
 
-          {/* Add Refresh button */}
-          <button
-            onClick={refreshData}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     dark:bg-gray-800 bg-white border dark:border-gray-700 border-gray-200
-                     dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
-                     transition-colors duration-200"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 mx-0.5 self-center hidden sm:block" />
+
+          <button onClick={refreshData} disabled={isRefreshing} className={actionBtnClass}>
+            <RefreshCw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
             Refresh
           </button>
 
-          {/* Add Auto-refresh toggle */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                     border transition-colors duration-200 ${
-                       autoRefresh
-                         ? 'bg-green-500 text-white hover:bg-green-600 border-green-600'
-                         : 'dark:bg-gray-800 bg-white border-gray-200 dark:border-gray-700 dark:text-gray-300 text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
-                     }`}
+            className={cn(
+              actionBtnClass,
+              autoRefresh &&
+                'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-500 hover:border-emerald-500 dark:bg-emerald-600 dark:border-emerald-600 dark:text-white dark:hover:bg-emerald-500'
+            )}
           >
-            <Clock className="w-4 h-4" />
-            {autoRefresh ? 'Auto-refresh On' : 'Auto-refresh Off'}
+            <Clock className="w-3.5 h-3.5" />
+            Auto {autoRefresh ? 'On' : 'Off'}
           </button>
         </div>
       </div>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              <Activity className={`w-5 h-5 ${
-                currentMetric.paused 
-                  ? 'dark:text-gray-400 text-gray-500'
-                  : currentMetric.status 
-                    ? 'dark:text-green-400 text-green-500' 
-                    : 'dark:text-red-400 text-red-500'
-              }`} />
-            </div>
-            <div>
-              <p className="text-xs dark:text-gray-400 text-gray-600">Current Status</p>
-              <p className={`text-xl font-bold ${
-                currentMetric.paused 
-                  ? 'dark:text-gray-400 text-gray-500'
-                  : currentMetric.status 
-                    ? 'dark:text-green-400 text-green-500' 
-                    : 'dark:text-red-400 text-red-500'
-              }`}>
-                {currentMetric.paused ? 'Paused' : (currentMetric.status ? 'Online' : 'Offline')}
-              </p>
+      <div className="p-4 lg:p-5">
+        {/* KPI strip */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+          <div className={cn(panelClass, 'p-3')}>
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Status</div>
+            <div className={cn('text-lg font-semibold', statusTone)}>{statusLabel}</div>
+          </div>
+          <div className={cn(panelClass, 'p-3')}>
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Type</div>
+            <div className="flex items-center gap-1.5 text-lg font-semibold text-gray-900 dark:text-white">
+              {typeInfo.icon}
+              <span>{typeInfo.label}</span>
             </div>
           </div>
-        </div>
-
-        {/* Type Card */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              {getMonitorTypeInfo(currentMetric.monitorTypeId, currentMetric.status, currentMetric.paused).icon}
-            </div>
-            <div>
-              <p className="text-xs dark:text-gray-400 text-gray-600">Monitor Type</p>
-              <p className="text-xl font-bold dark:text-white text-gray-900">
-                {getMonitorTypeInfo(currentMetric.monitorTypeId, currentMetric.status, currentMetric.paused).label}
-              </p>
+          <div className={cn(panelClass, 'p-3')}>
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Response time</div>
+            <div className="text-lg font-semibold tabular-nums text-gray-900 dark:text-white">
+              {currentMetric.monitorStatusDashboard.responseTime.toFixed(0)}
+              <span className="text-sm font-medium text-gray-400 ml-0.5">ms</span>
             </div>
           </div>
-        </div>
-
-        {/* Response Time Card */}
-        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
-              <Clock className="w-5 h-5 dark:text-yellow-400 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-xs dark:text-gray-400 text-gray-600">Response Time</p>
-              <p className="text-xl font-bold dark:text-white text-gray-900">
-                {currentMetric.monitorStatusDashboard.responseTime.toFixed(0)}ms
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* SSL Certificate Card */}
-        {currentMetric.checkCertExpiry && (
-          <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 dark:bg-gray-700 bg-gray-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 dark:text-purple-400 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-xs dark:text-gray-400 text-gray-600">SSL Certificate</p>
-                <p className="text-xl font-bold dark:text-white text-gray-900">
-                  {currentMetric.daysToExpireCert} days
-                </p>
+          {currentMetric.checkCertExpiry ? (
+            <div className={cn(panelClass, 'p-3')}>
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">SSL certificate</div>
+              <div className={cn(
+                'text-lg font-semibold tabular-nums',
+                currentMetric.daysToExpireCert <= 0
+                  ? 'text-red-600 dark:text-red-400'
+                  : currentMetric.daysToExpireCert <= 30
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-emerald-600 dark:text-emerald-400'
+              )}>
+                {currentMetric.daysToExpireCert}
+                <span className="text-sm font-medium text-gray-400 ml-0.5">days</span>
               </div>
             </div>
+          ) : (
+            <div className={cn(panelClass, 'p-3')}>
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Retries</div>
+              <div className="text-lg font-semibold tabular-nums text-gray-900 dark:text-white">
+                {currentMetric.retries}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Uptime period selector */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+          {TIME_PERIODS.map((period) => {
+            const uptimeValue =
+              period.label === '1 Hour'
+                ? currentMetric.monitorStatusDashboard.uptime1Hr
+                : period.label === '24 Hours'
+                  ? currentMetric.monitorStatusDashboard.uptime24Hrs
+                  : period.label === '7 Days'
+                    ? currentMetric.monitorStatusDashboard.uptime7Days
+                    : period.label === '30 Days'
+                      ? currentMetric.monitorStatusDashboard.uptime30Days
+                      : period.label === '3 Months'
+                        ? currentMetric.monitorStatusDashboard.uptime3Months
+                        : currentMetric.monitorStatusDashboard.uptime6Months;
+
+            const isSelected = selectedPeriod === period;
+            const hasNoData = !uptimeValue || uptimeValue === -1;
+
+            return (
+              <button
+                key={period.label}
+                onClick={() => setSelectedPeriod(period)}
+                className={cn(
+                  'text-left p-2.5 rounded-lg border transition-colors',
+                  isSelected
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-500'
+                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 hover:border-gray-300 dark:hover:border-gray-700'
+                )}
+              >
+                <div className={cn(
+                  'text-[11px] font-medium mb-0.5',
+                  isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+                )}>
+                  {period.label}
+                </div>
+                <div className={cn('text-base font-semibold tabular-nums', uptimeTone(uptimeValue))}>
+                  {hasNoData ? 'N/A' : `${uptimeValue.toFixed(2)}%`}
+                </div>
+                <div className={cn('text-[10px] mt-0.5', uptimeTone(uptimeValue))}>
+                  {uptimeStatusLabel(uptimeValue)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <StatusTimeline
+          historyData={historyData}
+          uptimeFromTiles={
+            selectedPeriod.label === '1 Hour' ? currentMetric.monitorStatusDashboard.uptime1Hr
+            : selectedPeriod.label === '24 Hours' ? currentMetric.monitorStatusDashboard.uptime24Hrs
+            : selectedPeriod.label === '7 Days' ? currentMetric.monitorStatusDashboard.uptime7Days
+            : selectedPeriod.label === '30 Days' ? currentMetric.monitorStatusDashboard.uptime30Days
+            : selectedPeriod.label === '3 Months' ? currentMetric.monitorStatusDashboard.uptime3Months
+            : currentMetric.monitorStatusDashboard.uptime6Months
+          }
+        />
+
+        {currentMetric.monitorTypeId === 1 && (
+          <SectionCard
+            title="Response time"
+            subtitle={`${selectedPeriod.label} history`}
+            actions={
+              isLoadingHistory ? (
+                <span className="text-[11px] text-gray-400">Loading…</span>
+              ) : undefined
+            }
+          >
+            <div className="h-56 relative">
+              {isLoadingHistory && (
+                <div className="absolute inset-0 bg-white/50 dark:bg-gray-950/50 flex items-center justify-center z-10 rounded-md">
+                  <LoadingSpinner size="lg" />
+                </div>
+              )}
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={[...historyData].sort((a, b) => {
+                    try {
+                      return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
+                    } catch {
+                      return 0;
+                    }
+                  })}
+                >
+                  {getOfflinePeriods(historyData).map((period, index) => (
+                    <ReferenceArea
+                      key={index}
+                      x1={period.start}
+                      x2={period.end}
+                      fill="#EF444440"
+                    />
+                  ))}
+                  <XAxis
+                    dataKey="timeStamp"
+                    tickFormatter={(time) => {
+                      try {
+                        const date = getLocalDateFromUTC(time);
+                        return formatCompactDate(date);
+                      } catch {
+                        return 'Invalid';
+                      }
+                    }}
+                    angle={-35}
+                    textAnchor="end"
+                    height={56}
+                    tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                    axisLine={{ stroke: '#E5E7EB' }}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                    padding={{ left: 8, right: 8 }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                  />
+                  <Tooltip
+                    labelFormatter={(label) => {
+                      try {
+                        const date = getLocalDateFromUTC(label as string);
+                        return formatCompactDate(date);
+                      } catch {
+                        return 'Invalid Date';
+                      }
+                    }}
+                    formatter={(value) => {
+                      if (value === 0) {
+                        return [<span style={{ color: '#EF4444' }}>Offline</span>, 'Status'];
+                      }
+                      return [`${value}ms`, 'Response'];
+                    }}
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #111827)',
+                      border: '1px solid var(--tooltip-border, #374151)',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      color: 'var(--tooltip-text, #F9FAFB)',
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="responseTime"
+                    stroke="#3B82F6"
+                    strokeWidth={1.75}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+        )}
+
+        {currentMetric.monitorTypeId === 4 && (
+          <div className="relative">
+            {isLoadingK8s ? (
+              <SectionCard title="Kubernetes nodes">
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="lg" text="Loading Kubernetes data..." />
+                </div>
+              </SectionCard>
+            ) : (
+              renderK8sNodes()
+            )}
           </div>
+        )}
+
+        {group && !metric && import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
+          <AiResponse
+            group={group}
+            metric={null}
+            selectedModel={selectedModel}
+            availableModels={availableModels}
+            isLoadingModels={isLoadingModels}
+            onModelChange={setSelectedModel}
+          />
         )}
       </div>
 
-      {/* Enhanced Uptime Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        {TIME_PERIODS.map((period) => {
-          const uptimeValue = period.label === '1 Hour'
-            ? currentMetric.monitorStatusDashboard.uptime1Hr
-            : period.label === '24 Hours'
-            ? currentMetric.monitorStatusDashboard.uptime24Hrs
-            : period.label === '7 Days'
-            ? currentMetric.monitorStatusDashboard.uptime7Days
-            : period.label === '30 Days'
-            ? currentMetric.monitorStatusDashboard.uptime30Days
-            : period.label === '3 Months'
-            ? currentMetric.monitorStatusDashboard.uptime3Months
-            : currentMetric.monitorStatusDashboard.uptime6Months;
-          
-          const isSelected = selectedPeriod === period;
-          const hasNoData = !uptimeValue || uptimeValue === -1;
-          
-          const getUptimeColor = (value: number) => {
-            if (hasNoData) return 'text-gray-500 dark:text-gray-400';
-            if (value >= 99.5) return 'text-green-600 dark:text-green-400';
-            if (value >= 95) return 'text-yellow-600 dark:text-yellow-400';
-            return 'text-red-600 dark:text-red-400';
-          };
-          
-          const getUptimeStatus = (value: number) => {
-            if (hasNoData) return 'N/A';
-            if (value >= 99.5) return 'Excellent';
-            if (value >= 95) return 'Good';
-            if (value >= 90) return 'Fair';
-            return 'Poor';
-          };
-
-          return (
-            <button
-              key={period.label}
-              onClick={() => setSelectedPeriod(period)}
-              className={`group p-3 rounded-xl border-2 transition-all duration-200 hover:scale-105 ${
-                isSelected
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={`p-1 rounded-lg ${
-                  isSelected 
-                    ? 'bg-blue-100 dark:bg-blue-800' 
-                    : 'bg-gray-100 dark:bg-gray-700'
-                }`}>
-                  <Clock className={`w-3.5 h-3.5 ${
-                    isSelected 
-                      ? 'text-blue-600 dark:text-blue-300' 
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`} />
-                </div>
-                <span className={`text-xs font-medium ${
-                  isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'
-                }`}>
-                  {period.label}
-                </span>
-              </div>
-              
-              <div className={`text-xl font-bold mb-0.5 ${getUptimeColor(uptimeValue)}`}>
-                {hasNoData ? 'N/A' : `${uptimeValue.toFixed(2)}%`}
-              </div>
-              
-              <div className={`text-xs font-medium ${getUptimeColor(uptimeValue)}`}>
-                {getUptimeStatus(uptimeValue)}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Status Timeline - use uptime from tiles for selected period */}
-      <StatusTimeline
-        historyData={historyData}
-        uptimeFromTiles={
-          selectedPeriod.label === '1 Hour' ? currentMetric.monitorStatusDashboard.uptime1Hr
-          : selectedPeriod.label === '24 Hours' ? currentMetric.monitorStatusDashboard.uptime24Hrs
-          : selectedPeriod.label === '7 Days' ? currentMetric.monitorStatusDashboard.uptime7Days
-          : selectedPeriod.label === '30 Days' ? currentMetric.monitorStatusDashboard.uptime30Days
-          : selectedPeriod.label === '3 Months' ? currentMetric.monitorStatusDashboard.uptime3Months
-          : currentMetric.monitorStatusDashboard.uptime6Months
-        }
-      />
-
-      {/* Response Time Chart - Only show for HTTP monitors */}
-      {currentMetric.monitorTypeId === 1 && (
-        <div className="h-64 mt-6 relative">
-          {isLoadingHistory && (
-            <div className="absolute inset-0 bg-gray-900/20 dark:bg-gray-900/40 flex items-center justify-center z-10 rounded-lg">
-              <LoadingSpinner size="lg" />
-            </div>
-          )}
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={[...historyData].sort((a, b) => {
-                try {
-                  return new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime();
-                } catch (error) {
-                  console.error('Error sorting timestamps:', error);
-                  return 0;
-                }
-              })}
-            >
-              {getOfflinePeriods(historyData).map((period, index) => (
-                <ReferenceArea
-                  key={index}
-                  x1={period.start}
-                  x2={period.end}
-                  fill="#EF444460"
-                />
-              ))}
-              <XAxis 
-                dataKey="timeStamp" 
-                tickFormatter={(time) => {
-                  try {
-                    // Use our new utility functions
-                    const date = getLocalDateFromUTC(time);
-                    // Use the compact date formatter
-                    return formatCompactDate(date);
-                  } catch (error) {
-                    console.error('Error formatting tick:', error);
-                    return 'Invalid Date';
-                  }
-                }}
-                angle={-45}
-                textAnchor="end"
-                height={70}
-                tick={{ fontSize: 12 }}
-                interval="preserveStartEnd"
-                padding={{ left: 20, right: 20 }}
-              />
-              <YAxis />
-              <Tooltip
-                labelFormatter={(label) => {
-                  try {
-                    // Use our new utility functions
-                    const date = getLocalDateFromUTC(label as string);
-                    // Use the compact date formatter
-                    return formatCompactDate(date);
-                  } catch (error) {
-                    console.error('Error formatting tooltip:', error);
-                    return 'Invalid Date';
-                  }
-                }}
-                formatter={(value) => {
-                  if (value === 0) {
-                    return [<span style={{ color: '#EF4444' }}>Offline</span>, 'Status'];
-                  }
-                  return [`${value}ms`, 'Response Time'];
-                }}
-                contentStyle={{ 
-                  backgroundColor: '#1F2937',
-                  color: '#fff'
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="responseTime"
-                stroke="#5CD4E2"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Kubernetes Nodes - Only show for Kubernetes monitors */}
-      {currentMetric.monitorTypeId === 4 && (
-        <div className="mt-6 relative">
-          {isLoadingK8s ? (
-            <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 flex items-center justify-center">
-              <LoadingSpinner size="lg" text="Loading Kubernetes data..." />
-            </div>
-          ) : (
-            renderK8sNodes()
-          )}
-        </div>
-      )}
-
-      {/* AI Response Component - Only show for groups, not for individual monitors, and only if enabled */}
-      {group && !metric && import.meta.env.VITE_APP_ABBY_ENABLED === 'true' && (
-        <AiResponse 
-          group={group} 
-          metric={null} 
-          selectedModel={selectedModel} 
-          availableModels={availableModels}
-          isLoadingModels={isLoadingModels}
-          onModelChange={setSelectedModel}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete monitor"
+          message={`Are you sure you want to delete "${currentMetric.name}"? This action cannot be undone.`}
+          confirmLabel={isDeleting ? 'Deleting…' : 'Delete monitor'}
+          confirmTone="danger"
+          loading={isDeleting}
+          onCancel={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDelete}
+          icon={<Trash2 className="w-3.5 h-3.5" />}
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
-              Delete Monitor
-            </h3>
-            
-            <p className="dark:text-gray-300 text-gray-700 mb-6">
-              Are you sure you want to delete monitor "{currentMetric.name}"? This action cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
-                         disabled:opacity-50 flex items-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete Monitor
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Edit Modal */}
       {showEditModal && (
         <AddMonitorModal
           onClose={() => setShowEditModal(false)}
@@ -1579,17 +1585,14 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
                 toast.success('Monitor updated successfully', { position: 'bottom-right' });
                 setShowEditModal(false);
                 
-                // Refresh monitor data from API to get updated details
                 try {
                   const refreshedGroups = await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
-                  // Find the updated monitor in the refreshed data
                   const refreshedGroup = refreshedGroups.find(g => 
                     g.monitors.some(m => m.id === currentMetric.id)
                   );
                   if (refreshedGroup) {
                     let refreshedMonitor = refreshedGroup.monitors.find(m => m.id === currentMetric.id);
                     if (refreshedMonitor) {
-                      // If it's a TCP monitor, fetch TCP details
                       if (refreshedMonitor.monitorTypeId === 3) {
                         const tcpDetails = await monitorService.getMonitorTcpDetails(refreshedMonitor.id);
                         refreshedMonitor = {
@@ -1600,18 +1603,16 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
                           }
                         };
                       } else if (refreshedMonitor.monitorTypeId === 4) {
-                        // If it's a Kubernetes monitor, fetch K8s details
-                        const k8sDetails = await monitorService.getMonitorK8sDetails(refreshedMonitor.id);
+                        const k8sDetailsRefresh = await monitorService.getMonitorK8sDetails(refreshedMonitor.id);
                         refreshedMonitor = {
                           ...refreshedMonitor,
                           monitorK8s: {
-                            clusterName: k8sDetails.ClusterName,
-                            kubeConfig: k8sDetails.KubeConfig,
-                            monitorK8sNodes: k8sDetails.monitorK8sNodes
+                            clusterName: k8sDetailsRefresh.ClusterName,
+                            kubeConfig: k8sDetailsRefresh.KubeConfig,
+                            monitorK8sNodes: k8sDetailsRefresh.monitorK8sNodes
                           }
                         };
                       } else {
-                        // If it's an HTTP monitor, fetch HTTP details
                         const httpDetails = await monitorService.getMonitorHttpDetails(refreshedMonitor.id);
                         refreshedMonitor = {
                           ...refreshedMonitor,
@@ -1629,16 +1630,12 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
                         };
                       }
                       
-                      // Update local state
                       setCurrentMetric(refreshedMonitor);
-                      // Notify parent component
                       onMetricUpdate?.(refreshedMonitor);
                     }
                   }
                 } catch (refreshError) {
                   console.error('Failed to refresh monitor data:', refreshError);
-                  // Don't show error to user since the update succeeded
-                  // Just update with the data we have from the updatedMonitor
                   const updatedMetric = {
                     ...currentMetric,
                     ...updatedMonitor,
@@ -1679,47 +1676,17 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
         />
       )}
 
-      {/* Add clone confirmation modal */}
       {showCloneConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="w-full max-w-md dark:bg-gray-800 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold dark:text-white text-gray-900 mb-4">
-              Clone Monitor
-            </h3>
-            
-            <p className="dark:text-gray-300 text-gray-700 mb-6">
-              Are you sure you want to clone monitor "{currentMetric.name}"? A new monitor will be created with name "{currentMetric.name}_Clone".
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowCloneConfirm(false)}
-                className="px-4 py-2 rounded-lg dark:bg-gray-700 bg-gray-100
-                         dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClone}
-                disabled={isCloning}
-                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600
-                         disabled:opacity-50 flex items-center gap-2"
-              >
-                {isCloning ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    Cloning...
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    Clone Monitor
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Clone monitor"
+          message={`Clone "${currentMetric.name}" as "${currentMetric.name}_Clone"?`}
+          confirmLabel={isCloning ? 'Cloning…' : 'Clone monitor'}
+          confirmTone="primary"
+          loading={isCloning}
+          onCancel={() => setShowCloneConfirm(false)}
+          onConfirm={handleClone}
+          icon={<Copy className="w-3.5 h-3.5" />}
+        />
       )}
     </div>
   );

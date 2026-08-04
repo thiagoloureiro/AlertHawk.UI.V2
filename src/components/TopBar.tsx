@@ -1,38 +1,36 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut, Sparkles, Activity, Palette, AlertTriangle, Shield } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, Palette, AlertTriangle, Shield, Check, ChevronDown } from 'lucide-react';
 import { LoadingSpinner } from './ui';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
 import { WhatsNewModal } from './WhatsNewModal';
 import monitorService from '../services/monitorService';
 
-// Helper function to get environment from localStorage
 const getStoredEnvironment = (): number => {
   try {
     const stored = localStorage.getItem('selectedEnvironment');
-    return stored ? parseInt(stored, 10) : 6; // Default to Production (6)
+    return stored ? parseInt(stored, 10) : 6;
   } catch {
-    return 6; // Default to Production (6) if localStorage fails
+    return 6;
   }
 };
 
-// Helper function to get environment info
 const getEnvironmentInfo = (environmentId: number) => {
   switch (environmentId) {
     case 1:
-      return { name: 'DEV', bgColor: 'bg-blue-500/20 dark:bg-blue-600/20', textColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-500/30 dark:border-blue-400/30' };
+      return { name: 'DEV', className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20' };
     case 2:
-      return { name: 'STG', bgColor: 'bg-yellow-500/20 dark:bg-yellow-600/20', textColor: 'text-yellow-600 dark:text-yellow-400', borderColor: 'border-yellow-500/30 dark:border-yellow-400/30' };
+      return { name: 'STG', className: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-500/20' };
     case 3:
-      return { name: 'QA', bgColor: 'bg-purple-500/20 dark:bg-purple-600/20', textColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-500/30 dark:border-purple-400/30' };
+      return { name: 'QA', className: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-violet-500/20' };
     case 4:
-      return { name: 'TEST', bgColor: 'bg-orange-500/20 dark:bg-orange-600/20', textColor: 'text-orange-600 dark:text-orange-400', borderColor: 'border-orange-500/30 dark:border-orange-400/30' };
+      return { name: 'TEST', className: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-500/20' };
     case 5:
-      return { name: 'PRE', bgColor: 'bg-indigo-500/20 dark:bg-indigo-600/20', textColor: 'text-indigo-600 dark:text-indigo-400', borderColor: 'border-indigo-500/30 dark:border-indigo-400/30' };
+      return { name: 'PRE', className: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20' };
     case 6:
-      return { name: 'PROD', bgColor: 'bg-green-500/20 dark:bg-green-600/20', textColor: 'text-green-600 dark:text-green-400', borderColor: 'border-green-500/30 dark:border-green-400/30' };
+      return { name: 'PROD', className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-500/20' };
     default:
-      return { name: 'UNK', bgColor: 'bg-gray-500/20 dark:bg-gray-600/20', textColor: 'text-gray-600 dark:text-gray-400', borderColor: 'border-gray-500/30 dark:border-gray-400/30' };
+      return { name: 'UNK', className: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 ring-gray-500/20' };
   }
 };
 
@@ -74,8 +72,9 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
 
   const displayName = userInfo?.username || accounts[0]?.name || 'User';
   const email = userInfo?.email || accounts[0]?.username || '';
+  const envInfo = getEnvironmentInfo(selectedEnvironment);
+  const totalMonitors = monitorStatus.online + monitorStatus.offline + monitorStatus.paused;
 
-  // Poll for environment changes in localStorage
   useEffect(() => {
     let currentEnvironment = getStoredEnvironment();
     setSelectedEnvironment(currentEnvironment);
@@ -88,9 +87,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
       }
     };
 
-    // Check every 100ms for environment changes
     const interval = setInterval(checkEnvironmentChange, 100);
-    
     return () => clearInterval(interval);
   }, []);
 
@@ -131,12 +128,10 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
     fetchMonitorStatus();
     fetchMonitorExecutionStatus();
     
-    // Listen for maintenance window updates
     const handleMaintenanceWindowUpdate = () => {
       fetchMonitorExecutionStatus();
     };
     
-    // Listen for monitor execution status updates
     const handleMonitorExecutionUpdate = () => {
       fetchMonitorExecutionStatus();
     };
@@ -144,7 +139,6 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
     window.addEventListener('maintenanceWindowUpdated', handleMaintenanceWindowUpdate);
     window.addEventListener('monitorExecutionStatusUpdated', handleMonitorExecutionUpdate);
     
-    // Refresh every 30 seconds
     const statusInterval = setInterval(fetchMonitorStatus, 30000);
     const executionInterval = setInterval(fetchMonitorExecutionStatus, 30000);
     
@@ -159,15 +153,12 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
   const handleLogout = async () => {
     const hasMsalAccount = accounts.length > 0;
     
-    // Clear local storage
     localStorage.removeItem('authToken');
     localStorage.removeItem('userInfo');
 
-    // Only do MSAL logout if we're using MSAL
     if (hasMsalAccount) {
       await instance.logoutRedirect();
     } else {
-      // For standard auth, just redirect to login
       window.location.href = '/login';
     }
   };
@@ -180,7 +171,6 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
     fetchUserPhoto();
   }, []);
 
-  // Add click outside handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -197,10 +187,6 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
     };
   }, []);
 
-  const getThemeIcon = () => {
-    return <Palette className="w-5 h-5 text-gray-500 dark:text-gray-400" />;
-  };
-
   const themes = [
     { value: 'light' as const, label: 'Light', icon: <Sun className="w-4 h-4" /> },
     { value: 'dark' as const, label: 'Dark', icon: <Moon className="w-4 h-4" /> },
@@ -210,109 +196,83 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
   ];
 
   return (
-    <div className="h-16 px-6 py-2 border-b dark:border-gray-800/50 border-gray-200/50 flex items-center justify-between
-                    dark:bg-gray-900/95 bg-white/95 backdrop-blur-sm transition-colors duration-200
-                    shadow-sm dark:shadow-gray-900/20 relative z-[9999]">
-      {/* Logo and App Name */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <img 
-            src="../assets/logo.png" 
-            alt="AlertHawk Logo" 
-            className="w-9 h-9 object-contain drop-shadow-sm"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
+    <header className="h-14 px-4 lg:px-5 flex items-center justify-between gap-4
+                    border-b border-gray-200/80 dark:border-gray-800
+                    bg-white dark:bg-gray-950
+                    transition-colors duration-200 relative z-[9999]">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <img 
+          src="../assets/logo.png" 
+          alt="AlertHawk" 
+          className="w-8 h-8 object-contain shrink-0"
+        />
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
             AlertHawk
           </span>
-          {(() => {
-            const envInfo = getEnvironmentInfo(selectedEnvironment);
-            return (
-              <div className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${envInfo.bgColor} ${envInfo.textColor} ${envInfo.borderColor} shadow-sm`}>
-                {envInfo.name}
-              </div>
-            );
-          })()}
+          <span className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase ring-1 ring-inset ${envInfo.className}`}>
+            {envInfo.name}
+          </span>
         </div>
       </div>
 
-      {/* Monitor Status */}
-      <div className="flex items-center gap-3">
+      {/* Live status strip */}
+      <div className="flex items-center justify-center flex-1 min-w-0">
         {isLoadingStatus ? (
-          <LoadingSpinner size="sm" text="Loading status..." />
+          <LoadingSpinner size="sm" text="Syncing..." />
         ) : isMonitorExecutionDisabled ? (
-          <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-200/50 dark:border-yellow-800/50 shadow-sm backdrop-blur-sm">
-            <div className="p-1.5 rounded-md bg-yellow-100 dark:bg-yellow-900/50">
-              <AlertTriangle className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 leading-tight">
-                Monitor Execution Disabled
-              </span>
-              <span className="text-[10px] text-yellow-600/80 dark:text-yellow-400/80 leading-tight">
-                All monitors are paused for maintenance
-              </span>
-            </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md
+                          bg-amber-50 dark:bg-amber-950/40
+                          ring-1 ring-inset ring-amber-200 dark:ring-amber-800/60
+                          text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-xs font-medium whitespace-nowrap">
+              Execution disabled — all monitors paused for maintenance
+            </span>
           </div>
         ) : (
-          <>
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-800/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/40">
-                <Activity className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-green-600 dark:text-green-400 leading-tight">
-                  {monitorStatus.online}
+          <div className="inline-flex items-center gap-1 sm:gap-0
+                          rounded-lg bg-gray-50 dark:bg-gray-900
+                          ring-1 ring-inset ring-gray-200/80 dark:ring-gray-800
+                          px-1 py-1">
+            <StatusStat tone="online" count={monitorStatus.online} label="Online" />
+            <div className="hidden sm:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+            <StatusStat tone="offline" count={monitorStatus.offline} label="Offline" />
+            <div className="hidden sm:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+            <StatusStat tone="paused" count={monitorStatus.paused} label="Paused" />
+            {totalMonitors > 0 && (
+              <>
+                <div className="hidden md:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+                <span className="hidden md:inline-flex px-2.5 text-[11px] text-gray-500 dark:text-gray-400 tabular-nums">
+                  {totalMonitors} total
                 </span>
-                <span className="text-[10px] font-medium text-green-700/70 dark:text-green-300/70 leading-tight">
-                  Online
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200/50 dark:border-red-800/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/40">
-                <Activity className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-red-600 dark:text-red-400 leading-tight">
-                  {monitorStatus.offline}
-                </span>
-                <span className="text-[10px] font-medium text-red-700/70 dark:text-red-300/70 leading-tight">
-                  Offline
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/30 dark:to-slate-800/30 border border-gray-200/50 dark:border-gray-700/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800/50">
-                <Activity className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-gray-500 dark:text-gray-400 leading-tight">
-                  {monitorStatus.paused}
-                </span>
-                <span className="text-[10px] font-medium text-gray-600/70 dark:text-gray-400/70 leading-tight">
-                  Paused
-                </span>
-              </div>
-            </div>
-          </>
+              </>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Right Side: Theme Toggle, Notifications, and User Menu */}
-      <div className="flex items-center gap-3">
-        {/* Theme Selector */}
+      {/* Actions */}
+      <div className="flex items-center gap-1.5 shrink-0">
         <div ref={themeMenuRef} className="relative z-[10000]">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="p-2 rounded-md text-gray-500 dark:text-gray-400
+                     hover:bg-gray-100 dark:hover:bg-gray-800
+                     hover:text-gray-700 dark:hover:text-gray-200
+                     transition-colors"
             title="Select theme"
+            aria-label="Select theme"
           >
-            {getThemeIcon()}
+            <Palette className="w-4.5 h-4.5 w-[18px] h-[18px]" />
           </button>
           {showThemeMenu && (
-            <div className="absolute top-full right-0 mt-2 w-48 py-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-xl border dark:border-gray-800/50 border-gray-200/50 z-[10000] animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute top-full right-0 mt-1.5 w-48 py-1
+                            bg-white dark:bg-gray-900
+                            rounded-lg shadow-lg
+                            ring-1 ring-gray-200 dark:ring-gray-800
+                            z-[10000]">
               {themes.map((t) => (
                 <button
                   key={t.value}
@@ -320,75 +280,83 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
                     onThemeChange(t.value);
                     setShowThemeMenu(false);
                   }}
-                  className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-all duration-150 ${
+                  className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 transition-colors ${
                     theme === t.value
-                      ? 'bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 text-blue-600 dark:text-blue-400 font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/80'
                   }`}
                 >
                   {t.icon}
                   <span className="flex-1">{t.label}</span>
-                  {theme === t.value && (
-                    <span className="text-blue-600 dark:text-blue-400 font-bold">✓</span>
-                  )}
+                  {theme === t.value && <Check className="w-3.5 h-3.5" />}
                 </button>
               ))}
             </div>
           )}
         </div>
         
-       {/* <button className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-105 active:scale-95 relative">
-          <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
-        </button>
-        */}
-        {/* User Menu */}
         <div ref={menuRef} className="relative z-[10000]">
           <button 
             onClick={() => setShowUserMenu(!showUserMenu)} 
-            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all duration-200 hover:scale-105 active:scale-95 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md
+                     hover:bg-gray-100 dark:hover:bg-gray-800
+                     transition-colors"
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 flex items-center justify-center text-white overflow-hidden shadow-md ring-2 ring-blue-100 dark:ring-blue-900/50">
+            <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500
+                            flex items-center justify-center text-white overflow-hidden
+                            text-sm font-medium shrink-0">
               {userPhoto ? (
                 <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm font-semibold">{displayName.charAt(0).toUpperCase()}</span>
+                <span>{displayName.charAt(0).toUpperCase()}</span>
               )}
             </div>
-            <div className="text-left hidden sm:block">
-              <div className="text-sm font-semibold dark:text-white text-gray-900">
+            <div className="text-left hidden md:block min-w-0">
+              <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px]">
                 {displayName}
               </div>
-              <div className="text-xs dark:text-gray-400 text-gray-600">
-                {email}
-              </div>
             </div>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:block" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-2 w-56 py-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-xl border dark:border-gray-800/50 border-gray-200/50 z-[10000] animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
-              {userInfo?.isAdmin && (
-                <div className="px-4 py-2 mb-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 border-b dark:border-gray-800/50 border-gray-200/50">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-3.5 h-3.5" />
+            <div className="absolute top-full right-0 mt-1.5 w-56 py-1
+                            bg-white dark:bg-gray-900
+                            rounded-lg shadow-lg
+                            ring-1 ring-gray-200 dark:ring-gray-800
+                            z-[10000] overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {displayName}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {email}
+                </div>
+                {userInfo?.isAdmin && (
+                  <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium
+                                  text-blue-600 dark:text-blue-400">
+                    <Shield className="w-3 h-3" />
                     Administrator
                   </div>
-                </div>
-              )}
+                )}
+              </div>
               <button
                 onClick={() => {
                   setShowWhatsNew(true);
                   setShowUserMenu(false);
                 }}
-                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors duration-150"
+                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300
+                         hover:bg-gray-50 dark:hover:bg-gray-800
+                         flex items-center gap-2.5 transition-colors"
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 text-gray-400" />
                 What's New
               </button>
-              <div className="h-px bg-gray-200 dark:bg-gray-800/50 my-1"></div>
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors duration-150"
+                className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400
+                         hover:bg-red-50 dark:hover:bg-red-950/30
+                         flex items-center gap-2.5 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 Sign Out
@@ -399,6 +367,42 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
       </div>
 
       {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+    </header>
+  );
+}
+
+function StatusStat({
+  tone,
+  count,
+  label,
+}: {
+  tone: 'online' | 'offline' | 'paused';
+  count: number;
+  label: string;
+}) {
+  const dot =
+    tone === 'online'
+      ? 'bg-emerald-500'
+      : tone === 'offline'
+        ? 'bg-red-500'
+        : 'bg-gray-400 dark:bg-gray-500';
+
+  const value =
+    tone === 'online'
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : tone === 'offline'
+        ? 'text-red-600 dark:text-red-400'
+        : 'text-gray-600 dark:text-gray-400';
+
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-1 min-w-[4.5rem]">
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+      <span className={`text-sm font-semibold tabular-nums leading-none ${value}`}>
+        {count}
+      </span>
+      <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-none hidden sm:inline">
+        {label}
+      </span>
     </div>
   );
 }
