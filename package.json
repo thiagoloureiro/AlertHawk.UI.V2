@@ -10,7 +10,7 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@azure/msal-browser": "^5.17.3",
+    "@azure/msal-browser": "^5.18.0",
     "@azure/msal-react": "^5.5.4",
     "@sentry/react": "^10.69.0",
     "axios": "^1.19.0",
