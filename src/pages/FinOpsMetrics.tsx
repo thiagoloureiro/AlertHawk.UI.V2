@@ -15,6 +15,7 @@ import {
   Check,
   X,
   ChevronRight,
+  LineChart,
 } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import finopsService, { FinopsAnalysisRun } from '../services/finopsService';
@@ -22,6 +23,7 @@ import userService from '../services/userService';
 import { CostDetailsModal } from '../components/CostDetailsModal';
 import { AiRecommendationsModal } from '../components/AiRecommendationsModal';
 import { HistoricalResultsModal } from '../components/HistoricalResultsModal';
+import { CostForecastModal } from '../components/CostForecastModal';
 import { formatApiDateTimeInUserLocale } from '../utils/dateUtils';
 
 type AnalysisMonthSelection = 'current' | 'previous';
@@ -64,6 +66,7 @@ export function FinOpsMetrics() {
   const [costModalRun, setCostModalRun] = useState<FinopsAnalysisRun | null>(null);
   const [aiRun, setAiRun] = useState<FinopsAnalysisRun | null>(null);
   const [historyRun, setHistoryRun] = useState<FinopsAnalysisRun | null>(null);
+  const [forecastRun, setForecastRun] = useState<FinopsAnalysisRun | null>(null);
   const [subscriptionFilter, setSubscriptionFilter] = useState('');
   /** Per-subscription async analysis (POST start-async + poll jobs/{id}). */
   const [analysisJobUi, setAnalysisJobUi] = useState<Record<string, SubscriptionAnalysisJobUi>>({});
@@ -742,7 +745,7 @@ export function FinOpsMetrics() {
                       <p className="text-xs text-red-600 dark:text-red-400">{detailAnalysisJob.message}</p>
                     )}
 
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                       <button
                         type="button"
                         onClick={() => setCostModalRun(activeRun)}
@@ -766,6 +769,14 @@ export function FinOpsMetrics() {
                       >
                         <TrendingUp className="h-3.5 w-3.5 shrink-0 text-blue-500" />
                         Historical results
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForecastRun(activeRun)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                      >
+                        <LineChart className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+                        Forecast
                       </button>
                     </div>
                   </div>
@@ -805,6 +816,15 @@ export function FinOpsMetrics() {
           onClose={() => setHistoryRun(null)}
           analysisRunId={historyRun.id}
           subscriptionName={historyRun.subscriptionName}
+        />
+      )}
+
+      {forecastRun && (
+        <CostForecastModal
+          isOpen={true}
+          onClose={() => setForecastRun(null)}
+          analysisRunId={forecastRun.id}
+          subscriptionName={forecastRun.subscriptionName}
         />
       )}
     </div>
