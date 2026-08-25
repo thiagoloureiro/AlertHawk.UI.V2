@@ -14,6 +14,21 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "FinOps Cost Forecast & Historical Filters",
+    description: "New cost forecasting on FinOps Metrics plus dimensional filters on Historical Results, so you can project spend and drill into trends by App ID, resource group, and service type.",
+    date: "August 25th, 2026",
+    features: [
+      "New Forecast action on FinOps Metrics that opens a dialog with actual vs projected daily cost",
+      "Forecast horizons of 7, 14, or 30 days based on a linear trend over recent daily totals",
+      "Incomplete current-day costs are excluded so projections use the last complete day (D-1)",
+      "Summary cards for last complete day, average daily lookback, projected total, and daily trend",
+      "Historical Results filters for App ID (GAR_ID), resource group, and service type, each with an All option",
+      "Cascading filter options that narrow related dropdowns as you select values",
+      "Filtered historical charts aggregate matching Service/Resource Group detail rows without double-counting subscription totals",
+      "Infra support overlay remains available for full-subscription historical views and is disabled while filters are active"
+    ]
+  },
+  {
     title: "Monitor Execution Control",
     description: "New system maintenance mode feature allowing administrators to globally enable or disable monitor execution across all monitor types (HTTP, TCP, K8s) for system maintenance and troubleshooting.",
     date: "January 10th, 2026",
