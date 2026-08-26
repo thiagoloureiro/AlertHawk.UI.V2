@@ -8,7 +8,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   ReferenceLine,
 } from 'recharts';
 import { LoadingSpinner } from './ui';
@@ -359,15 +358,33 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
               </div>
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                  Actual vs forecast — daily cost (USD)
-                </h3>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Actual vs forecast — daily cost (USD)
+                  </h3>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="h-0.5 w-4 rounded-full"
+                        style={{ backgroundColor: actualStroke }}
+                      />
+                      Actual
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="h-0.5 w-4 rounded-full border-t-2 border-dashed"
+                        style={{ borderColor: forecastStroke }}
+                      />
+                      Forecast
+                    </span>
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
                   <div style={{ minWidth: Math.max(chartData.length * 10, 560) }}>
-                    <ResponsiveContainer width="100%" height={340}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <LineChart
                         data={chartData}
-                        margin={{ top: 8, right: 16, left: 8, bottom: 48 }}
+                        margin={{ top: 8, right: 16, left: 8, bottom: 36 }}
                       >
                         <CartesianGrid
                           strokeDasharray="2 6"
@@ -380,6 +397,7 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
                           tick={{ fontSize: 11, fill: axisTickColor }}
                           angle={-45}
                           textAnchor="end"
+                          height={44}
                           interval={chartData.length > 40 ? Math.floor(chartData.length / 20) : 0}
                         />
                         <YAxis
@@ -388,7 +406,6 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
                           width={60}
                         />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend />
                         {lastCompleteKey && (
                           <ReferenceLine
                             x={formatDayLabel(lastCompleteKey)}
