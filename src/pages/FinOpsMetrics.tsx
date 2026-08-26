@@ -236,22 +236,34 @@ export function FinOpsMetrics() {
   };
 
   useEffect(() => {
-    if (filteredRuns.length === 0) {
+    if (!activeSubscriptionId) return;
+    if (!runs.some((r) => r.subscriptionId === activeSubscriptionId)) {
       setActiveSubscriptionId(null);
-      return;
     }
-    setActiveSubscriptionId((current) => {
-      if (current && filteredRuns.some((r) => r.subscriptionId === current)) {
-        return current;
-      }
-      return filteredRuns[0].subscriptionId;
-    });
-  }, [filteredRuns]);
+  }, [runs, activeSubscriptionId]);
+
+  useEffect(() => {
+    if (!activeSubscriptionId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (costModalRun || aiRun || historyRun || forecastRun) return;
+      setActiveSubscriptionId(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeSubscriptionId, costModalRun, aiRun, historyRun, forecastRun]);
 
   const activeRun = useMemo(() => {
     if (!activeSubscriptionId) return null;
-    return filteredRuns.find((r) => r.subscriptionId === activeSubscriptionId) ?? null;
-  }, [filteredRuns, activeSubscriptionId]);
+    return runs.find((r) => r.subscriptionId === activeSubscriptionId) ?? null;
+  }, [runs, activeSubscriptionId]);
+
+  const closeSubscriptionDialog = () => {
+    if (activeSubscriptionId) {
+      cancelEditDescription(activeSubscriptionId);
+    }
+    setActiveSubscriptionId(null);
+  };
 
   const detailAnalysisJob = activeRun ? analysisJobUi[activeRun.subscriptionId] : undefined;
 
@@ -909,319 +921,333 @@ export function FinOpsMetrics() {
                     </div>
                   </div>
                 )}
-
-                {activeRun ? (
-                  <section className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden">
-                    <div className="p-4 sm:p-5 lg:p-6">
-                      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                            Subscription
-                          </p>
-                          <h2 className="mt-0.5 text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                            {activeRun.subscriptionName}
-                          </h2>
-                          <p
-                            className="mt-1 break-all font-mono text-xs text-gray-500 dark:text-gray-400"
-                            title={activeRun.subscriptionId}
-                          >
-                            {activeRun.subscriptionId}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={cn(
-                              'w-fit shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium',
-                              statusBadgeClass(
-                                getSubscriptionStatus(activeRun.subscriptionId, analysisJobUi),
-                              ),
-                            )}
-                          >
-                            {statusLabel(
-                              getSubscriptionStatus(activeRun.subscriptionId, analysisJobUi),
-                            )}
-                          </span>
-                          <span
-                            className="w-fit shrink-0 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300"
-                            title={activeRun.aiModel}
-                          >
-                            {activeRun.aiModel}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mb-4 grid gap-2 sm:grid-cols-3">
-                        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
-                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-                            <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
-                            <span className="text-[11px]">Monthly cost (month to date)</span>
-                          </div>
-                          <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
-                            {formatCost(activeRun.totalMonthlyCost)}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
-                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-                            <Database className="h-3.5 w-3.5 text-gray-400" />
-                            <span className="text-[11px]">Resources analyzed</span>
-                          </div>
-                          <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
-                            {activeRun.totalResourcesAnalyzed.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
-                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-                            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                            <span className="text-[11px]">Run date</span>
-                          </div>
-                          <p
-                            className="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white"
-                            title={activeRun.runDate}
-                          >
-                            {formatApiDateTimeInUserLocale(activeRun.runDate)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 px-3 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                            Description
-                          </h3>
-                          {!descriptionEditing[activeRun.subscriptionId] && (
-                            <button
-                              type="button"
-                              onClick={() => beginEditDescription(activeRun)}
-                              aria-label="Edit description"
-                              className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                            >
-                              <Pencil className="h-3 w-3" />
-                              Edit
-                            </button>
-                          )}
-                        </div>
-                        {!descriptionEditing[activeRun.subscriptionId] && (
-                          <p
-                            className={cn(
-                              'mt-1.5 line-clamp-2 text-xs leading-snug',
-                              activeRun.description?.trim()
-                                ? 'text-gray-700 dark:text-gray-300'
-                                : 'italic text-gray-400 dark:text-gray-500',
-                            )}
-                          >
-                            {activeRun.description?.trim()
-                              ? activeRun.description
-                              : 'No description yet'}
-                          </p>
-                        )}
-                        {descriptionEditing[activeRun.subscriptionId] && (
-                          <div className="mt-2 space-y-1.5">
-                            <input
-                              type="text"
-                              value={descriptionEditing[activeRun.subscriptionId].draft}
-                              onChange={(e) =>
-                                setDescriptionDraft(activeRun.subscriptionId, e.target.value)
-                              }
-                              placeholder="Max 50 characters"
-                              maxLength={50}
-                              className="w-full max-w-md rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                            />
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => void saveDescription(activeRun.subscriptionId)}
-                                disabled={descriptionEditing[activeRun.subscriptionId].saving}
-                                className="inline-flex items-center gap-1 rounded-md border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-60 transition-colors"
-                              >
-                                {descriptionEditing[activeRun.subscriptionId].saving ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Check className="h-3 w-3" />
-                                )}
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => cancelEditDescription(activeRun.subscriptionId)}
-                                disabled={descriptionEditing[activeRun.subscriptionId].saving}
-                                className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-60 transition-colors"
-                              >
-                                <X className="h-3 w-3" />
-                                Cancel
-                              </button>
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                                {descriptionEditing[activeRun.subscriptionId].draft.length}/50
-                              </span>
-                            </div>
-                            {descriptionEditing[activeRun.subscriptionId].error && (
-                              <p className="text-[11px] text-red-600 dark:text-red-400">
-                                {descriptionEditing[activeRun.subscriptionId].error}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-4">
-                        <section aria-labelledby="finops-analysis-heading" className="space-y-2">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <h3
-                              id="finops-analysis-heading"
-                              className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
-                            >
-                              Analysis
-                            </h3>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                              Refresh month-to-date costs for this subscription
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void startBackgroundAnalysis(activeRun.subscriptionId, 'current')
-                            }
-                            disabled={detailAnalysisJob?.phase === 'running'}
-                            className={cn(
-                              'relative w-full overflow-hidden rounded-lg px-4 py-3 text-sm font-semibold shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950',
-                              detailAnalysisJob?.phase === 'running'
-                                ? 'cursor-wait bg-emerald-600/90 text-white pointer-events-none'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-500 active:bg-emerald-700',
-                            )}
-                          >
-                            {detailAnalysisJob?.phase === 'running' && (
-                              <span
-                                className="pointer-events-none absolute inset-0 z-0 bg-white/10 motion-safe:animate-pulse"
-                                aria-hidden
-                              />
-                            )}
-                            <span className="relative z-10 inline-flex w-full items-center justify-center gap-2">
-                              {detailAnalysisJob?.phase === 'running' ? (
-                                <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin" />
-                              ) : (
-                                <Play className="h-4 w-4 shrink-0 fill-current" />
-                              )}
-                              <span className="truncate">
-                                {detailAnalysisJob?.phase === 'running'
-                                  ? detailAnalysisJob.label
-                                  : 'Run new analysis'}
-                              </span>
-                            </span>
-                          </button>
-                          {detailAnalysisJob?.phase === 'error' && (
-                            <div className="flex items-start gap-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-700 dark:text-red-300">
-                              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                              <span>{detailAnalysisJob.message}</span>
-                            </div>
-                          )}
-                        </section>
-
-                        <section aria-labelledby="finops-explore-heading" className="space-y-2">
-                          <h3
-                            id="finops-explore-heading"
-                            className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
-                          >
-                            Explore
-                          </h3>
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <button
-                              type="button"
-                              onClick={() => setCostModalRun(activeRun)}
-                              className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                                <BarChart2 className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                    Cost details
-                                  </span>
-                                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
-                                </span>
-                                <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-                                  Breakdown by resource group, service, and App ID
-                                </span>
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setAiRun(activeRun)}
-                              className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                                <BrainCircuit className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                    AI recommendations
-                                  </span>
-                                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
-                                </span>
-                                <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-                                  Optimization ideas from the latest analysis run
-                                </span>
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setHistoryRun(activeRun)}
-                              className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                                <TrendingUp className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                    Historical results
-                                  </span>
-                                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
-                                </span>
-                                <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-                                  Daily and monthly trends with App ID and RG filters
-                                </span>
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setForecastRun(activeRun)}
-                              className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                                <LineChart className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                    Forecast
-                                  </span>
-                                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
-                                </span>
-                                <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-                                  Project upcoming spend from complete daily history
-                                </span>
-                              </span>
-                            </button>
-                          </div>
-                        </section>
-                      </div>
-                    </div>
-                  </section>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-8 text-center text-gray-500 dark:text-gray-400">
-                    <Database className="mx-auto h-8 w-8 opacity-40 mb-2" />
-                    <p className="text-sm">Select a subscription to view details and actions.</p>
-                  </div>
-                )}
               </div>
             )}
           </>
         )}
       </div>
+
+      {activeRun && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={closeSubscriptionDialog}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finops-subscription-dialog-title"
+            className="w-full max-w-2xl max-h-[min(90vh,880px)] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4 sm:p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Subscription
+                </p>
+                <h2
+                  id="finops-subscription-dialog-title"
+                  className="mt-0.5 text-base font-semibold tracking-tight text-gray-900 dark:text-white"
+                >
+                  {activeRun.subscriptionName}
+                </h2>
+                <p
+                  className="mt-1 break-all font-mono text-xs text-gray-500 dark:text-gray-400"
+                  title={activeRun.subscriptionId}
+                >
+                  {activeRun.subscriptionId}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    'w-fit shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium',
+                    statusBadgeClass(
+                      getSubscriptionStatus(activeRun.subscriptionId, analysisJobUi),
+                    ),
+                  )}
+                >
+                  {statusLabel(getSubscriptionStatus(activeRun.subscriptionId, analysisJobUi))}
+                </span>
+                <span
+                  className="w-fit shrink-0 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300"
+                  title={activeRun.aiModel}
+                >
+                  {activeRun.aiModel}
+                </span>
+                <button
+                  type="button"
+                  onClick={closeSubscriptionDialog}
+                  className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-4 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                  <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-[11px]">Monthly cost (month to date)</span>
+                </div>
+                <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {formatCost(activeRun.totalMonthlyCost)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                  <Database className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-[11px]">Resources analyzed</span>
+                </div>
+                <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {activeRun.totalResourcesAnalyzed.toLocaleString()}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-[11px]">Run date</span>
+                </div>
+                <p
+                  className="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white"
+                  title={activeRun.runDate}
+                >
+                  {formatApiDateTimeInUserLocale(activeRun.runDate)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Description
+                </h3>
+                {!descriptionEditing[activeRun.subscriptionId] && (
+                  <button
+                    type="button"
+                    onClick={() => beginEditDescription(activeRun)}
+                    aria-label="Edit description"
+                    className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+                )}
+              </div>
+              {!descriptionEditing[activeRun.subscriptionId] && (
+                <p
+                  className={cn(
+                    'mt-1.5 line-clamp-2 text-xs leading-snug',
+                    activeRun.description?.trim()
+                      ? 'text-gray-700 dark:text-gray-300'
+                      : 'italic text-gray-400 dark:text-gray-500',
+                  )}
+                >
+                  {activeRun.description?.trim()
+                    ? activeRun.description
+                    : 'No description yet'}
+                </p>
+              )}
+              {descriptionEditing[activeRun.subscriptionId] && (
+                <div className="mt-2 space-y-1.5">
+                  <input
+                    type="text"
+                    value={descriptionEditing[activeRun.subscriptionId].draft}
+                    onChange={(e) =>
+                      setDescriptionDraft(activeRun.subscriptionId, e.target.value)
+                    }
+                    placeholder="Max 50 characters"
+                    maxLength={50}
+                    className="w-full max-w-md rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => void saveDescription(activeRun.subscriptionId)}
+                      disabled={descriptionEditing[activeRun.subscriptionId].saving}
+                      className="inline-flex items-center gap-1 rounded-md border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-60 transition-colors"
+                    >
+                      {descriptionEditing[activeRun.subscriptionId].saving ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      )}
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => cancelEditDescription(activeRun.subscriptionId)}
+                      disabled={descriptionEditing[activeRun.subscriptionId].saving}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-60 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                      Cancel
+                    </button>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                      {descriptionEditing[activeRun.subscriptionId].draft.length}/50
+                    </span>
+                  </div>
+                  {descriptionEditing[activeRun.subscriptionId].error && (
+                    <p className="text-[11px] text-red-600 dark:text-red-400">
+                      {descriptionEditing[activeRun.subscriptionId].error}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <section aria-labelledby="finops-analysis-heading" className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3
+                    id="finops-analysis-heading"
+                    className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+                  >
+                    Analysis
+                  </h3>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                    Refresh month-to-date costs for this subscription
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void startBackgroundAnalysis(activeRun.subscriptionId, 'current')
+                  }
+                  disabled={detailAnalysisJob?.phase === 'running'}
+                  className={cn(
+                    'relative w-full overflow-hidden rounded-lg px-4 py-3 text-sm font-semibold shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950',
+                    detailAnalysisJob?.phase === 'running'
+                      ? 'cursor-wait bg-emerald-600/90 text-white pointer-events-none'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-500 active:bg-emerald-700',
+                  )}
+                >
+                  {detailAnalysisJob?.phase === 'running' && (
+                    <span
+                      className="pointer-events-none absolute inset-0 z-0 bg-white/10 motion-safe:animate-pulse"
+                      aria-hidden
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex w-full items-center justify-center gap-2">
+                    {detailAnalysisJob?.phase === 'running' ? (
+                      <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4 shrink-0 fill-current" />
+                    )}
+                    <span className="truncate">
+                      {detailAnalysisJob?.phase === 'running'
+                        ? detailAnalysisJob.label
+                        : 'Run new analysis'}
+                    </span>
+                  </span>
+                </button>
+                {detailAnalysisJob?.phase === 'error' && (
+                  <div className="flex items-start gap-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{detailAnalysisJob.message}</span>
+                  </div>
+                )}
+              </section>
+
+              <section aria-labelledby="finops-explore-heading" className="space-y-2">
+                <h3
+                  id="finops-explore-heading"
+                  className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+                >
+                  Explore
+                </h3>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setCostModalRun(activeRun)}
+                    className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                  >
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                      <BarChart2 className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          Cost details
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                        Breakdown by resource group, service, and App ID
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAiRun(activeRun)}
+                    className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                  >
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                      <BrainCircuit className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          AI recommendations
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                        Optimization ideas from the latest analysis run
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHistoryRun(activeRun)}
+                    className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                  >
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                      <TrendingUp className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          Historical results
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                        Daily and monthly trends with App ID and RG filters
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForecastRun(activeRun)}
+                    className="group flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3.5 py-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/60 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                  >
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                      <LineChart className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          Forecast
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400" />
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                        Project upcoming spend from complete daily history
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
 
       {costModalRun && (
         <CostDetailsModal
