@@ -14,6 +14,21 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "FinOps Subscription Budgets",
+    description: "Set a monthly budget per subscription, track spend against it on FinOps Metrics, and see budget reference lines on Historical Results and Forecast charts.",
+    date: "August 27th, 2026",
+    features: [
+      "New monthly budget field saved with subscription metadata (same API as description)",
+      "Edit description and budget together from the subscription detail dialog",
+      "Grid and table views highlight near-budget (≥80%) and over-budget (≥100%) subscriptions",
+      "Progress bar on subscription cards showing percent of budget used and amount over budget",
+      "Budget column in table view with usage percentage",
+      "Daily and monthly budget reference lines on Historical Results charts",
+      "Daily budget reference line on the Cost Forecast chart (monthly budget split by days in the month)",
+      "Description column added to the FinOps Metrics table view"
+    ]
+  },
+  {
     title: "FinOps Cost Forecast & Historical Filters",
     description: "New cost forecasting on FinOps Metrics plus dimensional filters on Historical Results, so you can project spend and drill into trends by App ID, resource group, and service type.",
     date: "August 25th, 2026",

@@ -148,6 +148,25 @@ function budgetCostTextClass(status: BudgetStatus): string {
   return 'text-emerald-600 dark:text-emerald-400';
 }
 
+function budgetBarFillClass(status: BudgetStatus): string {
+  if (status === 'over') return 'bg-red-500 dark:bg-red-400';
+  if (status === 'near') return 'bg-amber-500 dark:bg-amber-400';
+  if (status === 'ok') return 'bg-emerald-500 dark:bg-emerald-400';
+  return 'bg-gray-400';
+}
+
+function budgetBarTrackClass(status: BudgetStatus): string {
+  if (status === 'over') return 'bg-red-100 dark:bg-red-950/50';
+  if (status === 'near') return 'bg-amber-100 dark:bg-amber-950/40';
+  return 'bg-gray-100 dark:bg-gray-800';
+}
+
+/** Visual fill width for the bar (capped at 100%; over-budget still shows full). */
+function budgetBarWidthPercent(cost: number, budget: number): number {
+  if (budget <= 0) return 0;
+  return Math.min(100, Math.round((cost / budget) * 1000) / 10);
+}
+
 function parseBudgetDraft(raw: string): { ok: true; value: number | null } | { ok: false; error: string } {
   const trimmed = raw.trim();
   if (!trimmed) return { ok: true, value: null };
@@ -881,37 +900,16 @@ export function FinOpsMetrics() {
                                 {run.description?.trim() || 'No description'}
                               </p>
                             </div>
-                            <div className="flex shrink-0 flex-col items-end gap-1">
-                              <span
-                                className={cn(
-                                  'rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
-                                  statusBadgeClass(status),
-                                )}
-                              >
-                                {statusLabel(status)}
-                              </span>
-                              {budgetStatus === 'over' && (
-                                <span
-                                  className={cn(
-                                    'rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
-                                    budgetBadgeClass('over'),
-                                  )}
-                                >
-                                  Over budget
-                                </span>
+                            <span
+                              className={cn(
+                                'shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                statusBadgeClass(status),
                               )}
-                              {budgetStatus === 'near' && (
-                                <span
-                                  className={cn(
-                                    'rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
-                                    budgetBadgeClass('near'),
-                                  )}
-                                >
-                                  Near budget
-                                </span>
-                              )}
-                            </div>
+                            >
+                              {statusLabel(status)}
+                            </span>
                           </div>
+
                           <div className="flex items-end justify-between gap-2">
                             <div>
                               <div className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -925,12 +923,6 @@ export function FinOpsMetrics() {
                               >
                                 {formatCost(run.totalMonthlyCost, 0)}
                               </div>
-                              {budgetAmount != null && (
-                                <div className="mt-0.5 text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
-                                  of {formatCost(budgetAmount, 0)} (
-                                  {budgetUsagePercent(run.totalMonthlyCost, budgetAmount)}%)
-                                </div>
-                              )}
                             </div>
                             <div className="text-right">
                               <div className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -941,6 +933,67 @@ export function FinOpsMetrics() {
                               </div>
                             </div>
                           </div>
+
+                          {budgetAmount != null && (
+                            <div className="mt-2.5 space-y-1">
+                              <div className="flex items-baseline justify-between gap-2 text-xs">
+                                <span
+                                  className={cn(
+                                    'font-medium tabular-nums',
+                                    budgetCostTextClass(budgetStatus),
+                                  )}
+                                >
+                                  {budgetUsagePercent(run.totalMonthlyCost, budgetAmount)}% of
+                                  budget
+                                </span>
+                                <span className="tabular-nums text-gray-500 dark:text-gray-400">
+                                  {budgetStatus === 'over' ? (
+                                    <span className="font-medium text-red-600 dark:text-red-400">
+                                      {formatCost(
+                                        run.totalMonthlyCost - budgetAmount,
+                                        0,
+                                      )}{' '}
+                                      over
+                                    </span>
+                                  ) : budgetStatus === 'near' ? (
+                                    <>
+                                      {formatCost(budgetAmount, 0)}
+                                      <span className="ml-1 font-medium text-amber-600 dark:text-amber-400">
+                                        near
+                                      </span>
+                                    </>
+                                  ) : (
+                                    formatCost(budgetAmount, 0)
+                                  )}
+                                </span>
+                              </div>
+                              <div
+                                className={cn(
+                                  'h-1.5 w-full overflow-hidden rounded-full',
+                                  budgetBarTrackClass(budgetStatus),
+                                )}
+                                role="progressbar"
+                                aria-valuenow={budgetUsagePercent(
+                                  run.totalMonthlyCost,
+                                  budgetAmount,
+                                )}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-label={`Budget used ${budgetUsagePercent(run.totalMonthlyCost, budgetAmount)} percent`}
+                              >
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-[width] duration-300',
+                                    budgetBarFillClass(budgetStatus),
+                                  )}
+                                  style={{
+                                    width: `${budgetBarWidthPercent(run.totalMonthlyCost, budgetAmount)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
                           {job?.phase === 'running' && (
                             <p className="mt-2 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
                               <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
@@ -1587,6 +1640,7 @@ export function FinOpsMetrics() {
           onClose={() => setHistoryRun(null)}
           analysisRunId={historyRun.id}
           subscriptionName={historyRun.subscriptionName}
+          budget={historyRun.budget}
         />
       )}
 

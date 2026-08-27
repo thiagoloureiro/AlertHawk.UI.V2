@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { LoadingSpinner } from './ui';
 import finopsService, { HistoricalCostDetail } from '../services/finopsService';
@@ -19,6 +20,8 @@ interface Props {
   onClose: () => void;
   analysisRunId: number;
   subscriptionName: string;
+  /** Optional monthly budget in USD; shown as a reference line on the chart. */
+  budget?: number | null;
 }
 
 type Granularity = 'daily' | 'monthly';
@@ -48,6 +51,28 @@ function infraSupportForBucket(periodKey: string, granularity: Granularity): num
   const m = Number(periodKey.slice(5, 7));
   const dim = daysInCalendarMonth(y, m);
   return Math.round((INFRA_SUPPORT_MONTHLY_USD / dim) * 100) / 100;
+}
+
+function getMonthlyBudget(budget: number | null | undefined): number | null {
+  if (budget == null || !Number.isFinite(budget) || budget <= 0) return null;
+  return budget;
+}
+
+/**
+ * Budget reference for the chart: full monthly amount in monthly view;
+ * current-month daily rate (budget / days in month) in daily view.
+ */
+function budgetLineForGranularity(
+  monthlyBudget: number | null,
+  granularity: Granularity,
+): number | null {
+  if (monthlyBudget == null) return null;
+  if (granularity === 'monthly') {
+    return Math.round(monthlyBudget * 100) / 100;
+  }
+  const now = new Date();
+  const dim = daysInCalendarMonth(now.getFullYear(), now.getMonth() + 1);
+  return Math.round((monthlyBudget / dim) * 100) / 100;
 }
 
 function getAppIdLabel(record: HistoricalCostDetail): string {
@@ -241,7 +266,13 @@ const CustomTooltip = ({
   );
 };
 
-export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscriptionName }: Props) {
+export function HistoricalResultsModal({
+  isOpen,
+  onClose,
+  analysisRunId,
+  subscriptionName,
+  budget,
+}: Props) {
   const [records, setRecords] = useState<HistoricalCostDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -251,6 +282,12 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   const [resourceGroupFilter, setResourceGroupFilter] = useState(FILTER_ALL);
   const [serviceTypeFilter, setServiceTypeFilter] = useState(FILTER_ALL);
   const isDarkMode = useIsDarkMode();
+
+  const monthlyBudget = useMemo(() => getMonthlyBudget(budget), [budget]);
+  const budgetLine = useMemo(
+    () => budgetLineForGranularity(monthlyBudget, granularity),
+    [monthlyBudget, granularity],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -373,6 +410,9 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
   const axisTickColor = '#6b7280';
   const peakBarFill = isDarkMode ? PEAK_BAR_DARK : PEAK_BAR_LIGHT;
   const infraBarFill = isDarkMode ? INFRA_BAR_FILL_DARK : INFRA_BAR_FILL_LIGHT;
+  const budgetStroke = isDarkMode ? '#fbbf24' : '#d97706';
+  const avgVsBudget =
+    budgetLine != null && avgCost > 0 ? Math.round((avgCost / budgetLine) * 100) : null;
 
   const filterSummary = [
     appIdFilter !== FILTER_ALL ? `App ID: ${appIdFilter}` : null,
@@ -538,7 +578,7 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
 
           {!isLoading && !error && chartData.length > 0 && (
             <>
-              <div className="grid grid-cols-3 gap-4">
+              <div className={`grid gap-4 ${budgetLine != null ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-3'}`}>
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                     Total (6 mo)
@@ -563,19 +603,48 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                     ${maxCost.toFixed(2)}
                   </p>
                 </div>
+                {budgetLine != null && (
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                      {granularity === 'daily' ? 'Daily budget' : 'Monthly budget'}
+                    </p>
+                    <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                      ${budgetLine.toFixed(2)}
+                    </p>
+                    {monthlyBudget != null && (
+                      <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                        {granularity === 'daily'
+                          ? `from $${monthlyBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo`
+                          : 'subscription budget'}
+                        {avgVsBudget != null ? ` · avg ${avgVsBudget}%` : ''}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                  {filtersActive ? 'Filtered cost' : 'Total cost'} —{' '}
-                  {granularity === 'daily' ? 'Daily' : 'Monthly'} Breakdown (USD)
-                  {applyInfra && (
-                    <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-1">
-                      Includes ${INFRA_SUPPORT_MONTHLY_USD}/month infra support
-                      {granularity === 'daily' ? ', split evenly across calendar days' : ''}.
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {filtersActive ? 'Filtered cost' : 'Total cost'} —{' '}
+                    {granularity === 'daily' ? 'Daily' : 'Monthly'} Breakdown (USD)
+                    {applyInfra && (
+                      <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-1">
+                        Includes ${INFRA_SUPPORT_MONTHLY_USD}/month infra support
+                        {granularity === 'daily' ? ', split evenly across calendar days' : ''}.
+                      </span>
+                    )}
+                  </h3>
+                  {budgetLine != null && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <span
+                        className="h-0.5 w-4 rounded-full border-t-2 border-dotted"
+                        style={{ borderColor: budgetStroke }}
+                      />
+                      {granularity === 'daily' ? 'Daily budget' : 'Monthly budget'}
                     </span>
                   )}
-                </h3>
+                </div>
                 <div className="overflow-x-auto">
                   <div
                     style={{
@@ -620,6 +689,23 @@ export function HistoricalResultsModal({ isOpen, onClose, analysisRunId, subscri
                             />
                           }
                         />
+                        {budgetLine != null && (
+                          <ReferenceLine
+                            y={budgetLine}
+                            stroke={budgetStroke}
+                            strokeDasharray="2 6"
+                            strokeWidth={1.5}
+                            label={{
+                              value:
+                                granularity === 'daily'
+                                  ? `Budget $${budgetLine.toFixed(2)}/day`
+                                  : `Budget $${budgetLine.toFixed(0)}/mo`,
+                              position: 'insideTopLeft',
+                              fill: budgetStroke,
+                              fontSize: 11,
+                            }}
+                          />
+                        )}
                         <Bar
                           dataKey="cloudCost"
                           name="Cloud"
