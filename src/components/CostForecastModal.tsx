@@ -18,6 +18,8 @@ interface Props {
   onClose: () => void;
   analysisRunId: number;
   subscriptionName: string;
+  /** Optional monthly budget in USD; shown as a daily budget reference line. */
+  budget?: number | null;
 }
 
 type ForecastHorizon = 7 | 14 | 30;
@@ -64,6 +66,20 @@ function getTodayDateKey(): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+function daysInCalendarMonth(year: number, month1To12: number): number {
+  return new Date(year, month1To12, 0).getDate();
+}
+
+/** Spread monthly budget evenly across days in the current calendar month. */
+function dailyBudgetFromMonthly(monthlyBudget: number | null | undefined): number | null {
+  if (monthlyBudget == null || !Number.isFinite(monthlyBudget) || monthlyBudget <= 0) {
+    return null;
+  }
+  const now = new Date();
+  const dim = daysInCalendarMonth(now.getFullYear(), now.getMonth() + 1);
+  return Math.round((monthlyBudget / dim) * 100) / 100;
 }
 
 /**
@@ -195,12 +211,22 @@ const CustomTooltip = ({
   );
 };
 
-export function CostForecastModal({ isOpen, onClose, analysisRunId, subscriptionName }: Props) {
+export function CostForecastModal({
+  isOpen,
+  onClose,
+  analysisRunId,
+  subscriptionName,
+  budget,
+}: Props) {
   const [records, setRecords] = useState<HistoricalCostDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<ForecastHorizon>(14);
   const isDarkMode = useIsDarkMode();
+
+  const dailyBudget = useMemo(() => dailyBudgetFromMonthly(budget), [budget]);
+  const monthlyBudget =
+    budget != null && Number.isFinite(budget) && budget > 0 ? budget : null;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -239,7 +265,13 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
   const axisTickColor = '#6b7280';
   const actualStroke = '#0d9488';
   const forecastStroke = isDarkMode ? '#a78bfa' : '#7c3aed';
+  const budgetStroke = isDarkMode ? '#fbbf24' : '#d97706';
   const lastCompleteKey = daily.length ? daily[daily.length - 1].dateKey : null;
+
+  const avgVsBudget =
+    dailyBudget != null && avgDaily > 0
+      ? Math.round((avgDaily / dailyBudget) * 100)
+      : null;
 
   if (!isOpen) return null;
 
@@ -318,7 +350,7 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
 
           {!isLoading && !error && chartData.length > 0 && (
             <>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                     Last complete day (D-1)
@@ -345,6 +377,21 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
                 </div>
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    Daily budget
+                  </p>
+                  <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                    {dailyBudget != null ? `$${dailyBudget.toFixed(2)}` : '—'}
+                  </p>
+                  {monthlyBudget != null && (
+                    <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                      from ${monthlyBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      /mo
+                      {avgVsBudget != null ? ` · avg ${avgVsBudget}%` : ''}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                     Daily trend
                   </p>
                   <p className={`text-xl font-bold ${trendColor}`}>
@@ -362,7 +409,7 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Actual vs forecast — daily cost (USD)
                   </h3>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                     <span className="inline-flex items-center gap-1.5">
                       <span
                         className="h-0.5 w-4 rounded-full"
@@ -377,6 +424,15 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
                       />
                       Forecast
                     </span>
+                    {dailyBudget != null && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className="h-0.5 w-4 rounded-full border-t-2 border-dotted"
+                          style={{ borderColor: budgetStroke }}
+                        />
+                        Daily budget
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -415,6 +471,20 @@ export function CostForecastModal({ isOpen, onClose, analysisRunId, subscription
                               value: 'Last complete',
                               position: 'insideTopRight',
                               fill: axisTickColor,
+                              fontSize: 11,
+                            }}
+                          />
+                        )}
+                        {dailyBudget != null && (
+                          <ReferenceLine
+                            y={dailyBudget}
+                            stroke={budgetStroke}
+                            strokeDasharray="2 6"
+                            strokeWidth={1.5}
+                            label={{
+                              value: `Budget $${dailyBudget.toFixed(2)}/day`,
+                              position: 'insideTopLeft',
+                              fill: budgetStroke,
                               fontSize: 11,
                             }}
                           />

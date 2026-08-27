@@ -32,9 +32,13 @@ import { cn } from '../lib/utils';
 
 type AnalysisMonthSelection = 'current' | 'previous';
 type SubscriptionStatus = 'ready' | 'analyzing' | 'error';
-type SortKey = 'name' | 'cost' | 'status';
+type SortKey = 'name' | 'description' | 'cost' | 'status' | 'budget';
 type ViewMode = 'grid' | 'table';
 type StatusFilter = 'all' | SubscriptionStatus;
+type BudgetStatus = 'none' | 'ok' | 'near' | 'over';
+
+/** Warn when month-to-date cost reaches this share of budget. */
+const BUDGET_NEAR_RATIO = 0.8;
 
 function getCurrentUser(): { id: string; isAdmin?: boolean } | null {
   const stored = localStorage.getItem('userInfo');
@@ -70,8 +74,9 @@ type SubscriptionAnalysisJobUi =
   | { phase: 'running'; label: string }
   | { phase: 'error'; message: string };
 
-type DescriptionEditState = {
-  draft: string;
+type SubscriptionMetaEditState = {
+  descriptionDraft: string;
+  budgetDraft: string;
   saving: boolean;
   error: string | null;
 };
@@ -109,6 +114,51 @@ function formatCost(value: number, fractionDigits = 2): string {
   })}`;
 }
 
+function getBudgetAmount(budget: number | null | undefined): number | null {
+  if (budget == null || !Number.isFinite(budget) || budget <= 0) return null;
+  return budget;
+}
+
+function getBudgetStatus(cost: number, budget: number | null | undefined): BudgetStatus {
+  const b = getBudgetAmount(budget);
+  if (b == null) return 'none';
+  const ratio = cost / b;
+  if (ratio >= 1) return 'over';
+  if (ratio >= BUDGET_NEAR_RATIO) return 'near';
+  return 'ok';
+}
+
+function budgetUsagePercent(cost: number, budget: number): number {
+  return Math.round((cost / budget) * 100);
+}
+
+function budgetBadgeClass(status: BudgetStatus): string {
+  if (status === 'over') {
+    return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800';
+  }
+  if (status === 'near') {
+    return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+  }
+  return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+}
+
+function budgetCostTextClass(status: BudgetStatus): string {
+  if (status === 'over') return 'text-red-600 dark:text-red-400';
+  if (status === 'near') return 'text-amber-600 dark:text-amber-400';
+  return 'text-emerald-600 dark:text-emerald-400';
+}
+
+function parseBudgetDraft(raw: string): { ok: true; value: number | null } | { ok: false; error: string } {
+  const trimmed = raw.trim();
+  if (!trimmed) return { ok: true, value: null };
+  const normalized = trimmed.replace(/,/g, '');
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return { ok: false, error: 'Enter a valid budget amount (0 or greater), or leave blank.' };
+  }
+  return { ok: true, value: Math.round(parsed * 100) / 100 };
+}
+
 export function FinOpsMetrics() {
   const [runs, setRuns] = useState<FinopsAnalysisRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,7 +178,7 @@ export function FinOpsMetrics() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   /** Per-subscription async analysis (POST start-async + poll jobs/{id}). */
   const [analysisJobUi, setAnalysisJobUi] = useState<Record<string, SubscriptionAnalysisJobUi>>({});
-  const [descriptionEditing, setDescriptionEditing] = useState<Record<string, DescriptionEditState>>({});
+  const [metaEditing, setMetaEditing] = useState<Record<string, SubscriptionMetaEditState>>({});
   /** Which subscription is selected for the detail panel. */
   const [activeSubscriptionId, setActiveSubscriptionId] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -182,6 +232,19 @@ export function FinOpsMetrics() {
         return a.subscriptionName.localeCompare(b.subscriptionName, undefined, {
           sensitivity: 'base',
         });
+      }
+      if (sortKey === 'description') {
+        return (
+          mul *
+          (a.description ?? '').localeCompare(b.description ?? '', undefined, {
+            sensitivity: 'base',
+          })
+        );
+      }
+      if (sortKey === 'budget') {
+        const ba = getBudgetAmount(a.budget) ?? -1;
+        const bb = getBudgetAmount(b.budget) ?? -1;
+        return mul * (ba - bb);
       }
       return (
         mul *
@@ -258,9 +321,14 @@ export function FinOpsMetrics() {
     return runs.find((r) => r.subscriptionId === activeSubscriptionId) ?? null;
   }, [runs, activeSubscriptionId]);
 
+  const activeBudgetAmount = activeRun ? getBudgetAmount(activeRun.budget) : null;
+  const activeBudgetStatus = activeRun
+    ? getBudgetStatus(activeRun.totalMonthlyCost, activeRun.budget)
+    : 'none';
+
   const closeSubscriptionDialog = () => {
     if (activeSubscriptionId) {
-      cancelEditDescription(activeSubscriptionId);
+      cancelEditMeta(activeSubscriptionId);
     }
     setActiveSubscriptionId(null);
   };
@@ -383,45 +451,74 @@ export function FinOpsMetrics() {
     }
   };
 
-  const beginEditDescription = (run: FinopsAnalysisRun) => {
-    setDescriptionEditing((prev) => ({
+  const beginEditMeta = (run: FinopsAnalysisRun) => {
+    setMetaEditing((prev) => ({
       ...prev,
       [run.subscriptionId]: {
-        draft: run.description ?? '',
+        descriptionDraft: run.description ?? '',
+        budgetDraft:
+          getBudgetAmount(run.budget) != null ? String(getBudgetAmount(run.budget)) : '',
         saving: false,
         error: null,
       },
     }));
   };
 
-  const cancelEditDescription = (subscriptionId: string) => {
-    setDescriptionEditing((prev) => {
+  const cancelEditMeta = (subscriptionId: string) => {
+    setMetaEditing((prev) => {
       const next = { ...prev };
       delete next[subscriptionId];
       return next;
     });
   };
 
-  const setDescriptionDraft = (subscriptionId: string, value: string) => {
-    setDescriptionEditing((prev) => {
+  const setMetaDescriptionDraft = (subscriptionId: string, value: string) => {
+    setMetaEditing((prev) => {
       const current = prev[subscriptionId];
       if (!current) return prev;
       return {
         ...prev,
         [subscriptionId]: {
           ...current,
-          draft: value.slice(0, 50),
+          descriptionDraft: value.slice(0, 50),
           error: null,
         },
       };
     });
   };
 
-  const saveDescription = async (subscriptionId: string) => {
-    const editState = descriptionEditing[subscriptionId];
+  const setMetaBudgetDraft = (subscriptionId: string, value: string) => {
+    setMetaEditing((prev) => {
+      const current = prev[subscriptionId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [subscriptionId]: {
+          ...current,
+          budgetDraft: value,
+          error: null,
+        },
+      };
+    });
+  };
+
+  const saveMeta = async (subscriptionId: string) => {
+    const editState = metaEditing[subscriptionId];
     if (!editState || editState.saving) return;
 
-    setDescriptionEditing((prev) => ({
+    const budgetParsed = parseBudgetDraft(editState.budgetDraft);
+    if (!budgetParsed.ok) {
+      setMetaEditing((prev) => ({
+        ...prev,
+        [subscriptionId]: {
+          ...prev[subscriptionId],
+          error: budgetParsed.error,
+        },
+      }));
+      return;
+    }
+
+    setMetaEditing((prev) => ({
       ...prev,
       [subscriptionId]: {
         ...prev[subscriptionId],
@@ -431,23 +528,28 @@ export function FinOpsMetrics() {
     }));
 
     try {
-      const trimmedDraft = editState.draft.trim().slice(0, 50);
+      const trimmedDraft = editState.descriptionDraft.trim().slice(0, 50);
       const payloadDescription = trimmedDraft ? trimmedDraft : null;
       await finopsService.createOrUpdateSubscription({
         subscriptionId,
         description: payloadDescription,
+        budget: budgetParsed.value,
       });
 
       setRuns((prev) =>
         prev.map((run) =>
           run.subscriptionId === subscriptionId
-            ? { ...run, description: payloadDescription ?? '' }
+            ? {
+                ...run,
+                description: payloadDescription ?? '',
+                budget: budgetParsed.value,
+              }
             : run
         )
       );
-      cancelEditDescription(subscriptionId);
+      cancelEditMeta(subscriptionId);
     } catch (err) {
-      setDescriptionEditing((prev) => ({
+      setMetaEditing((prev) => ({
         ...prev,
         [subscriptionId]: {
           ...prev[subscriptionId],
@@ -635,8 +737,12 @@ export function FinOpsMetrics() {
                     >
                       <option value="cost:desc">Cost · high to low</option>
                       <option value="cost:asc">Cost · low to high</option>
+                      <option value="budget:desc">Budget · high to low</option>
+                      <option value="budget:asc">Budget · low to high</option>
                       <option value="name:asc">Name · A–Z</option>
                       <option value="name:desc">Name · Z–A</option>
+                      <option value="description:asc">Description · A–Z</option>
+                      <option value="description:desc">Description · Z–A</option>
                       <option value="status:asc">Status · analyzing first</option>
                       <option value="status:desc">Status · ready first</option>
                     </select>
@@ -740,6 +846,8 @@ export function FinOpsMetrics() {
                       const status = getSubscriptionStatus(run.subscriptionId, analysisJobUi);
                       const job = analysisJobUi[run.subscriptionId];
                       const isActive = run.subscriptionId === activeSubscriptionId;
+                      const budgetStatus = getBudgetStatus(run.totalMonthlyCost, run.budget);
+                      const budgetAmount = getBudgetAmount(run.budget);
                       return (
                         <button
                           key={run.id}
@@ -750,7 +858,11 @@ export function FinOpsMetrics() {
                             'rounded-lg border p-3 text-left transition-colors',
                             isActive
                               ? 'border-blue-300 bg-blue-50/80 dark:border-blue-700 dark:bg-blue-950/30'
-                              : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 hover:border-gray-300 dark:hover:border-gray-700',
+                              : budgetStatus === 'over'
+                                ? 'border-red-300 bg-red-50/70 dark:border-red-800 dark:bg-red-950/25 hover:border-red-400 dark:hover:border-red-700'
+                                : budgetStatus === 'near'
+                                  ? 'border-amber-300 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20 hover:border-amber-400 dark:hover:border-amber-700'
+                                  : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 hover:border-gray-300 dark:hover:border-gray-700',
                           )}
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -769,23 +881,56 @@ export function FinOpsMetrics() {
                                 {run.description?.trim() || 'No description'}
                               </p>
                             </div>
-                            <span
-                              className={cn(
-                                'shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
-                                statusBadgeClass(status),
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              <span
+                                className={cn(
+                                  'rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                  statusBadgeClass(status),
+                                )}
+                              >
+                                {statusLabel(status)}
+                              </span>
+                              {budgetStatus === 'over' && (
+                                <span
+                                  className={cn(
+                                    'rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                    budgetBadgeClass('over'),
+                                  )}
+                                >
+                                  Over budget
+                                </span>
                               )}
-                            >
-                              {statusLabel(status)}
-                            </span>
+                              {budgetStatus === 'near' && (
+                                <span
+                                  className={cn(
+                                    'rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                    budgetBadgeClass('near'),
+                                  )}
+                                >
+                                  Near budget
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-end justify-between gap-2">
                             <div>
                               <div className="text-[10px] text-gray-500 dark:text-gray-400">
                                 Month to date
                               </div>
-                              <div className="text-base font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                              <div
+                                className={cn(
+                                  'text-base font-semibold tabular-nums',
+                                  budgetCostTextClass(budgetStatus),
+                                )}
+                              >
                                 {formatCost(run.totalMonthlyCost, 0)}
                               </div>
+                              {budgetAmount != null && (
+                                <div className="mt-0.5 text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
+                                  of {formatCost(budgetAmount, 0)} (
+                                  {budgetUsagePercent(run.totalMonthlyCost, budgetAmount)}%)
+                                </div>
+                              )}
                             </div>
                             <div className="text-right">
                               <div className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -835,6 +980,20 @@ export function FinOpsMetrics() {
                             <th className="px-3 py-2 text-left">
                               <button
                                 type="button"
+                                onClick={() => toggleSort('description')}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                Description
+                                {sortKey === 'description' && (
+                                  <span className="normal-case tracking-normal text-[10px]">
+                                    {sortDir === 'asc' ? '↑' : '↓'}
+                                  </span>
+                                )}
+                              </button>
+                            </th>
+                            <th className="px-3 py-2 text-left">
+                              <button
+                                type="button"
                                 onClick={() => toggleSort('status')}
                                 className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                               >
@@ -860,6 +1019,20 @@ export function FinOpsMetrics() {
                                 )}
                               </button>
                             </th>
+                            <th className="px-3 py-2 text-right">
+                              <button
+                                type="button"
+                                onClick={() => toggleSort('budget')}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                Budget
+                                {sortKey === 'budget' && (
+                                  <span className="normal-case tracking-normal text-[10px]">
+                                    {sortDir === 'asc' ? '↑' : '↓'}
+                                  </span>
+                                )}
+                              </button>
+                            </th>
                             <th className="px-3 py-2 text-right text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
                               Resources
                             </th>
@@ -875,6 +1048,8 @@ export function FinOpsMetrics() {
                               analysisJobUi,
                             );
                             const isActive = run.subscriptionId === activeSubscriptionId;
+                            const budgetStatus = getBudgetStatus(run.totalMonthlyCost, run.budget);
+                            const budgetAmount = getBudgetAmount(run.budget);
                             return (
                               <tr
                                 key={run.id}
@@ -883,7 +1058,11 @@ export function FinOpsMetrics() {
                                   'cursor-pointer transition-colors',
                                   isActive
                                     ? 'bg-blue-50/80 dark:bg-blue-950/30'
-                                    : 'hover:bg-gray-50 dark:hover:bg-gray-900/60',
+                                    : budgetStatus === 'over'
+                                      ? 'bg-red-50/70 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/30'
+                                      : budgetStatus === 'near'
+                                        ? 'bg-amber-50/50 dark:bg-amber-950/15 hover:bg-amber-50 dark:hover:bg-amber-950/25'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-900/60',
                                 )}
                               >
                                 <td className="px-3 py-2.5">
@@ -894,18 +1073,77 @@ export function FinOpsMetrics() {
                                     {run.subscriptionId}
                                   </div>
                                 </td>
-                                <td className="px-3 py-2.5">
-                                  <span
+                                <td className="px-3 py-2.5 max-w-[14rem]">
+                                  <div
                                     className={cn(
-                                      'inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
-                                      statusBadgeClass(status),
+                                      'truncate text-xs',
+                                      run.description?.trim()
+                                        ? 'text-gray-700 dark:text-gray-300'
+                                        : 'italic text-gray-400 dark:text-gray-500',
                                     )}
+                                    title={run.description?.trim() || undefined}
                                   >
-                                    {statusLabel(status)}
-                                  </span>
+                                    {run.description?.trim() || 'No description'}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                <td className="px-3 py-2.5">
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span
+                                      className={cn(
+                                        'inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                        statusBadgeClass(status),
+                                      )}
+                                    >
+                                      {statusLabel(status)}
+                                    </span>
+                                    {budgetStatus === 'over' && (
+                                      <span
+                                        className={cn(
+                                          'inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                          budgetBadgeClass('over'),
+                                        )}
+                                      >
+                                        Over budget
+                                      </span>
+                                    )}
+                                    {budgetStatus === 'near' && (
+                                      <span
+                                        className={cn(
+                                          'inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                                          budgetBadgeClass('near'),
+                                        )}
+                                      >
+                                        Near budget
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td
+                                  className={cn(
+                                    'px-3 py-2.5 text-right font-semibold tabular-nums',
+                                    budgetCostTextClass(budgetStatus),
+                                  )}
+                                >
                                   {formatCost(run.totalMonthlyCost)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                                  {budgetAmount != null ? (
+                                    <div>
+                                      <div>{formatCost(budgetAmount)}</div>
+                                      <div
+                                        className={cn(
+                                          'text-[10px]',
+                                          budgetCostTextClass(budgetStatus),
+                                        )}
+                                      >
+                                        {budgetUsagePercent(run.totalMonthlyCost, budgetAmount)}% used
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs italic text-gray-400 dark:text-gray-500">
+                                      —
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-3 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
                                   {run.totalResourcesAnalyzed.toLocaleString()}
@@ -986,15 +1224,63 @@ export function FinOpsMetrics() {
               </div>
             </div>
 
-            <div className="mb-4 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+            <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div
+                className={cn(
+                  'rounded-lg border p-3',
+                  activeBudgetStatus === 'over'
+                    ? 'border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/20'
+                    : activeBudgetStatus === 'near'
+                      ? 'border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/20'
+                      : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40',
+                )}
+              >
                 <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-                  <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                  <DollarSign
+                    className={cn(
+                      'h-3.5 w-3.5',
+                      activeBudgetStatus === 'over'
+                        ? 'text-red-500'
+                        : activeBudgetStatus === 'near'
+                          ? 'text-amber-500'
+                          : 'text-emerald-500',
+                    )}
+                  />
                   <span className="text-[11px]">Monthly cost (month to date)</span>
                 </div>
-                <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
+                <p
+                  className={cn(
+                    'mt-1.5 text-xl font-semibold tabular-nums',
+                    budgetCostTextClass(activeBudgetStatus),
+                  )}
+                >
                   {formatCost(activeRun.totalMonthlyCost)}
                 </p>
+                {activeBudgetAmount != null && (
+                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    {budgetUsagePercent(activeRun.totalMonthlyCost, activeBudgetAmount)}% of{' '}
+                    {formatCost(activeBudgetAmount)} budget
+                  </p>
+                )}
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                  <DollarSign className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-[11px]">Monthly budget</span>
+                </div>
+                <p className="mt-1.5 text-xl font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {activeBudgetAmount != null ? formatCost(activeBudgetAmount) : '—'}
+                </p>
+                {activeBudgetStatus === 'over' && (
+                  <p className="mt-1 text-[11px] font-medium text-red-600 dark:text-red-400">
+                    Over budget
+                  </p>
+                )}
+                {activeBudgetStatus === 'near' && (
+                  <p className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    Near budget (≥80%)
+                  </p>
+                )}
               </div>
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-3">
                 <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
@@ -1022,13 +1308,13 @@ export function FinOpsMetrics() {
             <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                  Description
+                  Description &amp; budget
                 </h3>
-                {!descriptionEditing[activeRun.subscriptionId] && (
+                {!metaEditing[activeRun.subscriptionId] && (
                   <button
                     type="button"
-                    onClick={() => beginEditDescription(activeRun)}
-                    aria-label="Edit description"
+                    onClick={() => beginEditMeta(activeRun)}
+                    aria-label="Edit description and budget"
                     className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                   >
                     <Pencil className="h-3 w-3" />
@@ -1036,40 +1322,68 @@ export function FinOpsMetrics() {
                   </button>
                 )}
               </div>
-              {!descriptionEditing[activeRun.subscriptionId] && (
-                <p
-                  className={cn(
-                    'mt-1.5 line-clamp-2 text-xs leading-snug',
-                    activeRun.description?.trim()
-                      ? 'text-gray-700 dark:text-gray-300'
-                      : 'italic text-gray-400 dark:text-gray-500',
-                  )}
-                >
-                  {activeRun.description?.trim()
-                    ? activeRun.description
-                    : 'No description yet'}
-                </p>
+              {!metaEditing[activeRun.subscriptionId] && (
+                <div className="mt-1.5 space-y-1.5">
+                  <p
+                    className={cn(
+                      'line-clamp-2 text-xs leading-snug',
+                      activeRun.description?.trim()
+                        ? 'text-gray-700 dark:text-gray-300'
+                        : 'italic text-gray-400 dark:text-gray-500',
+                    )}
+                  >
+                    {activeRun.description?.trim()
+                      ? activeRun.description
+                      : 'No description yet'}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Budget:{' '}
+                    <span className="font-medium tabular-nums text-gray-900 dark:text-white">
+                      {activeBudgetAmount != null ? formatCost(activeBudgetAmount) : 'Not set'}
+                    </span>
+                  </p>
+                </div>
               )}
-              {descriptionEditing[activeRun.subscriptionId] && (
-                <div className="mt-2 space-y-1.5">
-                  <input
-                    type="text"
-                    value={descriptionEditing[activeRun.subscriptionId].draft}
-                    onChange={(e) =>
-                      setDescriptionDraft(activeRun.subscriptionId, e.target.value)
-                    }
-                    placeholder="Max 50 characters"
-                    maxLength={50}
-                    className="w-full max-w-md rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                  />
+              {metaEditing[activeRun.subscriptionId] && (
+                <div className="mt-2 space-y-2">
+                  <label className="block space-y-1">
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">Description</span>
+                    <input
+                      type="text"
+                      value={metaEditing[activeRun.subscriptionId].descriptionDraft}
+                      onChange={(e) =>
+                        setMetaDescriptionDraft(activeRun.subscriptionId, e.target.value)
+                      }
+                      placeholder="Max 50 characters"
+                      maxLength={50}
+                      className="w-full max-w-md rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Monthly budget (USD)
+                    </span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      value={metaEditing[activeRun.subscriptionId].budgetDraft}
+                      onChange={(e) =>
+                        setMetaBudgetDraft(activeRun.subscriptionId, e.target.value)
+                      }
+                      placeholder="Leave blank for no budget"
+                      className="w-full max-w-xs rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    />
+                  </label>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => void saveDescription(activeRun.subscriptionId)}
-                      disabled={descriptionEditing[activeRun.subscriptionId].saving}
+                      onClick={() => void saveMeta(activeRun.subscriptionId)}
+                      disabled={metaEditing[activeRun.subscriptionId].saving}
                       className="inline-flex items-center gap-1 rounded-md border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-60 transition-colors"
                     >
-                      {descriptionEditing[activeRun.subscriptionId].saving ? (
+                      {metaEditing[activeRun.subscriptionId].saving ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         <Check className="h-3 w-3" />
@@ -1078,20 +1392,20 @@ export function FinOpsMetrics() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => cancelEditDescription(activeRun.subscriptionId)}
-                      disabled={descriptionEditing[activeRun.subscriptionId].saving}
+                      onClick={() => cancelEditMeta(activeRun.subscriptionId)}
+                      disabled={metaEditing[activeRun.subscriptionId].saving}
                       className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-60 transition-colors"
                     >
                       <X className="h-3 w-3" />
                       Cancel
                     </button>
                     <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                      {descriptionEditing[activeRun.subscriptionId].draft.length}/50
+                      {metaEditing[activeRun.subscriptionId].descriptionDraft.length}/50
                     </span>
                   </div>
-                  {descriptionEditing[activeRun.subscriptionId].error && (
+                  {metaEditing[activeRun.subscriptionId].error && (
                     <p className="text-[11px] text-red-600 dark:text-red-400">
-                      {descriptionEditing[activeRun.subscriptionId].error}
+                      {metaEditing[activeRun.subscriptionId].error}
                     </p>
                   )}
                 </div>
@@ -1282,6 +1596,7 @@ export function FinOpsMetrics() {
           onClose={() => setForecastRun(null)}
           analysisRunId={forecastRun.id}
           subscriptionName={forecastRun.subscriptionName}
+          budget={forecastRun.budget}
         />
       )}
     </div>

@@ -5,6 +5,8 @@ export interface FinopsAnalysisRun {
   subscriptionId: string;
   subscriptionName: string;
   description: string;
+  /** Optional monthly budget in USD; null/undefined when not set. */
+  budget?: number | null;
   runDate: string;
   totalMonthlyCost: number;
   totalResourcesAnalyzed: number;
@@ -53,6 +55,8 @@ export interface SubscriptionSummary {
 export interface CreateSubscriptionDto {
   subscriptionId: string;
   description?: string | null;
+  /** Optional monthly budget in USD; null clears the budget. */
+  budget?: number | null;
 }
 
 export interface HistoricalCostDetail {
