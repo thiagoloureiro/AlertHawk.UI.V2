@@ -1,5 +1,15 @@
 import { finopsHttp } from './httpClient';
 
+/** Default monthly infra support overlay (USD) when not set per subscription. */
+export const DEFAULT_INFRA_SUPPORT_MONTHLY_USD = 400;
+
+export function resolveInfraSupportCost(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value) || value < 0) {
+    return DEFAULT_INFRA_SUPPORT_MONTHLY_USD;
+  }
+  return value;
+}
+
 export interface FinopsAnalysisRun {
   id: number;
   subscriptionId: string;
@@ -7,6 +17,8 @@ export interface FinopsAnalysisRun {
   description: string;
   /** Optional monthly budget in USD; null/undefined when not set. */
   budget?: number | null;
+  /** Monthly infra support overlay (USD) for historical charts; defaults to 400. */
+  infraSupportCost?: number | null;
   runDate: string;
   totalMonthlyCost: number;
   totalResourcesAnalyzed: number;
@@ -57,6 +69,8 @@ export interface CreateSubscriptionDto {
   description?: string | null;
   /** Optional monthly budget in USD; null clears the budget. */
   budget?: number | null;
+  /** Monthly infra support overlay (USD); defaults to 400 when omitted on create. */
+  infraSupportCost?: number | null;
 }
 
 export interface HistoricalCostDetail {

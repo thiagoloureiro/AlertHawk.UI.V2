@@ -12,7 +12,10 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { LoadingSpinner } from './ui';
-import finopsService, { HistoricalCostDetail } from '../services/finopsService';
+import finopsService, {
+  HistoricalCostDetail,
+  resolveInfraSupportCost,
+} from '../services/finopsService';
 import { deriveServiceTypeLabel, garIdFromTags } from '../utils/finopsCostLabels';
 
 interface Props {
@@ -22,14 +25,13 @@ interface Props {
   subscriptionName: string;
   /** Optional monthly budget in USD; shown as a reference line on the chart. */
   budget?: number | null;
+  /** Monthly infra support overlay (USD); defaults to $400 when not set. */
+  infraSupportMonthlyUsd?: number | null;
 }
 
 type Granularity = 'daily' | 'monthly';
 
 const FILTER_ALL = 'all';
-
-/** Fixed monthly overlay for charts ($400/mo); daily view splits by calendar days in each month. */
-const INFRA_SUPPORT_MONTHLY_USD = 400;
 
 interface ChartPoint {
   label: string;
@@ -42,15 +44,19 @@ function daysInCalendarMonth(year: number, month1To12: number): number {
   return new Date(year, month1To12, 0).getDate();
 }
 
-/** Infra share for one bucket: full $400 per month bar; per-day = 400 / days in that calendar month. */
-function infraSupportForBucket(periodKey: string, granularity: Granularity): number {
+/** Infra share for one bucket: full monthly amount per month bar; per-day = monthly / days in that calendar month. */
+function infraSupportForBucket(
+  periodKey: string,
+  granularity: Granularity,
+  monthlyUsd: number,
+): number {
   if (granularity === 'monthly') {
-    return Math.round(INFRA_SUPPORT_MONTHLY_USD * 100) / 100;
+    return Math.round(monthlyUsd * 100) / 100;
   }
   const y = Number(periodKey.slice(0, 4));
   const m = Number(periodKey.slice(5, 7));
   const dim = daysInCalendarMonth(y, m);
-  return Math.round((INFRA_SUPPORT_MONTHLY_USD / dim) * 100) / 100;
+  return Math.round((monthlyUsd / dim) * 100) / 100;
 }
 
 function getMonthlyBudget(budget: number | null | undefined): number | null {
@@ -272,6 +278,7 @@ export function HistoricalResultsModal({
   analysisRunId,
   subscriptionName,
   budget,
+  infraSupportMonthlyUsd,
 }: Props) {
   const [records, setRecords] = useState<HistoricalCostDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -282,6 +289,11 @@ export function HistoricalResultsModal({
   const [resourceGroupFilter, setResourceGroupFilter] = useState(FILTER_ALL);
   const [serviceTypeFilter, setServiceTypeFilter] = useState(FILTER_ALL);
   const isDarkMode = useIsDarkMode();
+
+  const infraSupportMonthly = useMemo(
+    () => resolveInfraSupportCost(infraSupportMonthlyUsd),
+    [infraSupportMonthlyUsd],
+  );
 
   const monthlyBudget = useMemo(() => getMonthlyBudget(budget), [budget]);
   const budgetLine = useMemo(
@@ -392,11 +404,13 @@ export function HistoricalResultsModal({
   const chartData = useMemo(
     () =>
       baseChartData.map((p) => {
-        const infraSupport = applyInfra ? infraSupportForBucket(p.periodKey, granularity) : 0;
+        const infraSupport = applyInfra
+          ? infraSupportForBucket(p.periodKey, granularity, infraSupportMonthly)
+          : 0;
         const total = p.cloudCost + infraSupport;
         return { ...p, infraSupport, total };
       }),
-    [baseChartData, applyInfra, granularity],
+    [baseChartData, applyInfra, granularity, infraSupportMonthly],
   );
 
   const totalCost = chartData.reduce((s, p) => s + p.total, 0);
@@ -551,7 +565,12 @@ export function HistoricalResultsModal({
                 onChange={(e) => setIncludeInfraSupport(e.target.checked)}
                 className="rounded border-gray-300 dark:border-gray-600 text-teal-600 focus:ring-teal-500"
               />
-              <span>Infra support costs (${INFRA_SUPPORT_MONTHLY_USD}/mo, proportional per day)</span>
+              <span>
+                Infra support costs (${infraSupportMonthly.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })}/mo, proportional per day)
+              </span>
             </label>
           </div>
 
@@ -630,7 +649,10 @@ export function HistoricalResultsModal({
                     {granularity === 'daily' ? 'Daily' : 'Monthly'} Breakdown (USD)
                     {applyInfra && (
                       <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-1">
-                        Includes ${INFRA_SUPPORT_MONTHLY_USD}/month infra support
+                        Includes ${infraSupportMonthly.toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}/month infra support
                         {granularity === 'daily' ? ', split evenly across calendar days' : ''}.
                       </span>
                     )}

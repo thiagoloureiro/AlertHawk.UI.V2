@@ -21,7 +21,11 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
-import finopsService, { FinopsAnalysisRun } from '../services/finopsService';
+import finopsService, {
+  FinopsAnalysisRun,
+  DEFAULT_INFRA_SUPPORT_MONTHLY_USD,
+  resolveInfraSupportCost,
+} from '../services/finopsService';
 import userService from '../services/userService';
 import { CostDetailsModal } from '../components/CostDetailsModal';
 import { AiRecommendationsModal } from '../components/AiRecommendationsModal';
@@ -77,6 +81,7 @@ type SubscriptionAnalysisJobUi =
 type SubscriptionMetaEditState = {
   descriptionDraft: string;
   budgetDraft: string;
+  infraSupportDraft: string;
   saving: boolean;
   error: string | null;
 };
@@ -174,6 +179,18 @@ function parseBudgetDraft(raw: string): { ok: true; value: number | null } | { o
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed) || parsed < 0) {
     return { ok: false, error: 'Enter a valid budget amount (0 or greater), or leave blank.' };
+  }
+  return { ok: true, value: Math.round(parsed * 100) / 100 };
+}
+
+function parseInfraSupportDraft(
+  raw: string,
+): { ok: true; value: number } | { ok: false; error: string } {
+  const trimmed = raw.trim();
+  const normalized = (trimmed || String(DEFAULT_INFRA_SUPPORT_MONTHLY_USD)).replace(/,/g, '');
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return { ok: false, error: 'Enter a valid infra support amount (0 or greater).' };
   }
   return { ok: true, value: Math.round(parsed * 100) / 100 };
 }
@@ -341,6 +358,9 @@ export function FinOpsMetrics() {
   }, [runs, activeSubscriptionId]);
 
   const activeBudgetAmount = activeRun ? getBudgetAmount(activeRun.budget) : null;
+  const activeInfraSupportAmount = activeRun
+    ? resolveInfraSupportCost(activeRun.infraSupportCost)
+    : DEFAULT_INFRA_SUPPORT_MONTHLY_USD;
   const activeBudgetStatus = activeRun
     ? getBudgetStatus(activeRun.totalMonthlyCost, activeRun.budget)
     : 'none';
@@ -477,6 +497,7 @@ export function FinOpsMetrics() {
         descriptionDraft: run.description ?? '',
         budgetDraft:
           getBudgetAmount(run.budget) != null ? String(getBudgetAmount(run.budget)) : '',
+        infraSupportDraft: String(resolveInfraSupportCost(run.infraSupportCost)),
         saving: false,
         error: null,
       },
@@ -521,6 +542,21 @@ export function FinOpsMetrics() {
     });
   };
 
+  const setMetaInfraSupportDraft = (subscriptionId: string, value: string) => {
+    setMetaEditing((prev) => {
+      const current = prev[subscriptionId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [subscriptionId]: {
+          ...current,
+          infraSupportDraft: value,
+          error: null,
+        },
+      };
+    });
+  };
+
   const saveMeta = async (subscriptionId: string) => {
     const editState = metaEditing[subscriptionId];
     if (!editState || editState.saving) return;
@@ -532,6 +568,18 @@ export function FinOpsMetrics() {
         [subscriptionId]: {
           ...prev[subscriptionId],
           error: budgetParsed.error,
+        },
+      }));
+      return;
+    }
+
+    const infraParsed = parseInfraSupportDraft(editState.infraSupportDraft);
+    if (!infraParsed.ok) {
+      setMetaEditing((prev) => ({
+        ...prev,
+        [subscriptionId]: {
+          ...prev[subscriptionId],
+          error: infraParsed.error,
         },
       }));
       return;
@@ -553,6 +601,7 @@ export function FinOpsMetrics() {
         subscriptionId,
         description: payloadDescription,
         budget: budgetParsed.value,
+        infraSupportCost: infraParsed.value,
       });
 
       setRuns((prev) =>
@@ -562,6 +611,7 @@ export function FinOpsMetrics() {
                 ...run,
                 description: payloadDescription ?? '',
                 budget: budgetParsed.value,
+                infraSupportCost: infraParsed.value,
               }
             : run
         )
@@ -1361,13 +1411,13 @@ export function FinOpsMetrics() {
             <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                  Description &amp; budget
+                  Description, budget &amp; infra support
                 </h3>
                 {!metaEditing[activeRun.subscriptionId] && (
                   <button
                     type="button"
                     onClick={() => beginEditMeta(activeRun)}
-                    aria-label="Edit description and budget"
+                    aria-label="Edit description, budget, and infra support"
                     className="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                   >
                     <Pencil className="h-3 w-3" />
@@ -1393,6 +1443,12 @@ export function FinOpsMetrics() {
                     Budget:{' '}
                     <span className="font-medium tabular-nums text-gray-900 dark:text-white">
                       {activeBudgetAmount != null ? formatCost(activeBudgetAmount) : 'Not set'}
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Infra support:{' '}
+                    <span className="font-medium tabular-nums text-gray-900 dark:text-white">
+                      {formatCost(activeInfraSupportAmount, 0)}/mo
                     </span>
                   </p>
                 </div>
@@ -1426,6 +1482,23 @@ export function FinOpsMetrics() {
                         setMetaBudgetDraft(activeRun.subscriptionId, e.target.value)
                       }
                       placeholder="Leave blank for no budget"
+                      className="w-full max-w-xs rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Infra support (USD / month)
+                    </span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      value={metaEditing[activeRun.subscriptionId].infraSupportDraft}
+                      onChange={(e) =>
+                        setMetaInfraSupportDraft(activeRun.subscriptionId, e.target.value)
+                      }
+                      placeholder={String(DEFAULT_INFRA_SUPPORT_MONTHLY_USD)}
                       className="w-full max-w-xs rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-1.5 text-xs text-gray-900 dark:text-white outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                     />
                   </label>
@@ -1641,6 +1714,7 @@ export function FinOpsMetrics() {
           analysisRunId={historyRun.id}
           subscriptionName={historyRun.subscriptionName}
           budget={historyRun.budget}
+          infraSupportMonthlyUsd={historyRun.infraSupportCost}
         />
       )}
 
