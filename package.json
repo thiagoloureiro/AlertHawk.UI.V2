@@ -12,7 +12,7 @@
   "dependencies": {
     "@azure/msal-browser": "^5.19.0",
     "@azure/msal-react": "^5.6.0",
-    "@sentry/react": "^10.70.0",
+    "@sentry/react": "^10.71.0",
     "axios": "^1.19.0",
     "lucide-react": "^1.33.0",
     "markdown-it": "^15.0.0",
