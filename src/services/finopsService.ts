@@ -64,6 +64,12 @@ export interface SubscriptionSummary {
   description?: string | null;
 }
 
+export interface FinopsAnalysisSettings {
+  costQueryType: 'ActualCost' | 'AmortizedCost' | string;
+  costQueryTypeLabel: string;
+  costQueryTypeDescription: string;
+}
+
 export interface CreateSubscriptionDto {
   subscriptionId: string;
   description?: string | null;
@@ -143,6 +149,16 @@ class FinopsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch FinOps analysis runs:', error);
+      throw error;
+    }
+  }
+
+  async getAnalysisSettings(): Promise<FinopsAnalysisSettings> {
+    try {
+      const response = await finopsHttp.get<FinopsAnalysisSettings>('/api/Analysis/settings');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch FinOps analysis settings:', error);
       throw error;
     }
   }

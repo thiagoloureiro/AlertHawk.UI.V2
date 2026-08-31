@@ -23,6 +23,7 @@ import {
 import { LoadingSpinner } from '../components/ui';
 import finopsService, {
   FinopsAnalysisRun,
+  FinopsAnalysisSettings,
   DEFAULT_INFRA_SUPPORT_MONTHLY_USD,
   resolveInfraSupportCost,
 } from '../services/finopsService';
@@ -215,6 +216,7 @@ export function FinOpsMetrics() {
   /** Per-subscription async analysis (POST start-async + poll jobs/{id}). */
   const [analysisJobUi, setAnalysisJobUi] = useState<Record<string, SubscriptionAnalysisJobUi>>({});
   const [metaEditing, setMetaEditing] = useState<Record<string, SubscriptionMetaEditState>>({});
+  const [analysisSettings, setAnalysisSettings] = useState<FinopsAnalysisSettings | null>(null);
   /** Which subscription is selected for the detail panel. */
   const [activeSubscriptionId, setActiveSubscriptionId] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -384,9 +386,10 @@ export function FinOpsMetrics() {
       setError(null);
 
       const user = getCurrentUser();
-      const [latestRuns, userSubs] = await Promise.all([
+      const [latestRuns, userSubs, settings] = await Promise.all([
         finopsService.getLatestPerSubscription(),
-        user?.id ? userService.getUserSubscriptions(user.id) : Promise.resolve([])
+        user?.id ? userService.getUserSubscriptions(user.id) : Promise.resolve([]),
+        finopsService.getAnalysisSettings().catch(() => null),
       ]);
 
       const allowedIds = new Set(userSubs.map(s => s.subscriptionId));
@@ -397,6 +400,9 @@ export function FinOpsMetrics() {
 
       setAssignedSubscriptionCount(user?.id ? userSubs.length : 0);
       setRuns(visible);
+      if (settings) {
+        setAnalysisSettings(settings);
+      }
     } catch (err) {
       console.error('Failed to load FinOps metrics:', err);
       setError('Failed to load FinOps metrics. Please try again.');
@@ -676,6 +682,16 @@ export function FinOpsMetrics() {
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Latest analysis run per subscription
+              {analysisSettings && (
+                <span
+                  className="text-gray-400 dark:text-gray-500"
+                  title={analysisSettings.costQueryTypeDescription}
+                >
+                  {' · '}
+                  Costs: {analysisSettings.costQueryTypeLabel}
+                  {analysisSettings.costQueryType === 'ActualCost' ? ' (invoice)' : ''}
+                </span>
+              )}
               {runs.length > 0 && (
                 <span className="text-gray-400 dark:text-gray-500">
                   {' · '}
@@ -733,6 +749,14 @@ export function FinOpsMetrics() {
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
                 <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
                   Total month-to-date cost
+                  {analysisSettings && (
+                    <span
+                      className="ml-1 normal-case tracking-normal text-gray-400 dark:text-gray-500"
+                      title={analysisSettings.costQueryTypeDescription}
+                    >
+                      ({analysisSettings.costQueryTypeLabel.toLowerCase()})
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-semibold tabular-nums text-gray-900 dark:text-white">

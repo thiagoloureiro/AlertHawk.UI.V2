@@ -14,6 +14,20 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "FinOps Cost Type & Infra Support Settings",
+    description: "FinOps Metrics now reflects how costs are calculated (actual vs amortized), lets you configure infra support overlay per subscription, and runs analysis more reliably under Azure rate limits.",
+    date: "August 31st, 2026",
+    features: [
+      "FinOps Metrics header and detail panel show the active cost type: Actual (invoice) or Amortized (reservation/savings plan spread)",
+      "Cost type is a global FinOps API setting (Azure__CostQueryType); hover the label for a short explanation",
+      "Re-run analysis after switching cost type so MTD and historical data match the new mode",
+      "Configurable infra support cost per subscription (default $400/month), edited alongside description and budget",
+      "Historical Results charts use each subscription's infra support value for the overlay instead of a fixed $400",
+      "AI recommendations now include budget utilization when a monthly budget is set on the subscription",
+      "Improved Azure Cost Management rate-limit handling: serialized cost queries, longer backoff on HTTP 429, and one async analysis job at a time per FinOps API instance"
+    ]
+  },
+  {
     title: "FinOps Subscription Budgets",
     description: "Set a monthly budget per subscription, track spend against it on FinOps Metrics, and see budget reference lines on Historical Results and Forecast charts.",
     date: "August 27th, 2026",
