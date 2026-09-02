@@ -235,10 +235,15 @@ function groupServiceDetails(details: DisplayCostDetail[]): GroupedServiceDetail
     .sort((a, b) => b.cost - a.cost);
 }
 
+/** Prefer Service rows so App ID is not double-counted against ResourceGroup totals. */
 function groupAppIdDetails(details: DisplayCostDetail[]): GroupedAppIdDetail[] {
+  const services = details.filter((d) => d.costType === 'Service');
+  const source =
+    services.length > 0 ? services : details.filter((d) => d.costType === 'ResourceGroup');
+
   const grouped = new Map<string, GroupedAppIdDetail>();
 
-  for (const detail of details) {
+  for (const detail of source) {
     const garId = detail.garId.trim();
     const label = garId || 'Unassigned';
     const existing = grouped.get(label);
