@@ -76,12 +76,45 @@ export function deriveServiceTypeLabel(rawName: string | null | undefined): stri
   return trimmed;
 }
 
-/** Application ID from Azure-style tags.GAR_ID. */
+/** Application ID from Azure-style tags.GAR_ID (case-insensitive). */
 export function garIdFromTags(
   tags?: Record<string, string | null | undefined> | null,
 ): string {
+  return tagValueIgnoreCase(tags, 'GAR_ID');
+}
+
+/** Application description from Azure-style tags.APPLICATION (case-insensitive). */
+export function applicationFromTags(
+  tags?: Record<string, string | null | undefined> | null,
+): string {
+  const raw = tagValueIgnoreCase(tags, 'APPLICATION');
+  if (raw === '<varies>') return '';
+  return raw;
+}
+
+/**
+ * Display label: `GAR_ID (Application)` when both exist.
+ * Falls back to GAR_ID, `Unassigned (Application)`, or Unassigned.
+ */
+export function formatAppIdDisplay(garId: string, application = ''): string {
+  const id = garId.trim();
+  const app = application.trim();
+  if (id && app) return `${id} (${app})`;
+  if (id) return id;
+  if (app) return `Unassigned (${app})`;
+  return 'Unassigned';
+}
+
+function tagValueIgnoreCase(
+  tags: Record<string, string | null | undefined> | null | undefined,
+  key: string,
+): string {
   if (!tags) return '';
-  const raw = tags.GAR_ID ?? tags.gar_id;
-  if (raw == null || typeof raw !== 'string') return '';
-  return raw.trim();
+  const want = key.toLowerCase();
+  for (const [k, v] of Object.entries(tags)) {
+    if (k.toLowerCase() !== want) continue;
+    if (v == null || typeof v !== 'string') return '';
+    return v.trim();
+  }
+  return '';
 }

@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { LoadingSpinner } from './ui';
 import finopsService, { CostDetail, HistoricalCostDetail } from '../services/finopsService';
-import { deriveServiceTypeLabel, garIdFromTags } from '../utils/finopsCostLabels';
+import { deriveServiceTypeLabel, garIdFromTags, applicationFromTags, formatAppIdDisplay } from '../utils/finopsCostLabels';
 
 const CHART_COLORS = [
   '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
@@ -35,6 +35,8 @@ type DisplayCostDetail = {
   resourceGroup: string | null;
   /** Application ID from tags.GAR_ID (empty if missing). */
   garId: string;
+  /** Application description from tags.APPLICATION (empty if missing). */
+  application: string;
   cost: number;
   recordedAt: string;
 };
@@ -44,7 +46,7 @@ type GroupedResourceGroupDetail = {
   costType: 'ResourceGroup';
   name: string;
   resourceGroup: string;
-  /** Distinct tags.GAR_ID values underlying this grouped row. */
+  /** Distinct tags.GAR_ID values underlying this grouped row, shown as GAR_ID (Application). */
   garIdLabel: string;
   /** Full sorted list for tooltips (may be long). */
   garIdTooltip: string;
@@ -98,12 +100,29 @@ function getCurrentMonthKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-/** Distinct GAR_ID values from merged rows; comma-separated, truncated when many. */
-function formatMergedGarIds(ids: Set<string>): string {
-  const sorted = [...ids].filter(Boolean).sort();
-  if (sorted.length === 0) return '—';
-  if (sorted.length <= 4) return sorted.join(', ');
-  return `${sorted.slice(0, 4).join(', ')} (+${sorted.length - 4})`;
+/** Distinct GAR_ID (Application) labels from merged rows; comma-separated, truncated when many. */
+function formatMergedAppIds(appsByGarId: Map<string, Set<string>>): { label: string; tooltip: string } {
+  const labels = [...appsByGarId.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, apps]) =>
+      formatAppIdDisplay(id, [...apps].filter(Boolean).sort((a, b) => a.localeCompare(b)).join(', ')),
+    );
+  if (labels.length === 0) return { label: '—', tooltip: 'No GAR_ID on merged rows' };
+  const tooltip = labels.join(', ');
+  if (labels.length <= 4) return { label: tooltip, tooltip };
+  return { label: `${labels.slice(0, 4).join(', ')} (+${labels.length - 4})`, tooltip };
+}
+
+function addAppTag(map: Map<string, Set<string>>, garId: string, application: string) {
+  const id = garId.trim();
+  if (!id) return;
+  let apps = map.get(id);
+  if (!apps) {
+    apps = new Set();
+    map.set(id, apps);
+  }
+  const app = application.trim();
+  if (app) apps.add(app);
 }
 
 function normalizeCurrentCostDetails(details: CostDetail[]): DisplayCostDetail[] {
@@ -113,6 +132,7 @@ function normalizeCurrentCostDetails(details: CostDetail[]): DisplayCostDetail[]
     name: detail.name,
     resourceGroup: detail.resourceGroup,
     garId: garIdFromTags(detail.tags),
+    application: applicationFromTags(detail.tags),
     cost: detail.cost,
     recordedAt: detail.recordedAt,
   }));
@@ -130,6 +150,7 @@ function normalizeHistoricalCostDetails(details: HistoricalCostDetail[]): Record
       name: detail.name,
       resourceGroup: detail.resourceGroup,
       garId: garIdFromTags(detail.tags),
+      application: applicationFromTags(detail.tags),
       cost: detail.cost,
       recordedAt: detail.costDate || detail.recordedAt,
     });
@@ -142,7 +163,9 @@ function getResourceGroupLabel(detail: Pick<DisplayCostDetail, 'name' | 'resourc
 }
 
 function groupResourceGroupDetails(details: DisplayCostDetail[]): GroupedResourceGroupDetail[] {
-  type Acc = Omit<GroupedResourceGroupDetail, 'garIdLabel' | 'garIdTooltip'> & { garIdSet: Set<string> };
+  type Acc = Omit<GroupedResourceGroupDetail, 'garIdLabel' | 'garIdTooltip'> & {
+    appsByGarId: Map<string, Set<string>>;
+  };
   const grouped = new Map<string, Acc>();
 
   for (const detail of details) {
@@ -150,45 +173,46 @@ function groupResourceGroupDetails(details: DisplayCostDetail[]): GroupedResourc
 
     const resourceGroup = getResourceGroupLabel(detail);
     const existing = grouped.get(resourceGroup);
-    const g = detail.garId.trim();
 
     if (existing) {
       existing.cost += detail.cost;
-      if (g) existing.garIdSet.add(g);
+      addAppTag(existing.appsByGarId, detail.garId, detail.application);
       if (new Date(detail.recordedAt).getTime() > new Date(existing.recordedAt).getTime()) {
         existing.recordedAt = detail.recordedAt;
       }
       continue;
     }
 
-    const garIdSet = new Set<string>();
-    if (g) garIdSet.add(g);
+    const appsByGarId = new Map<string, Set<string>>();
+    addAppTag(appsByGarId, detail.garId, detail.application);
 
     grouped.set(resourceGroup, {
       id: detail.id,
       costType: 'ResourceGroup',
       name: resourceGroup,
       resourceGroup,
-      garIdSet,
+      appsByGarId,
       cost: detail.cost,
       recordedAt: detail.recordedAt,
     });
   }
 
   return [...grouped.values()]
-    .map(({ garIdSet, ...rest }) => {
-      const distinct = [...garIdSet].filter(Boolean).sort();
+    .map(({ appsByGarId, ...rest }) => {
+      const formatted = formatMergedAppIds(appsByGarId);
       return {
         ...rest,
-        garIdLabel: formatMergedGarIds(garIdSet),
-        garIdTooltip: distinct.length > 0 ? distinct.join(', ') : 'No GAR_ID on merged rows',
+        garIdLabel: formatted.label,
+        garIdTooltip: formatted.tooltip,
       };
     })
     .sort((a, b) => b.cost - a.cost);
 }
 
 function groupServiceDetails(details: DisplayCostDetail[]): GroupedServiceDetail[] {
-  type Acc = Omit<GroupedServiceDetail, 'garIdLabel' | 'garIdTooltip'> & { garIdSet: Set<string> };
+  type Acc = Omit<GroupedServiceDetail, 'garIdLabel' | 'garIdTooltip'> & {
+    appsByGarId: Map<string, Set<string>>;
+  };
   const grouped = new Map<string, Acc>();
 
   for (const detail of details) {
@@ -198,38 +222,37 @@ function groupServiceDetails(details: DisplayCostDetail[]): GroupedServiceDetail
     const resourceGroup = detail.resourceGroup?.trim() || '—';
     const groupKey = `${name}__${resourceGroup}`;
     const existing = grouped.get(groupKey);
-    const g = detail.garId.trim();
 
     if (existing) {
       existing.cost += detail.cost;
-      if (g) existing.garIdSet.add(g);
+      addAppTag(existing.appsByGarId, detail.garId, detail.application);
       if (new Date(detail.recordedAt).getTime() > new Date(existing.recordedAt).getTime()) {
         existing.recordedAt = detail.recordedAt;
       }
       continue;
     }
 
-    const garIdSet = new Set<string>();
-    if (g) garIdSet.add(g);
+    const appsByGarId = new Map<string, Set<string>>();
+    addAppTag(appsByGarId, detail.garId, detail.application);
 
     grouped.set(groupKey, {
       id: detail.id,
       costType: 'Service',
       name,
       resourceGroup,
-      garIdSet,
+      appsByGarId,
       cost: detail.cost,
       recordedAt: detail.recordedAt,
     });
   }
 
   return [...grouped.values()]
-    .map(({ garIdSet, ...rest }) => {
-      const distinct = [...garIdSet].filter(Boolean).sort();
+    .map(({ appsByGarId, ...rest }) => {
+      const formatted = formatMergedAppIds(appsByGarId);
       return {
         ...rest,
-        garIdLabel: formatMergedGarIds(garIdSet),
-        garIdTooltip: distinct.length > 0 ? distinct.join(', ') : 'No GAR_ID on merged rows',
+        garIdLabel: formatted.label,
+        garIdTooltip: formatted.tooltip,
       };
     })
     .sort((a, b) => b.cost - a.cost);
@@ -241,32 +264,47 @@ function groupAppIdDetails(details: DisplayCostDetail[]): GroupedAppIdDetail[] {
   const source =
     services.length > 0 ? services : details.filter((d) => d.costType === 'ResourceGroup');
 
-  const grouped = new Map<string, GroupedAppIdDetail>();
+  type Acc = GroupedAppIdDetail & { applications: Set<string> };
+  const grouped = new Map<string, Acc>();
 
   for (const detail of source) {
     const garId = detail.garId.trim();
-    const label = garId || 'Unassigned';
-    const existing = grouped.get(label);
+    const key = garId || 'Unassigned';
+    const existing = grouped.get(key);
+    const application = detail.application.trim();
 
     if (existing) {
       existing.cost += detail.cost;
+      if (application) existing.applications.add(application);
       if (new Date(detail.recordedAt).getTime() > new Date(existing.recordedAt).getTime()) {
         existing.recordedAt = detail.recordedAt;
       }
       continue;
     }
 
-    grouped.set(label, {
+    const applications = new Set<string>();
+    if (application) applications.add(application);
+
+    grouped.set(key, {
       id: detail.id,
       costType: 'AppId',
-      name: label,
+      name: formatAppIdDisplay(garId, application),
       garId,
       cost: detail.cost,
       recordedAt: detail.recordedAt,
+      applications,
     });
   }
 
-  return [...grouped.values()].sort((a, b) => b.cost - a.cost);
+  return [...grouped.values()]
+    .map(({ applications, ...rest }) => ({
+      ...rest,
+      name: formatAppIdDisplay(
+        rest.garId,
+        [...applications].sort((a, b) => a.localeCompare(b)).join(', '),
+      ),
+    }))
+    .sort((a, b) => b.cost - a.cost);
 }
 
 function CostPieChart({
@@ -576,7 +614,7 @@ export function CostDetailsModal({
       {
         key: 'app',
         tabLabel: 'App ID',
-        title: 'Cost by App ID (GAR_ID)',
+        title: 'Cost by App ID',
         icon: <Tag className="w-4 h-4 text-violet-500" />,
         data: appIdData,
       },
@@ -771,7 +809,7 @@ export function CostDetailsModal({
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="min-w-[160px] flex-1">
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      {tableView === 'AppId' ? 'App ID (GAR_ID)' : 'Name'}
+                      {tableView === 'AppId' ? 'App ID' : 'Name'}
                     </label>
                     <input
                       type="text"
@@ -781,7 +819,7 @@ export function CostDetailsModal({
                         tableView === 'ResourceGroup'
                           ? 'Filter by resource group or App ID…'
                           : tableView === 'AppId'
-                            ? 'Filter by App ID (GAR_ID)…'
+                            ? 'Filter by App ID or name…'
                             : 'Filter by service or App ID…'
                       }
                       className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400"
@@ -808,13 +846,13 @@ export function CostDetailsModal({
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800 text-left">
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">
-                        {tableView === 'AppId' ? 'App ID (GAR_ID)' : 'Name'}
+                        {tableView === 'AppId' ? 'App ID' : 'Name'}
                       </th>
                       {tableView === 'Service' && (
                         <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Resource Group</th>
                       )}
                       {(tableView === 'ResourceGroup' || tableView === 'Service') && (
-                        <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">App ID (GAR_ID)</th>
+                        <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">App ID</th>
                       )}
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Type</th>
                       <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">
@@ -846,7 +884,7 @@ export function CostDetailsModal({
                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                           {d.costType === 'ResourceGroup' ? d.resourceGroup ?? 'N/A' : d.name ?? 'N/A'}
                         </td>
-                        {tableView === 'Service' && (
+                        {tableView === 'Service' && 'resourceGroup' in d && (
                           <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                             {d.resourceGroup ?? '—'}
                           </td>

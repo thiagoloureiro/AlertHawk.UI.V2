@@ -16,7 +16,7 @@ import finopsService, {
   HistoricalCostDetail,
   resolveInfraSupportCost,
 } from '../services/finopsService';
-import { deriveServiceTypeLabel, garIdFromTags } from '../utils/finopsCostLabels';
+import { deriveServiceTypeLabel, garIdFromTags, applicationFromTags, formatAppIdDisplay } from '../utils/finopsCostLabels';
 
 interface Props {
   isOpen: boolean;
@@ -81,7 +81,7 @@ function budgetLineForGranularity(
   return Math.round((monthlyBudget / dim) * 100) / 100;
 }
 
-function getAppIdLabel(record: HistoricalCostDetail): string {
+function getAppIdKey(record: HistoricalCostDetail): string {
   return garIdFromTags(record.tags) || 'Unassigned';
 }
 
@@ -116,7 +116,7 @@ function matchesFilters(
   resourceGroup: string,
   serviceType: string,
 ): boolean {
-  if (appId !== FILTER_ALL && getAppIdLabel(record) !== appId) return false;
+  if (appId !== FILTER_ALL && getAppIdKey(record) !== appId) return false;
   if (resourceGroup !== FILTER_ALL && getResourceGroupLabel(record) !== resourceGroup) return false;
   if (serviceType !== FILTER_ALL && getServiceTypeLabel(record) !== serviceType) return false;
   return true;
@@ -339,7 +339,26 @@ export function HistoricalResultsModal({
     const rows = detailRowsInWindow.filter((r) =>
       matchesFilters(r, FILTER_ALL, resourceGroupFilter, serviceTypeFilter),
     );
-    return uniqueSorted(rows.map(getAppIdLabel));
+    const appsById = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const id = getAppIdKey(row);
+      let apps = appsById.get(id);
+      if (!apps) {
+        apps = new Set();
+        appsById.set(id, apps);
+      }
+      const application = applicationFromTags(row.tags);
+      if (application) apps.add(application);
+    }
+    return [...appsById.entries()]
+      .map(([value, apps]) => ({
+        value,
+        label: formatAppIdDisplay(
+          value === 'Unassigned' ? '' : value,
+          [...apps].sort((a, b) => a.localeCompare(b)).join(', '),
+        ),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [detailRowsInWindow, resourceGroupFilter, serviceTypeFilter]);
 
   const resourceGroupOptions = useMemo(() => {
@@ -358,7 +377,7 @@ export function HistoricalResultsModal({
 
   // Keep selected values valid when cascading options shrink.
   useEffect(() => {
-    if (appIdFilter !== FILTER_ALL && !appIdOptions.includes(appIdFilter)) {
+    if (appIdFilter !== FILTER_ALL && !appIdOptions.some((opt) => opt.value === appIdFilter)) {
       setAppIdFilter(FILTER_ALL);
     }
   }, [appIdFilter, appIdOptions]);
@@ -428,8 +447,11 @@ export function HistoricalResultsModal({
   const avgVsBudget =
     budgetLine != null && avgCost > 0 ? Math.round((avgCost / budgetLine) * 100) : null;
 
+  const appIdFilterLabel =
+    appIdOptions.find((opt) => opt.value === appIdFilter)?.label ?? appIdFilter;
+
   const filterSummary = [
-    appIdFilter !== FILTER_ALL ? `App ID: ${appIdFilter}` : null,
+    appIdFilter !== FILTER_ALL ? `App ID: ${appIdFilterLabel}` : null,
     resourceGroupFilter !== FILTER_ALL ? `RG: ${resourceGroupFilter}` : null,
     serviceTypeFilter !== FILTER_ALL ? `Service: ${serviceTypeFilter}` : null,
   ]
@@ -481,9 +503,9 @@ export function HistoricalResultsModal({
                   className={selectClassName}
                 >
                   <option value={FILTER_ALL}>All</option>
-                  {appIdOptions.map((id) => (
-                    <option key={id} value={id}>
-                      {id}
+                  {appIdOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
                     </option>
                   ))}
                 </select>
