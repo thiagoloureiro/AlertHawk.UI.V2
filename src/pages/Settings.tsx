@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Save, Trash2, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, Copy, Save, Smartphone, Trash2 } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
 import { useMsal } from '@azure/msal-react';
 import { authHttp } from '../services/httpClient';
@@ -29,7 +29,22 @@ export function Settings() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [mobileCode, setMobileCode] = useState<string | null>(null);
+  const [mobileCodeExpiresAt, setMobileCodeExpiresAt] = useState<string | null>(null);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  const [mobileCodeError, setMobileCodeError] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const { accounts, instance } = useMsal();
+
+  useEffect(() => {
+    if (!mobileCodeExpiresAt) {
+      return;
+    }
+
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [mobileCodeExpiresAt]);
 
   // Get all available timezones (fallback to static list if not supported)
   const hasSupportedValuesOf = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf !== undefined;
@@ -42,6 +57,58 @@ export function Settings() {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
   };
+
+  const handleGenerateMobileCode = async () => {
+    setIsGeneratingCode(true);
+    setMobileCodeError(null);
+    setCodeCopied(false);
+    try {
+      const response = await authHttp.post<{ code: string; expiresAt: string }>('/api/auth/mobileCode');
+      setMobileCode(response.data.code);
+      setMobileCodeExpiresAt(response.data.expiresAt);
+      setNow(Date.now());
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { content?: string; message?: string } } };
+      setMobileCode(null);
+      setMobileCodeExpiresAt(null);
+      setMobileCodeError(
+        error?.response?.data?.content ||
+          error?.response?.data?.message ||
+          'Failed to generate a sign-in code.'
+      );
+    } finally {
+      setIsGeneratingCode(false);
+    }
+  };
+
+  const handleCopyMobileCode = async () => {
+    if (!mobileCode) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(mobileCode);
+      setCodeCopied(true);
+    } catch {
+      setMobileCodeError('Could not copy the code. Select it and copy it manually.');
+    }
+  };
+
+  const mobileCodeRemaining = (() => {
+    if (!mobileCodeExpiresAt) {
+      return null;
+    }
+
+    const remainingMs = new Date(mobileCodeExpiresAt).getTime() - now;
+    if (remainingMs <= 0) {
+      return 'Expired';
+    }
+
+    const totalSeconds = Math.floor(remainingMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  })();
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -144,6 +211,61 @@ export function Settings() {
               </span>
             )}
           </div>
+        </div>
+
+        <div className="dark:bg-gray-800 bg-white rounded-lg shadow-xs p-6 mt-6">
+          <h2 className="text-lg font-medium dark:text-white text-gray-900 mb-2">Mobile app</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Generate a one-time code and enter it in the AlertHawk mobile app. It signs the app in as you, the same way Microsoft sign-in does, and expires after 10 minutes.
+          </p>
+
+          {mobileCode && (
+            <div className="mb-4 rounded-lg border dark:border-gray-700 border-gray-200 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-3xl tracking-[0.2em] dark:text-white text-gray-900">
+                  {mobileCode}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCopyMobileCode}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg dark:bg-gray-700 bg-gray-100 dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  {codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {codeCopied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className={`mt-3 text-sm ${mobileCodeRemaining === 'Expired' ? 'text-red-500' : 'dark:text-gray-400 text-gray-600'}`}>
+                {mobileCodeRemaining === 'Expired'
+                  ? 'This code has expired. Generate a new one.'
+                  : `Expires in ${mobileCodeRemaining}`}
+              </p>
+            </div>
+          )}
+
+          {mobileCodeError && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
+              {mobileCodeError}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleGenerateMobileCode}
+            disabled={isGeneratingCode}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50"
+          >
+            {isGeneratingCode ? (
+              <>
+                <LoadingSpinner size="sm" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Smartphone className="w-4 h-4" />
+                {mobileCode ? 'Generate a new code' : 'Generate sign-in code'}
+              </>
+            )}
+          </button>
         </div>
 
         {/* App Version Section */}
