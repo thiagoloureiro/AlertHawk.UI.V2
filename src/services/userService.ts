@@ -5,6 +5,7 @@ export interface UserListItem {
   username: string;
   email: string;
   isAdmin: boolean;
+  lastLogon?: string | null;
 }
 
 export interface UserGroup {

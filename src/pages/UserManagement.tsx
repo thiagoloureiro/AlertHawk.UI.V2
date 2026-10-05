@@ -7,6 +7,7 @@ import monitorService, { MonitorGroup } from '../services/monitorService';
 import metricsService from '../services/metricsService';
 import { toast } from 'react-hot-toast';
 import { Switch } from '../components/ui/switch';
+import { formatApiDateTimeInUserLocale } from '../utils/dateUtils';
 
 export function UserManagement() {
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -283,6 +284,9 @@ export function UserManagement() {
                     <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
                       Role
                     </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      Last access
+                    </th>
                     <th className="w-28 px-4 py-2.5" />
                   </tr>
                 </thead>
@@ -342,6 +346,9 @@ export function UserManagement() {
                             </span>
                           </span>
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                        {user.lastLogon ? formatApiDateTimeInUserLocale(user.lastLogon) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-0.5">
