@@ -10,8 +10,8 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@azure/msal-browser": "^5.25.1",
-    "@azure/msal-react": "^5.7.2",
+    "@azure/msal-browser": "^5.26.0",
+    "@azure/msal-react": "^5.7.3",
     "@sentry/react": "^11.8.0",
     "axios": "^1.20.0",
     "lucide-react": "^1.61.0",
