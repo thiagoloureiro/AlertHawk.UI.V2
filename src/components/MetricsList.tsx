@@ -16,6 +16,7 @@ interface MetricsListProps {
   onSelectMetric: (metric: Monitor | null, group?: MonitorGroup) => void;
   refreshTrigger?: number;
   updatedMonitor?: { monitor: Monitor; timestamp: number } | null;
+  removedMonitorId?: number | null;
   onEnvironmentChange?: (environmentId: number) => void;
 }
 
@@ -192,7 +193,7 @@ const setStoredEnvironment = (environment: number): void => {
   }
 };
 
-export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger = 0, updatedMonitor, onEnvironmentChange }: MetricsListProps) {
+export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger = 0, updatedMonitor, removedMonitorId, onEnvironmentChange }: MetricsListProps) {
   const [groups, setGroups] = useState<MonitorGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<MonitorGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -247,6 +248,16 @@ export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger = 0
       updateMonitorInGroups(updatedMonitor.monitor);
     }
   }, [updatedMonitor?.timestamp, updateMonitorInGroups, updatedMonitor?.monitor]);
+
+  useEffect(() => {
+    if (!removedMonitorId) return;
+    setGroups((prevGroups) => prevGroups
+      .map((group) => ({
+        ...group,
+        monitors: group.monitors.filter((monitor) => monitor.id !== removedMonitorId),
+      }))
+      .filter((group) => group.monitors.length > 0));
+  }, [removedMonitorId]);
 
   useEffect(() => {
     fetchGroups();

@@ -14,6 +14,7 @@ export function Dashboard() {
   const [expiringMonitors, setExpiringMonitors] = useState<Monitor[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [updatedMonitor, setUpdatedMonitor] = useState<{ monitor: Monitor; timestamp: number } | null>(null);
+  const [removedMonitorId, setRemovedMonitorId] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
 
   const handleMetricSelect = (metric: Monitor | null, group?: MonitorGroup) => {
@@ -79,6 +80,7 @@ export function Dashboard() {
           onSelectMetric={handleMetricSelect}
           refreshTrigger={refreshTrigger}
           updatedMonitor={updatedMonitor}
+          removedMonitorId={removedMonitorId}
           onEnvironmentChange={() => {
             // Clear selected metric and group when environment changes
             setSelectedMetric(null);
@@ -99,6 +101,11 @@ export function Dashboard() {
             setTimeout(() => setUpdatedMonitor(null), 100);
           }}
           onMonitorsChanged={() => setRefreshTrigger((value) => value + 1)}
+          onMonitorDeleted={(monitorId) => {
+            setSelectedMetric(null);
+            setSelectedGroup(undefined);
+            setRemovedMonitorId(monitorId);
+          }}
         />
       </div>
       

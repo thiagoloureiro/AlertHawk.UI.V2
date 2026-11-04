@@ -12,7 +12,7 @@ import {
 import { LoadingSpinner } from './ui';
 import { cn } from '../lib/utils';
 import { getLocalDateFromUTC, formatCompactDate } from '../utils/dateUtils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import monitorService from '../services/monitorService';
 import { AddMonitorModal } from './AddMonitorModal';
@@ -37,6 +37,7 @@ interface MetricDetailsProps {
   group?: MonitorGroup;
   onMetricUpdate?: (updatedMetric: Monitor) => void;
   onMonitorsChanged?: () => void;
+  onMonitorDeleted?: (monitorId: number) => void;
 }
 
 interface TimePeriod {
@@ -673,7 +674,8 @@ const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
   );
 };
 
-export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged }: MetricDetailsProps) {
+export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged, onMonitorDeleted }: MetricDetailsProps) {
+  const navigate = useNavigate();
   // Local state to track the current metric (allows optimistic updates)
   const [currentMetric, setCurrentMetric] = useState<Monitor | null>(metric);
   
@@ -966,13 +968,16 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
     
     setIsDeleting(true);
     try {
-      const success = await monitorService.deleteMonitor(currentMetric.id);
+      const deletedId = currentMetric.id;
+      const success = await monitorService.deleteMonitor(deletedId);
       if (success) {
         toast.success('Monitor deleted successfully', { position: 'bottom-right' });
-        // Refresh dashboard data with current environment
-        await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
-        // Force a full page refresh to update all data
-        window.location.href = '/dashboard';
+        setShowDeleteConfirm(false);
+        if (onMonitorDeleted) {
+          onMonitorDeleted(deletedId);
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         toast.error('Failed to delete monitor', { position: 'bottom-right' });
       }
@@ -980,7 +985,6 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
       toast.error('Failed to delete monitor', { position: 'bottom-right' });
     } finally {
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
 
