@@ -41,7 +41,7 @@ export function Layout({ children, theme, onThemeChange }: LayoutProps) {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex h-screen bg-[#f2f1ee] dark:bg-[#121316]">
       {!isKioskMode && (
         <Sidebar 
           isCollapsed={isSidebarCollapsed} 

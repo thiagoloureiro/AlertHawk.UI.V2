@@ -196,8 +196,8 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
   ];
 
   return (
-    <header className="h-14 px-4 lg:px-5 flex items-center justify-between gap-4
-                    border-b border-gray-200/80 dark:border-gray-800
+    <header className="h-12 px-4 lg:px-5 flex items-center justify-between gap-4
+                    border-b border-gray-200 dark:border-gray-800
                     bg-white dark:bg-gray-950
                     transition-colors duration-200 relative z-[9999]">
       {/* Brand */}
@@ -205,13 +205,13 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
         <img 
           src="../assets/logo.png" 
           alt="AlertHawk" 
-          className="w-8 h-8 object-contain shrink-0"
+          className="w-6 h-6 object-contain shrink-0"
         />
-        <div className="flex items-baseline gap-2 min-w-0">
-          <span className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+        <div className="flex items-baseline gap-2.5 min-w-0">
+          <span className="font-display text-[1.35rem] leading-none text-gray-900 dark:text-white">
             AlertHawk
           </span>
-          <span className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase ring-1 ring-inset ${envInfo.className}`}>
+          <span className={`hidden sm:inline-flex items-center hud-label px-1.5 py-0.5 ring-1 ring-inset ${envInfo.className}`}>
             {envInfo.name}
           </span>
         </div>
@@ -233,8 +233,8 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
           </div>
         ) : (
           <div className="inline-flex items-center gap-1 sm:gap-0
-                          rounded-lg bg-gray-50 dark:bg-gray-900
-                          ring-1 ring-inset ring-gray-200/80 dark:ring-gray-800
+                          bg-gray-50 dark:bg-gray-900
+                          ring-1 ring-inset ring-gray-200 dark:ring-gray-800
                           px-1 py-1">
             <StatusStat tone="online" count={monitorStatus.online} label="Online" />
             <div className="hidden sm:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
@@ -258,7 +258,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
         <div ref={themeMenuRef} className="relative z-[10000]">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className="p-2 rounded-md text-gray-500 dark:text-gray-400
+            className="p-2 text-gray-500 dark:text-gray-400
                      hover:bg-gray-100 dark:hover:bg-gray-800
                      hover:text-gray-700 dark:hover:text-gray-200
                      transition-colors"
@@ -270,7 +270,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
           {showThemeMenu && (
             <div className="absolute top-full right-0 mt-1.5 w-48 py-1
                             bg-white dark:bg-gray-900
-                            rounded-lg shadow-lg
+                            shadow-lg
                             ring-1 ring-gray-200 dark:ring-gray-800
                             z-[10000]">
               {themes.map((t) => (
@@ -298,7 +298,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
         <div ref={menuRef} className="relative z-[10000]">
           <button 
             onClick={() => setShowUserMenu(!showUserMenu)} 
-            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md
+            className="flex items-center gap-2 pl-1 pr-2 py-1
                      hover:bg-gray-100 dark:hover:bg-gray-800
                      transition-colors"
           >
@@ -322,7 +322,7 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
           {showUserMenu && (
             <div className="absolute top-full right-0 mt-1.5 w-56 py-1
                             bg-white dark:bg-gray-900
-                            rounded-lg shadow-lg
+                            shadow-lg
                             ring-1 ring-gray-200 dark:ring-gray-800
                             z-[10000] overflow-hidden">
               <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
@@ -397,10 +397,10 @@ function StatusStat({
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1 min-w-[4.5rem]">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-      <span className={`text-sm font-semibold tabular-nums leading-none ${value}`}>
+      <span className={`text-sm font-semibold tabular-nums leading-none font-mono ${value}`}>
         {count}
       </span>
-      <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-none hidden sm:inline">
+      <span className="hud-label text-gray-500 dark:text-gray-400 leading-none hidden sm:inline">
         {label}
       </span>
     </div>

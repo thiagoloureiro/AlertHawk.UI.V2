@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from '../auth/msalConfig';
 import axios from 'axios';
@@ -211,271 +211,198 @@ export function Login({ onLogin }: LoginProps) {
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 dark:bg-gray-900 bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 transition-colors duration-500 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#5CD4E2]/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
-      </div>
+  const fieldClass = (invalid: boolean) =>
+    `w-full bg-transparent border px-3 py-2.5 text-sm outline-none transition-colors
+     text-gray-900 dark:text-[#f2f1ee] placeholder:text-gray-400
+     ${invalid
+       ? 'border-red-500 focus:border-red-500'
+       : 'border-gray-300 dark:border-white/20 focus:border-gray-900 dark:focus:border-[#f2f1ee]'}`;
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Login Card with Glassmorphism */}
-        <div className="backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 p-6 md:p-8 transform transition-all duration-500 hover:shadow-3xl">
-          {/* Logo and Title */}
-          <div className="flex flex-col items-center mb-6 animate-fade-in">
-            <div className="relative mb-4">
-              <div className="absolute inset-0 bg-[#5CD4E2]/20 rounded-full blur-xl animate-pulse"></div>
-              <img 
-                src="../assets/logo.png" 
-                alt="AlertHawk Logo" 
-                className="w-20 h-20 md:w-24 md:h-24 object-contain relative z-10 transform transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold dark:text-white text-gray-900 mb-1 bg-gradient-to-r from-[#5CD4E2] to-blue-600 bg-clip-text text-transparent">
-              AlertHawk
-            </h1>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-[#5CD4E2] animate-pulse" />
-              <p className="text-base md:text-lg dark:text-gray-300 text-gray-700 font-medium">
-                Keep an eye on your infrastructure
-              </p>
-            </div>
-            <p className="text-xs dark:text-gray-400 text-gray-600 text-center max-w-sm leading-relaxed">
-              AlertHawk is a self-hosted monitoring tool that allows you keep track of service uptime, alerts, infrastructure metrics and more.
-            </p>
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-[#f2f1ee]">
+      <header className="h-12 border-b border-gray-200 dark:border-white/15 flex items-center px-4 sm:px-5">
+        <img src="/assets/logo.png" alt="" className="h-7 w-7 object-contain bg-black" />
+        <span className="font-display ml-2.5 text-[1.35rem] leading-none">AlertHawk</span>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md border border-gray-200 dark:border-white/15 bg-white dark:bg-[#101014]">
+          <div className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/15 px-6 py-3">
+            <p className="hud-label text-gray-500 dark:text-gray-400">Sign in</p>
+            <p className="hud-label text-gray-400 dark:text-gray-500">01 / Access</p>
           </div>
 
-          {/* Error Message */}
-          {error?.field === 'general' && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 flex items-center gap-2 animate-slide-down shadow-lg">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm font-medium">{error.message}</span>
+          <div className="px-6 py-8 md:px-8">
+            <div className="mb-6 flex flex-col items-center text-center">
+              <img
+                src="/assets/logo.png"
+                alt=""
+                className="h-28 w-28 object-contain bg-black"
+              />
+              <h1 className="font-display mt-4 text-4xl leading-none text-gray-900 dark:text-[#f2f1ee]">
+                AlertHawk
+              </h1>
             </div>
-          )}
+            <p className="font-display text-2xl leading-[1.05] text-gray-900 dark:text-[#f2f1ee]">
+              Keep an eye <span className="font-serif italic font-normal text-gray-500 dark:text-gray-400">on it.</span>
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              Self-hosted monitoring for uptime, alerts, and infrastructure metrics.
+            </p>
 
-          {/* Login Form */}
-          <form onSubmit={handleStandardLogin} className="space-y-4 mb-5">
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-sm font-semibold dark:text-gray-300 text-gray-700">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
-                  <Mail className="w-5 h-5" />
-                </div>
+            {error?.field === 'general' && (
+              <div className="mt-5 border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-200 px-3 py-2.5 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span className="text-sm">{error.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleStandardLogin} className="mt-6 space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="hud-label text-gray-500 dark:text-gray-400">
+                  Email
+                </label>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full pl-12 pr-4 py-2.5 rounded-xl dark:bg-gray-700/50 bg-white/90 border-2 
-                           ${error?.field === 'email' 
-                             ? 'border-red-500 dark:border-red-500 focus:border-red-500' 
-                             : 'dark:border-gray-600 border-gray-200 focus:border-[#5CD4E2]'} 
-                           dark:text-white text-gray-900 focus:ring-2 focus:ring-[#5CD4E2]/20 
-                           dark:focus:ring-[#5CD4E2]/30 transition-all duration-200 outline-none
-                           placeholder:text-gray-400 dark:placeholder:text-gray-500`}
+                  className={fieldClass(error?.field === 'email')}
                   placeholder="you@example.com"
                   disabled={isLoading}
                 />
+                {error?.field === 'email' && (
+                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4" />
+                    {error.message}
+                  </p>
+                )}
               </div>
-              {error?.field === 'email' && (
-                <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5 animate-slide-down">
-                  <AlertCircle className="w-4 h-4" />
-                  {error.message}
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-sm font-semibold dark:text-gray-300 text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
-                  <Lock className="w-5 h-5" />
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="hud-label text-gray-500 dark:text-gray-400">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${fieldClass(error?.field === 'password')} pr-10`}
+                    placeholder="Enter your password"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-900 dark:hover:text-[#f2f1ee]"
+                    disabled={isLoading}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pl-12 pr-12 py-2.5 rounded-xl dark:bg-gray-700/50 bg-white/90 border-2 
-                           ${error?.field === 'password' 
-                             ? 'border-red-500 dark:border-red-500 focus:border-red-500' 
-                             : 'dark:border-gray-600 border-gray-200 focus:border-[#5CD4E2]'} 
-                           dark:text-white text-gray-900 focus:ring-2 focus:ring-[#5CD4E2]/20 
-                           dark:focus:ring-[#5CD4E2]/30 transition-all duration-200 outline-none
-                           placeholder:text-gray-400 dark:placeholder:text-gray-500`}
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 dark:text-gray-400 text-gray-500 
-                           hover:text-[#5CD4E2] dark:hover:text-[#5CD4E2] transition-colors duration-200 
-                           p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  disabled={isLoading}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                {error?.field === 'password' && (
+                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4" />
+                    {error.message}
+                  </p>
+                )}
               </div>
-              {error?.field === 'password' && (
-                <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5 animate-slide-down">
-                  <AlertCircle className="w-4 h-4" />
-                  {error.message}
-                </p>
-              )}
-            </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 
-                       hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base
-                       focus:ring-4 focus:ring-blue-500/30 focus:ring-offset-2 dark:focus:ring-offset-gray-800
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 
-                       transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl
-                       flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="hud-label !font-bold w-full h-12 bg-[#101014] text-[#f2f1ee] dark:bg-[#f2f1ee] dark:text-[#101014]
+                         hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity
+                         flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Signing in</span>
+                  </>
+                ) : (
+                  <span>Sign in</span>
+                )}
+              </button>
+            </form>
 
-          {/* Links */}
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 text-sm gap-2">
-            <span className="dark:text-gray-400 text-gray-600">
-              Don't have an account?{' '}
-              <button 
-                onClick={() => setShowRegister(true)} 
-                className="text-[#5CD4E2] hover:text-[#4BC3D1] font-semibold hover:underline transition-colors duration-200"
+            <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+              <button
+                type="button"
+                onClick={() => setShowRegister(true)}
+                className="text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-white/30 underline-offset-4 hover:text-gray-900 dark:hover:text-[#f2f1ee]"
               >
                 Register
               </button>
-            </span>
-            <button 
-              onClick={() => setShowForgotPassword(true)}
-              className="text-[#5CD4E2] hover:text-[#4BC3D1] font-semibold hover:underline transition-colors duration-200"
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-white/30 underline-offset-4 hover:text-gray-900 dark:hover:text-[#f2f1ee]"
+              >
+                Forgot password
+              </button>
+            </div>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200 dark:border-white/15" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="hud-label bg-white dark:bg-[#101014] px-3 text-gray-400">
+                  Or
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleMicrosoftLogin}
+              disabled={isLoading}
+              className="hud-label !font-bold w-full h-12 border border-gray-900 dark:border-[#f2f1ee] bg-transparent
+                       text-gray-900 dark:text-[#f2f1ee] hover:bg-[#101014] hover:text-[#f2f1ee]
+                       dark:hover:bg-[#f2f1ee] dark:hover:text-[#101014]
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors
+                       flex items-center justify-center gap-2.5"
             >
-              Forgot Password?
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Connecting</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
+                    <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
+                    <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
+                    <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
+                  </svg>
+                  <span>Microsoft SSO</span>
+                </>
+              )}
             </button>
           </div>
-
-          {/* Divider */}
-          <div className="relative mb-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t dark:border-gray-700 border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 dark:bg-gray-800/80 bg-white/80 dark:text-gray-400 text-gray-500 font-medium">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* Microsoft Login Button */}
-          <button
-            onClick={handleMicrosoftLogin}
-            disabled={isLoading}
-            className="w-full px-6 py-2.5 rounded-xl bg-[#2F2F2F] hover:bg-[#404040] text-white font-semibold
-                     flex items-center justify-center gap-3 focus:ring-4 focus:ring-[#2F2F2F]/30 
-                     focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 
-                     disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] 
-                     active:scale-[0.98] shadow-lg hover:shadow-xl border border-gray-600/50"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Connecting...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
-                  <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
-                  <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
-                  <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
-                </svg>
-                <span>Login with SSO (Microsoft)</span>
-              </>
-            )}
-          </button>
-
-          {/* Footer */}
-          <p className="text-center mt-5 text-xs dark:text-gray-500 text-gray-500">
-            AlertHawk © 2025
-          </p>
         </div>
-      </div>
+      </main>
 
-      {/* Add the RegisterModal */}
+      <footer className="border-t border-gray-200 dark:border-white/15 px-5 py-3 flex items-center justify-between">
+        <p className="hud-label text-gray-400">AlertHawk</p>
+        <p className="hud-label text-gray-400">Monitoring</p>
+      </footer>
+
       {showRegister && (
-        <RegisterModal 
-          onClose={() => setShowRegister(false)} 
+        <RegisterModal
+          onClose={() => setShowRegister(false)}
           onLogin={onLogin}
         />
       )}
 
-      {/* Add the ForgotPasswordModal */}
       {showForgotPassword && (
         <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
       )}
-
-      <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateY(-5px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-        }
-        
-        .animate-slide-down {
-          animation: slide-down 0.3s ease-out;
-        }
-        
-        .delay-1000 {
-          animation-delay: 1s;
-        }
-        
-        .delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
     </div>
   );
 }

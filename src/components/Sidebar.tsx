@@ -71,11 +71,11 @@ const ADMIN_ITEMS: NavItem[] = [
 
 const itemButtonClass = (isActive: boolean, isCollapsed: boolean) =>
   cn(
-    'group relative flex items-center rounded-md text-[13px] font-medium transition-colors',
+    'group relative flex items-center text-[13px] font-medium transition-colors',
     isCollapsed ? 'justify-center px-0 py-2 mx-auto w-10' : 'gap-2.5 px-2.5 py-2 w-full',
     isActive
-      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
+      ? 'bg-[#101014] text-[#f2f1ee] dark:bg-[#f2f1ee] dark:text-[#101014]'
+      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-100'
   );
 
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
@@ -156,12 +156,6 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
       >
         {({ isActive }) => (
           <>
-            {isActive && (
-              <span
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full bg-blue-500"
-                aria-hidden
-              />
-            )}
             <Icon
               className={cn(
                 'w-4 h-4 shrink-0',
@@ -197,7 +191,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           type="button"
           onClick={toggleSidebar}
           className={cn(
-            'flex items-center rounded-md text-gray-500 dark:text-gray-400',
+            'flex items-center text-gray-500 dark:text-gray-400',
             'hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-800 dark:hover:text-gray-200',
             'transition-colors',
             isCollapsed ? 'justify-center w-10 h-9 mx-auto' : 'w-full gap-2 px-2.5 py-1.5'
@@ -210,7 +204,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft className="w-4 h-4" />
-              <span className="text-xs font-medium">Collapse</span>
+              <span className="hud-label">Collapse</span>
             </>
           )}
         </button>
@@ -221,7 +215,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
         {sections.map((section) => (
           <div key={section.id}>
             {!isCollapsed && (
-              <div className="px-2.5 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <div className="hud-label px-2.5 mb-1 text-gray-400 dark:text-gray-500">
                 {section.label}
               </div>
             )}

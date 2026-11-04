@@ -77,11 +77,12 @@ export function StatusDashboard() {
     <div className="min-h-screen dark:bg-gray-900 bg-gray-50 p-6 flex flex-col">
       <div className="max-w-7xl mx-auto w-full flex-1">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold dark:text-white text-gray-900 mb-2">
-            System Status
+        <div className="mb-8 border-b border-gray-200 dark:border-gray-700 pb-6">
+          <p className="hud-label text-gray-400 mb-3">Uptime</p>
+          <h1 className="font-display text-4xl sm:text-5xl leading-[1.02] dark:text-white text-gray-900">
+            System <span className="font-serif italic font-normal text-gray-500 dark:text-gray-400">status</span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="mt-3 text-gray-600 dark:text-gray-400">
             Last {hours} hours uptime report for all services
           </p>
         </div>
