@@ -199,6 +199,18 @@ export class MonitorService {
     return response.data;
   }
 
+  async getMonitorNames(): Promise<{ id: number; name: string }[]> {
+    const response = await monitoringHttp.get<Array<{ id?: number; Id?: number; name?: string; Name?: string }>>(
+      '/api/Monitor/monitorList'
+    );
+    return (response.data ?? [])
+      .map((item) => ({
+        id: Number(item.id ?? item.Id ?? 0),
+        name: String(item.name ?? item.Name ?? '').trim(),
+      }))
+      .filter((item) => item.id > 0 && item.name.length > 0);
+  }
+
   async getMonitorAgents(): Promise<MonitorAgent[]> {
     const response = await monitoringHttp.get<MonitorAgent[]>(`/api/Monitor/allMonitorAgents`);
     return response.data;
@@ -338,6 +350,20 @@ export class MonitorService {
       console.error('Failed to clone monitor:', error);
       return false;
     }
+  }
+
+  async saveBulkMonitor(
+    action: 'create' | 'update',
+    kind: 'http' | 'tcp' | 'k8s',
+    payload: Record<string, unknown>
+  ): Promise<void> {
+    const path = kind === 'k8s'
+      ? action === 'update' ? '/api/Monitor/updateMonitorK8s' : '/api/Monitor/createMonitorK8s'
+      : kind === 'tcp'
+        ? action === 'update' ? '/api/Monitor/updateMonitorTcp' : '/api/Monitor/CreateMonitorTcp'
+        : action === 'update' ? '/api/Monitor/updateMonitorHttp' : '/api/Monitor/CreateMonitorHttp';
+
+    await monitoringHttp.post(path, payload);
   }
 
   async createMonitorK8s(payload: MonitorK8sPayload): Promise<void> {

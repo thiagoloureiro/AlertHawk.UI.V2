@@ -98,6 +98,7 @@ export function Dashboard() {
             // Clear after a brief moment to allow the update to process
             setTimeout(() => setUpdatedMonitor(null), 100);
           }}
+          onMonitorsChanged={() => setRefreshTrigger((value) => value + 1)}
         />
       </div>
       

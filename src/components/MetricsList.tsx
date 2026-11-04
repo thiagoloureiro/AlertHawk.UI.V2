@@ -192,7 +192,7 @@ const setStoredEnvironment = (environment: number): void => {
   }
 };
 
-export function MetricsList({ selectedMetric, onSelectMetric, updatedMonitor, onEnvironmentChange }: MetricsListProps) {
+export function MetricsList({ selectedMetric, onSelectMetric, refreshTrigger = 0, updatedMonitor, onEnvironmentChange }: MetricsListProps) {
   const [groups, setGroups] = useState<MonitorGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<MonitorGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -250,7 +250,7 @@ export function MetricsList({ selectedMetric, onSelectMetric, updatedMonitor, on
 
   useEffect(() => {
     fetchGroups();
-  }, [fetchGroups]);
+  }, [fetchGroups, refreshTrigger]);
 
   useEffect(() => {
     const filtered = groups
@@ -665,6 +665,10 @@ export function MetricsList({ selectedMetric, onSelectMetric, updatedMonitor, on
               console.error('Failed to create monitor:', error);
             }
           }}
+          onBulkApplied={async () => {
+            const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
+            setGroups(updatedGroups);
+          }}
         />
       )}
 
@@ -707,6 +711,10 @@ export function MetricsList({ selectedMetric, onSelectMetric, updatedMonitor, on
           }}
           existingMonitor={monitorToEdit}
           isEditing={true}
+          onBulkApplied={async () => {
+            const updatedGroups = await monitorService.getDashboardGroups(selectedEnvironment);
+            setGroups(updatedGroups);
+          }}
         />
       )}
 

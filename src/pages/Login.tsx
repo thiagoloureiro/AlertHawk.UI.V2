@@ -221,7 +221,7 @@ export function Login({ onLogin }: LoginProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-[#f2f1ee]">
       <header className="h-12 border-b border-gray-200 dark:border-white/15 flex items-center px-4 sm:px-5">
-        <img src="/assets/logo.png" alt="" className="h-7 w-7 object-contain bg-black" />
+        <img src="/assets/logo.png" alt="" className="h-7 w-7 object-contain" />
         <span className="font-display ml-2.5 text-[1.35rem] leading-none">AlertHawk</span>
       </header>
 
@@ -237,7 +237,7 @@ export function Login({ onLogin }: LoginProps) {
               <img
                 src="/assets/logo.png"
                 alt=""
-                className="h-28 w-28 object-contain bg-black"
+                className="h-28 w-28 object-contain"
               />
               <h1 className="font-display mt-4 text-4xl leading-none text-gray-900 dark:text-[#f2f1ee]">
                 AlertHawk

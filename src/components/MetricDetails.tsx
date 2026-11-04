@@ -36,6 +36,7 @@ interface MetricDetailsProps {
   metric: Monitor | null;
   group?: MonitorGroup;
   onMetricUpdate?: (updatedMetric: Monitor) => void;
+  onMonitorsChanged?: () => void;
 }
 
 interface TimePeriod {
@@ -672,7 +673,7 @@ const KubernetesNodeInfo = ({ node }: { node: MonitorK8sNode }) => {
   );
 };
 
-export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsProps) {
+export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged }: MetricDetailsProps) {
   // Local state to track the current metric (allows optimistic updates)
   const [currentMetric, setCurrentMetric] = useState<Monitor | null>(metric);
   
@@ -1653,6 +1654,22 @@ export function MetricDetails({ metric, group, onMetricUpdate }: MetricDetailsPr
           }}
           existingMonitor={monitorToEdit || currentMetric}
           isEditing={true}
+          onBulkApplied={async () => {
+            onMonitorsChanged?.();
+            if (!currentMetric) return;
+            try {
+              const refreshedGroups = await monitorService.getDashboardGroups(currentMetric.monitorEnvironment);
+              const refreshed = refreshedGroups
+                .flatMap((item) => item.monitors)
+                .find((item) => item.id === currentMetric.id);
+              if (refreshed) {
+                setCurrentMetric(refreshed);
+                onMetricUpdate?.(refreshed);
+              }
+            } catch (error) {
+              console.error('Failed to refresh monitor data:', error);
+            }
+          }}
         />
       )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Globe, Network, Plus, Server, Check } from 'lucide-react';
+import { X, Globe, Network, Plus, Server, Check, Maximize2, Minimize2 } from 'lucide-react';
 import { LoadingSpinner } from './ui';
+import { BulkMonitorImport } from './BulkMonitorImport';
 import { Select, Switch, Textarea } from './ui';
 import monitorService, { MonitorRegion } from '../services/monitorService';
 import type { UpdateMonitorHttpPayload, UpdateMonitorTcpPayload } from '../services/monitorService';
@@ -11,6 +12,7 @@ interface AddMonitorModalProps {
   onClose: () => void;
   onAdd: (monitor: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload | any) => Promise<void>;
   onUpdate?: (monitor: UpdateMonitorHttpPayload | UpdateMonitorTcpPayload | any) => Promise<void>;
+  onBulkApplied?: () => Promise<void> | void;
   existingMonitor?: Monitor;
   isEditing?: boolean;
 }
@@ -39,8 +41,21 @@ const monitorTypes = [
 const inputClass =
   'w-full px-3 py-2 border dark:bg-gray-700 dark:border-gray-600 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none';
 
-export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isEditing }: AddMonitorModalProps) {
+function currentUserIsAdmin(): boolean {
+  try {
+    const stored = localStorage.getItem('userInfo');
+    if (!stored) return false;
+    return JSON.parse(stored).isAdmin === true;
+  } catch {
+    return false;
+  }
+}
+
+export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, existingMonitor, isEditing }: AddMonitorModalProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkExpanded, setBulkExpanded] = useState(false);
+  const isAdmin = useMemo(() => currentUserIsAdmin(), []);
 
   const [monitorType, setMonitorType] = useState<'http' | 'tcp' | 'k8s'>(
     existingMonitor?.monitorTypeId === 3 ? 'tcp' : 
@@ -453,24 +468,74 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, existingMonitor, isE
     if (custom) setShowAdvanced(true);
   }, [isEditing, existingMonitor]);
 
+  useEffect(() => {
+    if (!bulkExpanded) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setBulkExpanded(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [bulkExpanded]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-xl max-h-[90vh] dark:bg-gray-900 bg-gray-50 shadow-lg flex flex-col">
+    <div className={bulkExpanded
+      ? 'fixed top-12 right-0 bottom-0 left-0 z-40 flex'
+      : 'fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40'
+    }>
+      <div className={`w-full dark:bg-gray-900 bg-gray-50 shadow-lg flex flex-col ${
+        bulkExpanded ? 'h-full' : `${showBulk ? 'max-w-3xl' : 'max-w-xl'} max-h-[90vh]`
+      }`}>
         <div className="flex-none flex items-center justify-between p-4 border-b dark:border-gray-700">
-          <h2 className="text-lg font-medium dark:text-white">
-            {isEditing ? 'Edit Monitor' : 'Add Monitor'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Close"
-          >
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 className="text-lg font-medium dark:text-white">
+              {showBulk ? 'Bulk import' : isEditing ? 'Edit Monitor' : 'Add Monitor'}
+            </h2>
+            {isAdmin && !isLoadingGroups && !showBulk && (
+              <button
+                type="button"
+                onClick={() => setShowBulk(true)}
+                className="hud-label px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Bulk import
+              </button>
+            )}
+          </div>
+          <div className="flex items-center">
+            {isAdmin && showBulk && (
+              <button
+                type="button"
+                onClick={() => setBulkExpanded((open) => !open)}
+                aria-label={bulkExpanded ? 'Exit fullscreen' : 'Expand window'}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                {bulkExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Close"
+            >
             <X className="w-5 h-5 dark:text-gray-400" />
-          </button>
+            </button>
+          </div>
         </div>
 
-        {isLoadingGroups ? (
+        {isAdmin && showBulk ? (
+          <BulkMonitorImport
+            groups={groups}
+            expanded={bulkExpanded}
+            onBack={() => {
+              setBulkExpanded(false);
+              setShowBulk(false);
+            }}
+            onApplied={async (failed) => {
+              if (onBulkApplied) await onBulkApplied();
+              if (failed === 0) onClose();
+            }}
+          />
+        ) : isLoadingGroups ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <LoadingSpinner text="Loading groups..." />
           </div>
