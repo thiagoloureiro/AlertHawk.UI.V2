@@ -14,6 +14,24 @@ interface Update {
 
 const updates: Update[] = [
   {
+    title: "Modern UI Refresh",
+    description: "A cleaner, more professional look across the app: softer rounded surfaces, a cooler neutral palette, refreshed navigation, and a redesigned sign-in page.",
+    date: "November 19th, 2026",
+    features: [
+      "New design foundation: cool neutral grays, rounded corners, subtle shadows, and Inter typography throughout",
+      "Sidebar now shows the AlertHawk brand, highlights the active page with a blue accent, and keeps the collapse control at the bottom",
+      "Top bar shows a breadcrumb with the current page and environment badge, with centered Online / Offline / Paused status pills",
+      "Offline count is highlighted and pulses when any monitor is down",
+      "Monitor list uses status pill badges, per-group online/offline/paused counts, and rounded row selection",
+      "Monitor details header shows a status-colored icon and badge, with larger KPI and uptime cards",
+      "Status timeline uses taller, rounded bars for easier scanning",
+      "Redesigned login page with Microsoft sign-in first, inline \"Forgot password?\" link, and a soft background glow",
+      "Dialogs now open over a blurred backdrop with rounded, elevated panels",
+      "Refreshed form controls: inputs, selects, text areas, toggles, and buttons share one consistent style",
+      "Fixed several dialogs whose backdrop rendered solid black instead of semi-transparent"
+    ]
+  },
+  {
     title: "FinOps Cost Type & Infra Support Settings",
     description: "FinOps Metrics now reflects how costs are calculated (actual vs amortized), lets you configure infra support overlay per subscription, and runs analysis more reliably under Azure rate limits.",
     date: "August 31st, 2026",
