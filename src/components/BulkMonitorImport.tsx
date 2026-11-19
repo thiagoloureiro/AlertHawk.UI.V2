@@ -88,7 +88,7 @@ export function BulkMonitorImport({ groups, expanded = false, onBack, onApplied 
   };
 
   const formatButtons = (
-    <div className="flex shrink-0 border border-gray-300 dark:border-gray-600">
+    <div className="inline-flex shrink-0 p-0.5 rounded-lg bg-gray-100 dark:bg-white/[0.04] ring-1 ring-inset ring-gray-200 dark:ring-gray-800">
       {(['yaml', 'json'] as const).map((format) => {
         const active = parsed.format === format;
         return (
@@ -96,10 +96,10 @@ export function BulkMonitorImport({ groups, expanded = false, onBack, onApplied 
             key={format}
             type="button"
             onClick={() => showTemplate(format)}
-            className={`hud-label px-3 py-1 ${
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
               active
-                ? 'bg-[#101014] text-[#f2f1ee] dark:bg-[#f2f1ee] dark:text-[#101014]'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
             {format.toUpperCase()}

@@ -283,7 +283,7 @@ export function PodLogModal({
         {/* Content */}
         <div className="flex-1 overflow-hidden p-6 min-h-0 flex flex-col relative">
           {isLoading && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 z-10 flex items-center justify-center rounded-lg">
+            <div className="absolute inset-0 bg-white/75 dark:bg-gray-800/75 z-10 flex items-center justify-center rounded-lg">
               <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-4 flex items-center gap-3">
                 <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
                 <span className="text-sm font-medium dark:text-white text-gray-900">Refreshing logs...</span>

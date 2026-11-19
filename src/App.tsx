@@ -128,7 +128,7 @@ export default function App() {
       <Toaster 
         position="bottom-right" 
         toastOptions={{
-          className: 'dark:bg-gray-800 dark:text-white'
+          className: '!rounded-xl !text-sm !shadow-lg ring-1 ring-gray-200 dark:ring-gray-800 dark:!bg-gray-900 dark:!text-white',
         }}
       />
     </BrowserRouter>

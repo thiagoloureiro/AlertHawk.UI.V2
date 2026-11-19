@@ -212,54 +212,82 @@ export function Login({ onLogin }: LoginProps) {
   };
 
   const fieldClass = (invalid: boolean) =>
-    `w-full bg-transparent border px-3 py-2.5 text-sm outline-none transition-colors
-     text-gray-900 dark:text-[#f2f1ee] placeholder:text-gray-400
+    `w-full h-10 rounded-lg border px-3 text-sm outline-none transition-shadow shadow-xs
+     bg-white dark:bg-white/[0.03] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500
+     disabled:opacity-60
      ${invalid
-       ? 'border-red-500 focus:border-red-500'
-       : 'border-gray-300 dark:border-white/20 focus:border-gray-900 dark:focus:border-[#f2f1ee]'}`;
+       ? 'border-red-400 focus:ring-4 focus:ring-red-500/15'
+       : 'border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15'}`;
+
+  const linkButtonClass =
+    'font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors';
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-[#f2f1ee]">
-      <header className="h-12 border-b border-gray-200 dark:border-white/15 flex items-center px-4 sm:px-5">
-        <img src="/assets/logo.png" alt="" className="h-7 w-7 object-contain" />
-        <span className="font-display ml-2.5 text-[1.35rem] leading-none">AlertHawk</span>
-      </header>
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[520px] rounded-full bg-blue-500/15 dark:bg-blue-500/10 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.35] dark:opacity-[0.15] [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_70%)]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgb(152 162 179 / 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgb(152 162 179 / 0.25) 1px, transparent 1px)',
+            backgroundSize: '44px 44px',
+          }}
+        />
+      </div>
 
-      <main className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md border border-gray-200 dark:border-white/15 bg-white dark:bg-[#101014]">
-          <div className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/15 px-6 py-3">
-            <p className="hud-label text-gray-500 dark:text-gray-400">Sign in</p>
-            <p className="hud-label text-gray-400 dark:text-gray-500">01 / Access</p>
+      <main className="relative flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[400px]">
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl bg-gray-900 dark:bg-white/[0.06] shadow-lg ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+              <img src="/assets/logo.png" alt="AlertHawk" className="w-12 h-12 object-contain" />
+            </div>
+            <h1 className="mt-5 text-2xl font-semibold tracking-tight">Sign in to AlertHawk</h1>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Uptime, alerts, and infrastructure metrics in one place.
+            </p>
           </div>
 
-          <div className="px-6 py-8 md:px-8">
-            <div className="mb-6 flex flex-col items-center text-center">
-              <img
-                src="/assets/logo.png"
-                alt=""
-                className="h-28 w-28 object-contain"
-              />
-              <h1 className="font-display mt-4 text-4xl leading-none text-gray-900 dark:text-[#f2f1ee]">
-                AlertHawk
-              </h1>
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60 shadow-xl shadow-gray-900/[0.04] dark:shadow-black/30 backdrop-blur p-6 sm:p-7">
+            <button
+              type="button"
+              onClick={handleMicrosoftLogin}
+              disabled={isLoading}
+              className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-white/[0.03]
+                       text-sm font-medium text-gray-800 dark:text-gray-100 shadow-xs
+                       hover:bg-gray-50 dark:hover:bg-white/[0.06]
+                       disabled:opacity-60 disabled:cursor-not-allowed transition-colors
+                       flex items-center justify-center gap-2.5"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
+                  <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
+                  <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
+                  <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
+                </svg>
+              )}
+              Continue with Microsoft
+            </button>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+              <span className="text-xs text-gray-400 dark:text-gray-500">or continue with email</span>
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
             </div>
-            <p className="font-display text-2xl leading-[1.05] text-gray-900 dark:text-[#f2f1ee]">
-              Keep an eye <span className="font-serif italic font-normal text-gray-500 dark:text-gray-400">on it.</span>
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-              Self-hosted monitoring for uptime, alerts, and infrastructure metrics.
-            </p>
 
             {error?.field === 'general' && (
-              <div className="mt-5 border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-200 px-3 py-2.5 flex items-center gap-2">
+              <div className="mb-4 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 px-3 py-2.5 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span className="text-sm">{error.message}</span>
               </div>
             )}
 
-            <form onSubmit={handleStandardLogin} className="mt-6 space-y-4">
+            <form onSubmit={handleStandardLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="email" className="hud-label text-gray-500 dark:text-gray-400">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email
                 </label>
                 <input
@@ -280,9 +308,18 @@ export function Login({ onLogin }: LoginProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="password" className="hud-label text-gray-500 dark:text-gray-400">
-                  Password
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className={`text-xs ${linkButtonClass}`}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative">
                   <input
                     id="password"
@@ -296,7 +333,7 @@ export function Login({ onLogin }: LoginProps) {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-900 dark:hover:text-[#f2f1ee]"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     disabled={isLoading}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -314,83 +351,38 @@ export function Login({ onLogin }: LoginProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="hud-label !font-bold w-full h-12 bg-[#101014] text-[#f2f1ee] dark:bg-[#f2f1ee] dark:text-[#101014]
-                         hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity
+                className="w-full h-10 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold
+                         shadow-sm ring-1 ring-inset ring-white/10
+                         disabled:opacity-60 disabled:cursor-not-allowed transition-colors
                          flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Signing in</span>
+                    <span>Signing in…</span>
                   </>
                 ) : (
                   <span>Sign in</span>
                 )}
               </button>
             </form>
+          </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-              <button
-                type="button"
-                onClick={() => setShowRegister(true)}
-                className="text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-white/30 underline-offset-4 hover:text-gray-900 dark:hover:text-[#f2f1ee]"
-              >
-                Register
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-white/30 underline-offset-4 hover:text-gray-900 dark:hover:text-[#f2f1ee]"
-              >
-                Forgot password
-              </button>
-            </div>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200 dark:border-white/15" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="hud-label bg-white dark:bg-[#101014] px-3 text-gray-400">
-                  Or
-                </span>
-              </div>
-            </div>
-
+          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Don't have an account?{' '}
             <button
               type="button"
-              onClick={handleMicrosoftLogin}
-              disabled={isLoading}
-              className="hud-label !font-bold w-full h-12 border border-gray-900 dark:border-[#f2f1ee] bg-transparent
-                       text-gray-900 dark:text-[#f2f1ee] hover:bg-[#101014] hover:text-[#f2f1ee]
-                       dark:hover:bg-[#f2f1ee] dark:hover:text-[#101014]
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors
-                       flex items-center justify-center gap-2.5"
+              onClick={() => setShowRegister(true)}
+              className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Connecting</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
-                    <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
-                    <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
-                    <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
-                  </svg>
-                  <span>Microsoft SSO</span>
-                </>
-              )}
+              Create one
             </button>
-          </div>
+          </p>
         </div>
       </main>
 
-      <footer className="border-t border-gray-200 dark:border-white/15 px-5 py-3 flex items-center justify-between">
-        <p className="hud-label text-gray-400">AlertHawk</p>
-        <p className="hud-label text-gray-400">Monitoring</p>
+      <footer className="relative px-6 py-5 text-center text-xs text-gray-400 dark:text-gray-500">
+        © {new Date().getFullYear()} AlertHawk · Self-hosted monitoring
       </footer>
 
       {showRegister && (

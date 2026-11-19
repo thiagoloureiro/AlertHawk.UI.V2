@@ -55,12 +55,12 @@ const TIME_PERIODS: TimePeriod[] = [
 ];
 
 const panelClass =
-  'rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950';
+  'rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40 shadow-xs';
 
 const actionBtnClass =
-  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ' +
-  'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 ' +
-  'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900';
+  'inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border shadow-xs transition-colors ' +
+  'bg-white dark:bg-white/[0.03] border-gray-200 dark:border-gray-800 ' +
+  'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.06] disabled:opacity-60';
 
 function uptimeTone(value?: number | null) {
   if (value == null || value === -1) return 'text-gray-400 dark:text-gray-500';
@@ -91,9 +91,9 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={cn(panelClass, 'p-4 mb-4', className)}>
+    <section className={cn(panelClass, 'p-5 mb-4', className)}>
       {(title || actions) && (
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
             {title && (
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
@@ -246,7 +246,7 @@ const StatusTimeline = ({ historyData, uptimeFromTiles }: {
           No history points for this period
         </div>
       ) : (
-        <div className="h-5 bg-gray-100 dark:bg-gray-900 rounded-md flex gap-px p-px overflow-hidden">
+        <div className="h-8 flex gap-[2px]">
           {timelineData.map((point, index) => {
             try {
               return (
@@ -256,9 +256,9 @@ const StatusTimeline = ({ historyData, uptimeFromTiles }: {
                 >
                   <div
                     className={cn(
-                      'w-full h-full transition-opacity hover:opacity-80',
+                      'w-full h-full rounded-[2px] transition-opacity hover:opacity-70',
                       point.status
-                        ? 'bg-emerald-500 dark:bg-emerald-400'
+                        ? 'bg-emerald-500/85 dark:bg-emerald-400/80'
                         : 'bg-red-500 dark:bg-red-400'
                     )}
                   />
@@ -1219,38 +1219,47 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
       {/* Sticky header */}
       <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800
                       bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
-        <div className="px-4 lg:px-5 pt-3 pb-2">
-          <div className="flex items-start justify-between gap-3">
+        <div className="px-5 lg:px-6 pt-5 pb-3">
+          <div className="flex items-start gap-3.5">
+            <div className={cn(
+              'w-11 h-11 shrink-0 rounded-xl flex items-center justify-center ring-1 ring-inset',
+              currentMetric.paused
+                ? 'bg-gray-100 ring-gray-200 dark:bg-white/[0.04] dark:ring-white/10'
+                : currentMetric.status
+                  ? 'bg-emerald-50 ring-emerald-600/15 dark:bg-emerald-500/10 dark:ring-emerald-500/20'
+                  : 'bg-red-50 ring-red-600/15 dark:bg-red-500/10 dark:ring-red-500/25'
+            )}>
+              <TargetIcon className={cn('w-5 h-5', statusTone)} />
+            </div>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight truncate">
+                  {currentMetric.name}
+                </h1>
                 <span className={cn(
-                  'inline-flex items-center gap-1.5 text-[11px] font-medium',
-                  statusTone
+                  'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset',
+                  currentMetric.paused
+                    ? 'bg-gray-100 text-gray-600 ring-gray-200 dark:bg-white/[0.04] dark:text-gray-400 dark:ring-white/10'
+                    : currentMetric.status
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20'
+                      : 'bg-red-50 text-red-700 ring-red-600/15 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/25'
                 )}>
-                  <span className={cn('w-1.5 h-1.5 rounded-full', statusDot, currentMetric.status && !currentMetric.paused && 'animate-pulse')} />
+                  <span className={cn('w-1.5 h-1.5 rounded-full', statusDot, !currentMetric.status && !currentMetric.paused && 'animate-pulse')} />
                   {statusLabel}
                 </span>
-                <span className="text-gray-300 dark:text-gray-700">·</span>
-                <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                  {typeInfo.label}
-                </span>
-                <span className="text-gray-300 dark:text-gray-700">·</span>
-                <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                  every {currentMetric.heartBeatInterval}m
-                </span>
               </div>
-              <h1 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight truncate">
-                {currentMetric.name}
-              </h1>
-              <div className="mt-1 flex items-center gap-1.5 min-w-0 text-xs text-gray-500 dark:text-gray-400">
-                <TargetIcon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{targetLabel}</span>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 text-xs text-gray-500 dark:text-gray-400">
+                <span className="truncate font-mono text-[11.5px]">{targetLabel}</span>
+                <span className="text-gray-300 dark:text-gray-700">•</span>
+                <span>{typeInfo.label}</span>
+                <span className="text-gray-300 dark:text-gray-700">•</span>
+                <span>Every {currentMetric.heartBeatInterval}m</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="px-4 lg:px-5 pb-3 flex flex-wrap gap-1.5">
+        <div className="px-5 lg:px-6 pb-4 flex flex-wrap gap-1.5">
           <button onClick={handlePauseToggle} disabled={isPauseLoading} className={actionBtnClass}>
             {isPauseLoading ? (
               <LoadingSpinner size="sm" />
@@ -1333,32 +1342,32 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
         </div>
       </div>
 
-      <div className="p-4 lg:p-5">
+      <div className="p-5 lg:p-6">
         {/* KPI strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-          <div className={cn(panelClass, 'p-3')}>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Status</div>
-            <div className={cn('text-lg font-semibold', statusTone)}>{statusLabel}</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className={cn(panelClass, 'p-4')}>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Status</div>
+            <div className={cn('text-2xl font-semibold tracking-tight', statusTone)}>{statusLabel}</div>
           </div>
-          <div className={cn(panelClass, 'p-3')}>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Type</div>
-            <div className="flex items-center gap-1.5 text-lg font-semibold text-gray-900 dark:text-white">
+          <div className={cn(panelClass, 'p-4')}>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Type</div>
+            <div className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
               {typeInfo.icon}
               <span>{typeInfo.label}</span>
             </div>
           </div>
-          <div className={cn(panelClass, 'p-3')}>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Response time</div>
-            <div className="text-lg font-semibold tabular-nums text-gray-900 dark:text-white">
+          <div className={cn(panelClass, 'p-4')}>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Response time</div>
+            <div className="text-2xl font-semibold tracking-tight tabular-nums text-gray-900 dark:text-white">
               {currentMetric.monitorStatusDashboard.responseTime.toFixed(0)}
-              <span className="text-sm font-medium text-gray-400 ml-0.5">ms</span>
+              <span className="text-sm font-medium text-gray-400 ml-1">ms</span>
             </div>
           </div>
           {currentMetric.checkCertExpiry ? (
-            <div className={cn(panelClass, 'p-3')}>
-              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">SSL certificate</div>
+            <div className={cn(panelClass, 'p-4')}>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">SSL certificate</div>
               <div className={cn(
-                'text-lg font-semibold tabular-nums',
+                'text-2xl font-semibold tracking-tight tabular-nums',
                 currentMetric.daysToExpireCert <= 0
                   ? 'text-red-600 dark:text-red-400'
                   : currentMetric.daysToExpireCert <= 30
@@ -1370,9 +1379,9 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
               </div>
             </div>
           ) : (
-            <div className={cn(panelClass, 'p-3')}>
-              <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Retries</div>
-              <div className="text-lg font-semibold tabular-nums text-gray-900 dark:text-white">
+            <div className={cn(panelClass, 'p-4')}>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Retries</div>
+              <div className="text-2xl font-semibold tracking-tight tabular-nums text-gray-900 dark:text-white">
                 {currentMetric.retries}
               </div>
             </div>
@@ -1380,7 +1389,7 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
         </div>
 
         {/* Uptime period selector */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           {TIME_PERIODS.map((period) => {
             const uptimeValue =
               period.label === '1 Hour'
@@ -1403,10 +1412,10 @@ export function MetricDetails({ metric, group, onMetricUpdate, onMonitorsChanged
                 key={period.label}
                 onClick={() => setSelectedPeriod(period)}
                 className={cn(
-                  'text-left p-2.5 rounded-lg border transition-colors',
+                  'text-left px-3.5 py-3 rounded-xl border shadow-xs transition-all',
                   isSelected
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-500'
-                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 hover:border-gray-300 dark:hover:border-gray-700'
+                    ? 'border-blue-500 bg-blue-50/70 ring-4 ring-blue-500/10 dark:bg-blue-500/10 dark:border-blue-500/70'
+                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40 hover:border-gray-300 dark:hover:border-gray-700'
                 )}
               >
                 <div className={cn(

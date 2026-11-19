@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut, Sparkles, Palette, AlertTriangle, Shield, Check, ChevronDown } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, Palette, AlertTriangle, Shield, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { LoadingSpinner } from './ui';
+import { getPageTitle } from './navigation';
 import { useMsal } from "@azure/msal-react";
 import { msalService } from '../services/msalService';
 import { WhatsNewModal } from './WhatsNewModal';
@@ -54,6 +56,7 @@ interface MonitorStatus {
 
 export function TopBar({ theme, onThemeChange }: TopBarProps) {
   const { accounts, instance } = useMsal();
+  const page = getPageTitle(useLocation().pathname);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -195,84 +198,81 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
     { value: 'github-dark' as const, label: 'GitHub Dark', icon: <Palette className="w-4 h-4" /> },
   ];
 
+  const menuPanelClass =
+    'absolute top-full right-0 mt-2 p-1 rounded-xl bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 z-[10000]';
+  const menuItemClass =
+    'w-full px-2.5 py-2 rounded-lg text-left text-sm flex items-center gap-2.5 transition-colors';
+
   return (
-    <header className="h-12 px-4 lg:px-5 flex items-center justify-between gap-4
+    <header className="h-14 px-4 lg:px-6 flex items-center justify-between gap-4
                     border-b border-gray-200 dark:border-gray-800
-                    bg-white dark:bg-gray-950
+                    bg-white/95 dark:bg-gray-950/95 backdrop-blur
                     transition-colors duration-200 relative z-[9999]">
-      {/* Brand */}
-      <div className="flex items-center gap-2.5 min-w-0">
-        <img 
-          src="../assets/logo.png" 
-          alt="AlertHawk" 
-          className="w-6 h-6 object-contain shrink-0"
-        />
-        <div className="flex items-baseline gap-2.5 min-w-0">
-          <span className="font-display text-[1.35rem] leading-none text-gray-900 dark:text-white">
-            AlertHawk
-          </span>
-          <span className={`hidden sm:inline-flex items-center hud-label px-1.5 py-0.5 ring-1 ring-inset ${envInfo.className}`}>
-            {envInfo.name}
-          </span>
-        </div>
+      {/* Page context */}
+      <div className="flex flex-1 basis-0 items-center gap-3 min-w-0">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 min-w-0 text-sm">
+          <span className="hidden sm:inline text-gray-500 dark:text-gray-400">{page.section}</span>
+          <ChevronRight className="hidden sm:block w-3.5 h-3.5 text-gray-300 dark:text-gray-600 shrink-0" />
+          <h1 className="font-semibold text-gray-900 dark:text-white truncate">{page.title}</h1>
+        </nav>
+        <span
+          className={`hidden sm:inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ring-1 ring-inset ${envInfo.className}`}
+          title="Selected environment"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+          {envInfo.name}
+        </span>
       </div>
 
-      {/* Live status strip */}
-      <div className="flex items-center justify-center flex-1 min-w-0">
+      {/* Live status */}
+      <div className="flex items-center justify-center shrink-0">
         {isLoadingStatus ? (
-          <LoadingSpinner size="sm" text="Syncing..." />
+          <LoadingSpinner size="sm" text="Syncing" className="text-xs px-2" />
         ) : isMonitorExecutionDisabled ? (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md
-                          bg-amber-50 dark:bg-amber-950/40
-                          ring-1 ring-inset ring-amber-200 dark:ring-amber-800/60
-                          text-amber-800 dark:text-amber-200">
+          <div className="inline-flex items-center gap-2 h-8 px-3 rounded-full
+                          bg-amber-50 dark:bg-amber-500/10
+                          ring-1 ring-inset ring-amber-200 dark:ring-amber-500/25
+                          text-amber-800 dark:text-amber-300">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
             <span className="text-xs font-medium whitespace-nowrap">
-              Execution disabled — all monitors paused for maintenance
+              <span className="hidden lg:inline">Execution disabled — monitors paused for maintenance</span>
+              <span className="lg:hidden">Maintenance</span>
             </span>
           </div>
         ) : (
-          <div className="inline-flex items-center gap-1 sm:gap-0
-                          bg-gray-50 dark:bg-gray-900
-                          ring-1 ring-inset ring-gray-200 dark:ring-gray-800
-                          px-1 py-1">
+          <div
+            className="hidden sm:inline-flex items-center h-8 rounded-full p-0.5
+                       bg-gray-50 dark:bg-white/[0.03]
+                       ring-1 ring-inset ring-gray-200 dark:ring-gray-800"
+            title={`${totalMonitors} monitors`}
+          >
             <StatusStat tone="online" count={monitorStatus.online} label="Online" />
-            <div className="hidden sm:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
             <StatusStat tone="offline" count={monitorStatus.offline} label="Offline" />
-            <div className="hidden sm:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
             <StatusStat tone="paused" count={monitorStatus.paused} label="Paused" />
-            {totalMonitors > 0 && (
-              <>
-                <div className="hidden md:block w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
-                <span className="hidden md:inline-flex px-2.5 text-[11px] text-gray-500 dark:text-gray-400 tabular-nums">
-                  {totalMonitors} total
-                </span>
-              </>
-            )}
           </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex flex-1 basis-0 items-center justify-end gap-2 min-w-0">
         <div ref={themeMenuRef} className="relative z-[10000]">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className="p-2 text-gray-500 dark:text-gray-400
-                     hover:bg-gray-100 dark:hover:bg-gray-800
-                     hover:text-gray-700 dark:hover:text-gray-200
+            className="w-9 h-9 inline-flex items-center justify-center rounded-lg
+                     text-gray-500 dark:text-gray-400
+                     hover:bg-gray-100 dark:hover:bg-white/[0.06]
+                     hover:text-gray-900 dark:hover:text-white
                      transition-colors"
             title="Select theme"
             aria-label="Select theme"
           >
-            <Palette className="w-4.5 h-4.5 w-[18px] h-[18px]" />
+            {theme === 'light' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
           </button>
           {showThemeMenu && (
-            <div className="absolute top-full right-0 mt-1.5 w-48 py-1
-                            bg-white dark:bg-gray-900
-                            shadow-lg
-                            ring-1 ring-gray-200 dark:ring-gray-800
-                            z-[10000]">
+            <div className={`${menuPanelClass} w-48`}>
+              <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                Theme
+              </div>
               {themes.map((t) => (
                 <button
                   key={t.value}
@@ -280,86 +280,71 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
                     onThemeChange(t.value);
                     setShowThemeMenu(false);
                   }}
-                  className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 transition-colors ${
+                  className={`${menuItemClass} ${
                     theme === t.value
-                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/80'
+                      ? 'bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                   }`}
                 >
-                  {t.icon}
+                  <span className="text-gray-400">{t.icon}</span>
                   <span className="flex-1">{t.label}</span>
-                  {theme === t.value && <Check className="w-3.5 h-3.5" />}
+                  {theme === t.value && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
                 </button>
               ))}
             </div>
           )}
         </div>
-        
+
         <div ref={menuRef} className="relative z-[10000]">
-          <button 
-            onClick={() => setShowUserMenu(!showUserMenu)} 
-            className="flex items-center gap-2 pl-1 pr-2 py-1
-                     hover:bg-gray-100 dark:hover:bg-gray-800
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2.5 h-9 pl-1 pr-2 rounded-lg
+                     hover:bg-gray-100 dark:hover:bg-white/[0.06]
                      transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500
-                            flex items-center justify-center text-white overflow-hidden
-                            text-sm font-medium shrink-0">
-              {userPhoto ? (
-                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
-              ) : (
-                <span>{displayName.charAt(0).toUpperCase()}</span>
-              )}
-            </div>
+            <Avatar photo={userPhoto} name={displayName} />
             <div className="text-left hidden md:block min-w-0">
-              <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px]">
+              <div className="text-[13px] font-medium leading-tight text-gray-900 dark:text-white truncate max-w-[140px]">
                 {displayName}
               </div>
+              {userInfo?.isAdmin && (
+                <div className="text-[11px] leading-tight text-gray-500 dark:text-gray-400">Administrator</div>
+              )}
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:block" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-1.5 w-56 py-1
-                            bg-white dark:bg-gray-900
-                            shadow-lg
-                            ring-1 ring-gray-200 dark:ring-gray-800
-                            z-[10000] overflow-hidden">
-              <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
-                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {displayName}
+            <div className={`${menuPanelClass} w-64`}>
+              <div className="flex items-center gap-3 px-2.5 py-2.5 mb-1 border-b border-gray-100 dark:border-gray-800">
+                <Avatar photo={userPhoto} name={displayName} size="lg" />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{displayName}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{email}</div>
+                  {userInfo?.isAdmin && (
+                    <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                      <Shield className="w-3 h-3" />
+                      Administrator
+                    </div>
+                  )}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {email}
-                </div>
-                {userInfo?.isAdmin && (
-                  <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium
-                                  text-blue-600 dark:text-blue-400">
-                    <Shield className="w-3 h-3" />
-                    Administrator
-                  </div>
-                )}
               </div>
               <button
                 onClick={() => {
                   setShowWhatsNew(true);
                   setShowUserMenu(false);
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300
-                         hover:bg-gray-50 dark:hover:bg-gray-800
-                         flex items-center gap-2.5 transition-colors"
+                className={`${menuItemClass} text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]`}
               >
                 <Sparkles className="w-4 h-4 text-gray-400" />
-                What's New
+                What's new
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400
-                         hover:bg-red-50 dark:hover:bg-red-950/30
-                         flex items-center gap-2.5 transition-colors"
+                className={`${menuItemClass} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10`}
               >
                 <LogOut className="w-4 h-4" />
-                Sign Out
+                Sign out
               </button>
             </div>
           )}
@@ -368,6 +353,22 @@ export function TopBar({ theme, onThemeChange }: TopBarProps) {
 
       {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
     </header>
+  );
+}
+
+function Avatar({ photo, name, size = 'md' }: { photo: string | null; name: string; size?: 'md' | 'lg' }) {
+  return (
+    <div
+      className={`${size === 'lg' ? 'w-10 h-10 text-base' : 'w-7 h-7 text-xs'} rounded-full shrink-0 overflow-hidden
+                  bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold
+                  flex items-center justify-center ring-2 ring-white dark:ring-gray-950`}
+    >
+      {photo ? (
+        <img src={photo} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <span>{name.charAt(0).toUpperCase()}</span>
+      )}
+    </div>
   );
 }
 
@@ -387,22 +388,24 @@ function StatusStat({
         ? 'bg-red-500'
         : 'bg-gray-400 dark:bg-gray-500';
 
-  const value =
-    tone === 'online'
-      ? 'text-emerald-700 dark:text-emerald-400'
-      : tone === 'offline'
-        ? 'text-red-600 dark:text-red-400'
-        : 'text-gray-600 dark:text-gray-400';
+  const highlight =
+    tone === 'offline' && count > 0
+      ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300'
+      : 'text-gray-700 dark:text-gray-300';
 
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 min-w-[4.5rem]">
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-      <span className={`text-sm font-semibold tabular-nums leading-none font-mono ${value}`}>
-        {count}
+    <div
+      className={`flex items-center gap-1.5 h-full px-2.5 rounded-full text-xs ${highlight}`}
+      title={`${count} ${label.toLowerCase()}`}
+    >
+      <span className="relative flex w-1.5 h-1.5 shrink-0">
+        {tone === 'offline' && count > 0 && (
+          <span className={`absolute inset-0 rounded-full ${dot} animate-ping opacity-60`} />
+        )}
+        <span className={`relative w-1.5 h-1.5 rounded-full ${dot}`} />
       </span>
-      <span className="hud-label text-gray-500 dark:text-gray-400 leading-none hidden sm:inline">
-        {label}
-      </span>
+      <span className="font-semibold tabular-nums">{count}</span>
+      <span className="hidden lg:inline text-gray-500 dark:text-gray-400">{label}</span>
     </div>
   );
 }

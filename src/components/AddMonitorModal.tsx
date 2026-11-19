@@ -39,7 +39,9 @@ const monitorTypes = [
 
 
 const inputClass =
-  'w-full px-3 py-2 border dark:bg-gray-700 dark:border-gray-600 dark:text-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none';
+  'w-full h-10 px-3 rounded-lg border border-gray-300 bg-white shadow-xs text-sm text-gray-900 placeholder:text-gray-400 ' +
+  'dark:bg-white/[0.03] dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500 ' +
+  'focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 transition-shadow';
 
 function currentUserIsAdmin(): boolean {
   try {
@@ -482,19 +484,19 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, exist
       ? 'fixed top-12 right-0 bottom-0 left-0 z-40 flex'
       : 'fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40'
     }>
-      <div className={`w-full dark:bg-gray-900 bg-gray-50 shadow-lg flex flex-col ${
+      <div className={`w-full dark:bg-gray-900 bg-white flex flex-col ${
         bulkExpanded ? 'h-full' : `${showBulk ? 'max-w-3xl' : 'max-w-xl'} max-h-[90vh]`
       }`}>
-        <div className="flex-none flex items-center justify-between p-4 border-b dark:border-gray-700">
+        <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-3 min-w-0">
-            <h2 className="text-lg font-medium dark:text-white">
-              {showBulk ? 'Bulk import' : isEditing ? 'Edit Monitor' : 'Add Monitor'}
+            <h2 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+              {showBulk ? 'Bulk import' : isEditing ? 'Edit monitor' : 'New monitor'}
             </h2>
             {isAdmin && !isLoadingGroups && !showBulk && (
               <button
                 type="button"
                 onClick={() => setShowBulk(true)}
-                className="hud-label px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="h-7 px-2.5 rounded-md text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.06]"
               >
                 Bulk import
               </button>
@@ -549,11 +551,11 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, exist
                     type="button"
                     onClick={() => setMonitorType(type.id as 'http' | 'tcp' | 'k8s')}
                     disabled={isEditing}
-                    className={`px-3 py-3 border flex flex-col items-center gap-1.5 transition-colors
+                    className={`px-3 py-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all
                       ${isEditing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
                       ${monitorType === type.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                        ? 'border-blue-500 bg-blue-50/70 ring-4 ring-blue-500/10 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                        : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}
                   >
                     <type.icon className="w-5 h-5" />
                     <span className="text-sm font-medium">{type.label}</span>
@@ -631,7 +633,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, exist
                       type="file"
                       accept=".yaml,.yml"
                       onChange={(e) => setKubeConfig(e.target.files?.[0] || null)}
-                      className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium`}
+                      className={`${inputClass} h-auto py-2 file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium`}
                       required={!isEditing}
                     />
                     {isEditing && !kubeConfig && (
@@ -648,7 +650,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, exist
                   Group <span className="text-red-500">*</span>
                 </label>
                 {isEditing ? (
-                  <div className={`${inputClass} bg-gray-100 dark:bg-gray-800 cursor-not-allowed`}>
+                  <div className={`${inputClass} flex items-center !bg-gray-100 dark:!bg-white/[0.06] cursor-not-allowed`}>
                     {sortedGroups.find((g) => g.id === selectedGroupId)?.name ||
                       (selectedGroupId > 0 ? `Group ${selectedGroupId}` : 'Unknown group')}
                   </div>
@@ -844,7 +846,7 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, exist
                           rows={4}
                           placeholder="JSON or form body"
                           disabled={httpMethod === 'GET'}
-                          className={`${inputClass} font-mono text-sm`}
+                          className={`${inputClass} h-auto py-2 font-mono text-sm`}
                         />
                       </div>
 
@@ -953,18 +955,18 @@ export function AddMonitorModal({ onClose, onAdd, onUpdate, onBulkApplied, exist
               )}
             </div>
 
-            <div className="flex-none border-t dark:border-gray-700 p-4 flex justify-end gap-3">
+            <div className="flex-none border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-white/[0.02] px-6 py-4 flex justify-end gap-2.5 rounded-b-2xl">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-700 bg-white dark:bg-white/[0.03] text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-white/[0.06]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || isCreatingGroup}
-                className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="h-9 px-4 rounded-lg text-sm font-semibold bg-blue-600 text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting || isCreatingGroup ? (
                   <>
